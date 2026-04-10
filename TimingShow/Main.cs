@@ -11,10 +11,10 @@ namespace TimingShow
         public bool ShowOnPlanet = true;
         public bool ShowOnDeath = true;
         public bool ShowInWinPage = true;
-        public int perc1 = 1;
-        public int perc2 = 1;
-        public int perc3 = 1;
-        public int perc4 = 2;
+        public int Perc1 = 1;
+        public int Perc2 = 1;
+        public int Perc3 = 1;
+        public int Perc4 = 2;
 
         public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
     }
