@@ -49,18 +49,9 @@ namespace TimingShow
             DrawSettingRow("替换标题", ref Settings.ShowInSongTitle, ref Settings.perc1);
             DrawSettingRow("替换判定显示 (需重进编辑器)", ref Settings.ShowOnPlanet, ref Settings.perc2);
             DrawSettingRow("在玩家死亡时显示", ref Settings.ShowOnDeath, ref Settings.perc3);
+            DrawSettingRow("在结算界面显示", ref Settings.ShowInWinPage, ref Settings.perc4);
 
-            Settings.ShowInWinPage = GUILayout.Toggle(Settings.ShowInWinPage, "在结算界面显示");
-            if (Settings.ShowInWinPage)
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label($"误差精度: {Settings.perc4}", GUILayout.Width(150));
-                Settings.perc4 = Mathf.RoundToInt(GUILayout.HorizontalSlider(Settings.perc4, 0, 5, GUILayout.Width(100)));
-                GUILayout.EndHorizontal();
-            }
-
-            GUILayout.Space(10);
+            GUILayout.Space(15);
             if (GUILayout.Button("重置统计数据", GUILayout.Width(150)))
             {
                 SessionOffsets.Clear();
