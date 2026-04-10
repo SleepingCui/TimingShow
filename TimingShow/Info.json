@@ -1,11 +1,8 @@
 {
   "Id": "TimingShow",
-  "DisplayName": "Timing Show Overlay",
-  "Author": "YourName",
+  "DisplayName": "TimingShow",
+  "Author": "SleepingCui",
   "Version": "1.0.0",
   "AssemblyName": "TimingShow.dll",
-  "EntryMethod": "TimingShow.Main.Load",
-  "Requirements": [],
-  "HomePage": "",
-  "Repository": ""
+  "EntryMethod": "TimingShow.Main.Load"
 }
