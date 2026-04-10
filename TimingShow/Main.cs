@@ -46,10 +46,10 @@ namespace TimingShow
         static void OnGUI(UnityModManager.ModEntry modEntry)
         {
             GUILayout.BeginVertical("box");
-            DrawSettingRow("替换标题", ref Settings.ShowInSongTitle, ref Settings.perc1);
-            DrawSettingRow("替换判定显示 (需重进编辑器)", ref Settings.ShowOnPlanet, ref Settings.perc2);
-            DrawSettingRow("在玩家死亡时显示", ref Settings.ShowOnDeath, ref Settings.perc3);
-            DrawSettingRow("在结算界面显示", ref Settings.ShowInWinPage, ref Settings.perc4);
+            DrawSettingRow("替换标题", ref Settings.ShowInSongTitle, ref Settings.Perc1);
+            DrawSettingRow("替换判定显示 (需重进编辑器)", ref Settings.ShowOnPlanet, ref Settings.Perc2);
+            DrawSettingRow("在玩家死亡时显示", ref Settings.ShowOnDeath, ref Settings.Perc3);
+            DrawSettingRow("在结算界面显示", ref Settings.ShowInWinPage, ref Settings.Perc4);
 
             GUILayout.Space(15);
             if (GUILayout.Button("重置统计数据", GUILayout.Width(150)))

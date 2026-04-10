@@ -35,7 +35,7 @@ namespace TimingShow
             if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying()) return;
             var textField = AccessTools.Field(typeof(scrHitTextMesh), "text");
             if (textField?.GetValue(__instance) is TextMesh tm)
-                tm.text = Main.Format(Main.LastTiming, Main.Settings.perc2);
+                tm.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
         }
     }
 
@@ -48,7 +48,7 @@ namespace TimingShow
             if (!Main.IsEnabled) return;
             Main.SessionOffsets.Clear();
             if (Main.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
-                __instance.txtTryCalibrating.text = Main.Format(Main.LastTiming, Main.Settings.perc3);
+                __instance.txtTryCalibrating.text = Main.Format(Main.LastTiming, Main.Settings.Perc3);
         }
     }
 
@@ -62,7 +62,7 @@ namespace TimingShow
             try
             {
                 double avgOffset = Main.SessionOffsets.Average();
-                string info = $"平均偏移: {Main.Format(avgOffset, Main.Settings.perc4)}";
+                string info = $"平均偏移: {Main.Format(avgOffset, Main.Settings.Perc4)}";
                 if (__instance.txtResults != null && __instance.txtResults.gameObject.activeSelf)
                     __instance.txtResults.text += info;
                 Main.SessionOffsets.Clear();
@@ -78,7 +78,7 @@ namespace TimingShow
         public static void Postfix(scrUIController __instance)
         {
             if (Main.IsEnabled && Main.Settings.ShowInSongTitle && Main.IsPlaying() && __instance.txtLevelName != null)
-                __instance.txtLevelName.text = Main.Format(Main.LastTiming, Main.Settings.perc1);
+                __instance.txtLevelName.text = Main.Format(Main.LastTiming, Main.Settings.Perc1);
         }
     }
 }
