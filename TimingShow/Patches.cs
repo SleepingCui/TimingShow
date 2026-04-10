@@ -61,8 +61,8 @@ namespace TimingShow
             if (!Main.IsEnabled || !Main.Settings.ShowInWinPage || Main.SessionOffsets.Count == 0) return;
             try
             {
-                double avgError = Main.SessionOffsets.Select(Math.Abs).Average();
-                string info = $"绝对平均误差: {Main.Format(avgError, Main.Settings.perc4)}";
+                double avgOffset = Main.SessionOffsets.Average();
+                string info = $"平均偏移: {Main.Format(avgOffset, Main.Settings.perc4)}";
                 if (__instance.txtResults != null && __instance.txtResults.gameObject.activeSelf)
                     __instance.txtResults.text += info;
                 Main.SessionOffsets.Clear();
