@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System;
-using System.Linq;
 using UnityEngine;
 
 namespace TimingShow
@@ -59,15 +58,18 @@ namespace TimingShow
         public static void Postfix(scrController __instance)
         {
             if (!Main.IsEnabled || !Main.Settings.ShowInWinPage || Main.SessionOffsets.Count == 0) return;
-            try
+            try 
             {
-                double avgOffset = Main.SessionOffsets.Average();
-                string info = $"平均偏移: {Main.Format(avgOffset, Main.Settings.Perc4)}";
-                if (__instance.txtResults != null && __instance.txtResults.gameObject.activeSelf)
+                double avgOffset = 0;
+                foreach (var offset in Main.SessionOffsets) avgOffset += offset;
+                avgOffset /= Main.SessionOffsets.Count;
+                string info = Main.L(Locale_zh.Avg_Timing, Locale_en.Avg_Timing) + Main.Format(avgOffset, Main.Settings.Perc4);
+                if (__instance.txtResults != null && __instance.txtResults.gameObject.activeSelf) {
                     __instance.txtResults.text += info;
+                }
                 Main.SessionOffsets.Clear();
             }
-            catch { }
+            catch {}
         }
     }
 

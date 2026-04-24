@@ -85,9 +85,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="en_us.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Patches.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="zh_cn.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Info.json">
