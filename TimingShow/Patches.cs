@@ -32,9 +32,28 @@ namespace TimingShow
         public static void Postfix(scrHitTextMesh __instance)
         {
             if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying()) return;
-            var textField = AccessTools.Field(typeof(scrHitTextMesh), "text");
-            if (textField?.GetValue(__instance) is TextMesh tm)
-                tm.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
+
+            bool shouldReplace = false;
+            switch (__instance.hitMargin)
+            {
+                case HitMargin.TooEarly: shouldReplace = Main.Settings.ReplaceTooEarly; break;
+                case HitMargin.VeryEarly: shouldReplace = Main.Settings.ReplaceVeryEarly; break;
+                case HitMargin.EarlyPerfect: shouldReplace = Main.Settings.ReplaceEarlyPerfect; break;
+                case HitMargin.Perfect: shouldReplace = Main.Settings.ReplacePerfect; break;
+                case HitMargin.LatePerfect: shouldReplace = Main.Settings.ReplaceLatePerfect; break;
+                case HitMargin.VeryLate: shouldReplace = Main.Settings.ReplaceVeryLate; break;
+                case HitMargin.TooLate: shouldReplace = Main.Settings.ReplaceTooLate; break;
+                case HitMargin.Multipress: shouldReplace = Main.Settings.ReplaceMultipress; break;
+                case HitMargin.FailMiss: shouldReplace = Main.Settings.ReplaceFailMiss; break;
+                case HitMargin.FailOverload: shouldReplace = Main.Settings.ReplaceFailOverload; break;
+                default: shouldReplace = false; break;
+            }
+            if (shouldReplace)
+            {
+                var textField = AccessTools.Field(typeof(scrHitTextMesh), "text");
+                if (textField?.GetValue(__instance) is TextMesh tm)
+                    tm.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
+            }
         }
     }
 
