@@ -20,5 +20,16 @@
         public const string Toggle_TooLate = "太慢!!";
         public const string Toggle_FailMiss = "失误...";
         public const string Toggle_Multipress = "多次按键!";
+        public const string Toggle_TimingHUD = "显示 Timing HUD";
+        public const string Title_TimingHUD = "Timing 显示设置";
+        public const string Label_XOffset = "X轴偏移: ";
+        public const string Label_YOffset = "Y轴偏移: ";
+        public const string Label_Scale = "缩放大小: ";
+        public const string Toggle_Bold = "加粗文字";
+        public const string Label_Align = "对齐方式: ";
+        public const string Btn_Left = "左对齐";
+        public const string Btn_Center = "居中";
+        public const string Btn_Right = "右对齐";
+        public const string Label_Format = "显示格式: ";
     }
 }

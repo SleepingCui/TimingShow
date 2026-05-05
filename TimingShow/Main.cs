@@ -2,34 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityModManagerNet;
+using static Settings;
 
 namespace TimingShow
 {
-    public class Settings : UnityModManager.ModSettings
-    {
-        public bool ShowInSongTitle = true;
-        public bool ShowOnPlanet = true;
-        public bool ShowOnDeath = true;
-        public bool ShowInWinPage = true;
-        public int Perc1 = 1;
-        public int Perc2 = 1;
-        public int Perc3 = 1;
-        public int Perc4 = 2;
-        public int Language = 0;
-
-        public bool ReplaceTooEarly = false;
-        public bool ReplaceVeryEarly = false;
-        public bool ReplaceEarlyPerfect = false;
-        public bool ReplacePerfect = true; 
-        public bool ReplaceLatePerfect = false;
-        public bool ReplaceVeryLate = false;
-        public bool ReplaceTooLate = false;
-        public bool ReplaceMultipress = false;
-        public bool ReplaceFailMiss = false;
-        public bool ReplaceFailOverload = false;
-
-        public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
-    }
+    
 
     public static class Main
     {
@@ -37,8 +14,11 @@ namespace TimingShow
         public static bool IsEnabled;
         public static Settings Settings;
         public static double LastTiming = 0;
+        public static GameObject hudObject;
+        public static TextUI hudInstance;
         public static List<double> SessionOffsets = new List<double>();
         public static string L(string zh, string en) => Settings.Language == 0 ? zh : en;
+        
 
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
@@ -70,11 +50,6 @@ namespace TimingShow
             GUILayout.Space(10);
             DrawSettingRow(L(Locale_zh.Toggle_Title, Locale_en.Toggle_Title), ref Settings.ShowInSongTitle, ref Settings.Perc1);
             DrawSettingRow(L(Locale_zh.Toggle_Planet, Locale_en.Toggle_Planet), ref Settings.ShowOnPlanet, ref Settings.Perc2);
-            DrawSettingRow(L(Locale_zh.Toggle_Death, Locale_en.Toggle_Death), ref Settings.ShowOnDeath, ref Settings.Perc3);
-            DrawSettingRow(L(Locale_zh.Toggle_Win, Locale_en.Toggle_Win), ref Settings.ShowInWinPage, ref Settings.Perc4);
-
-            GUILayout.Space(15);
-
             if (Settings.ShowOnPlanet)
             {
                 GUILayout.Label(L(Locale_zh.Setting_Title, Locale_en.Setting_Title));
@@ -89,6 +64,66 @@ namespace TimingShow
                 Settings.ReplaceTooLate = GUILayout.Toggle(Settings.ReplaceTooLate, L(Locale_zh.Toggle_TooLate, Locale_en.Toggle_TooLate));
                 Settings.ReplaceFailMiss = GUILayout.Toggle(Settings.ReplaceFailMiss, L(Locale_zh.Toggle_FailMiss, Locale_en.Toggle_FailMiss));
                 Settings.ReplaceMultipress = GUILayout.Toggle(Settings.ReplaceMultipress, L(Locale_zh.Toggle_Multipress, Locale_en.Toggle_Multipress));
+            }
+            DrawSettingRow(L(Locale_zh.Toggle_Death, Locale_en.Toggle_Death), ref Settings.ShowOnDeath, ref Settings.Perc3);
+            DrawSettingRow(L(Locale_zh.Toggle_Win, Locale_en.Toggle_Win), ref Settings.ShowInWinPage, ref Settings.Perc4);
+
+            Settings.ShowTimingHUD = GUILayout.Toggle(Settings.ShowTimingHUD, L(Locale_zh.Toggle_TimingHUD, Locale_en.Toggle_TimingHUD));
+            if (Settings.ShowTimingHUD)
+            {
+                GUILayout.Label(L(Locale_zh.Title_TimingHUD, Locale_en.Title_TimingHUD));
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(L(Locale_zh.Label_XOffset, Locale_en.Label_XOffset) + $"{Settings.HUD_x:F2}", GUILayout.Width(120));
+                Settings.HUD_x = GUILayout.HorizontalSlider(Settings.HUD_x, -0.5f, 0.5f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(L(Locale_zh.Label_YOffset, Locale_en.Label_YOffset) + $"{Settings.HUD_y:F2}", GUILayout.Width(120));
+                Settings.HUD_y = GUILayout.HorizontalSlider(Settings.HUD_y, -0.5f, 0.5f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(L(Locale_zh.Label_Scale, Locale_en.Label_Scale) + $"{Settings.HUD_scale:F2}", GUILayout.Width(120));
+                Settings.HUD_scale = GUILayout.HorizontalSlider(Settings.HUD_scale, 0.2f, 3.0f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                Settings.HUD_bold = GUILayout.Toggle(Settings.HUD_bold, L(Locale_zh.Toggle_Bold, Locale_en.Toggle_Bold));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(L(Locale_zh.Label_Align, Locale_en.Label_Align), GUILayout.Width(100));
+
+                GUIStyle leftStyle = new GUIStyle(GUI.skin.button);
+                if (Settings.HUD_align == 0) leftStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(L(Locale_zh.Btn_Left, Locale_en.Btn_Left), leftStyle, GUILayout.Width(60))) Settings.HUD_align = 0;
+
+                GUIStyle centerStyle = new GUIStyle(GUI.skin.button);
+                if (Settings.HUD_align == 1) centerStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(L(Locale_zh.Btn_Center, Locale_en.Btn_Center), centerStyle, GUILayout.Width(60))) Settings.HUD_align = 1;
+
+                GUIStyle rightStyle = new GUIStyle(GUI.skin.button);
+                if (Settings.HUD_align == 2) rightStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(L(Locale_zh.Btn_Right, Locale_en.Btn_Right), rightStyle, GUILayout.Width(60))) Settings.HUD_align = 2;
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(L(Locale_zh.Label_Format, Locale_en.Label_Format), GUILayout.Width(100));
+                Settings.HUD_Format = GUILayout.TextField(Settings.HUD_Format, GUILayout.Width(200));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(L(Locale_zh.Label_Precision, Locale_en.Label_Precision) + $"{Settings.PercHUD}", GUILayout.Width(120));
+                Settings.PercHUD = Mathf.RoundToInt(GUILayout.HorizontalSlider(Settings.PercHUD, 0, 5, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
             }
 
             GUILayout.Space(15);
@@ -117,5 +152,40 @@ namespace TimingShow
 
         public static bool IsPlaying() => scrController.instance != null && scrController.instance.state == States.PlayerControl;
         public static string Format(double val, int precision) => $"{val.ToString("F" + precision)}ms";
+
+        public static void UpdateHUD()
+        {
+            bool isplay = scrController.instance != null && scrConductor.instance != null && scrConductor.instance.isGameWorld && !scrController.instance.paused;
+
+            if (isplay)
+            {
+                if (hudObject == null)
+                {
+                    hudObject = new GameObject("TimingShow_HUD");
+                    UnityEngine.Object.DontDestroyOnLoad(hudObject);
+                    hudInstance = hudObject.AddComponent<TextUI>();
+                }
+
+                hudInstance.gameObject.SetActive(true);
+                hudInstance.SetText(string.Format(Settings.HUD_Format, LastTiming.ToString("F" + Settings.PercHUD)));
+                hudInstance.SetPosition(Settings.HUD_x, Settings.HUD_y);
+                hudInstance.transform.localScale = new Vector3(Settings.HUD_scale, Settings.HUD_scale, 1f);
+                hudInstance.text.alignment = hudInstance.ToAlign(Settings.HUD_align);
+                hudInstance.text.fontStyle = Settings.HUD_bold ? FontStyle.Bold : FontStyle.Normal;
+                hudInstance.text.fontSize = (int)(24 * Settings.HUD_scale);
+            }
+            else
+            {
+                if (hudObject != null)
+                {
+                    UnityEngine.Object.Destroy(hudObject);
+                    hudObject = null;
+                    hudInstance = null;
+                }
+            }
+        }
+
     }
+
+
 }

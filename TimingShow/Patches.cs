@@ -100,6 +100,11 @@ namespace TimingShow
         {
             if (Main.IsEnabled && Main.Settings.ShowInSongTitle && Main.IsPlaying() && __instance.txtLevelName != null)
                 __instance.txtLevelName.text = Main.Format(Main.LastTiming, Main.Settings.Perc1);
+
+            if (Main.IsEnabled && Main.IsPlaying() && Main.Settings.ShowTimingHUD)
+            {
+                Main.UpdateHUD();
+            }
         }
     }
 }

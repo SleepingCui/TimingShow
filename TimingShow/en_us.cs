@@ -20,5 +20,16 @@
         public const string Toggle_TooLate = "TooLate";
         public const string Toggle_FailMiss = "Miss";
         public const string Toggle_Multipress = "MultiPress";
+        public const string Toggle_TimingHUD = "Show Timing HUD";
+        public const string Title_TimingHUD = "Timing HUD Settings";
+        public const string Label_XOffset = "X Offset: ";
+        public const string Label_YOffset = "Y Offset: ";
+        public const string Label_Scale = "Scale: ";
+        public const string Toggle_Bold = "Bold";
+        public const string Label_Align = "Align: ";
+        public const string Btn_Left = "Left";
+        public const string Btn_Center = "Center";
+        public const string Btn_Right = "Right";
+        public const string Label_Format = "Display Format: ";
     }
 }
