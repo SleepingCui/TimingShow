@@ -1,4 +1,6 @@
-﻿using BlendModes;
+﻿//全是问题
+
+using BlendModes;
 using UnityEngine;
 using UnityEngine.UI;
 

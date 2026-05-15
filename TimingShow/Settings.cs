@@ -12,16 +12,16 @@ public class Settings : UnityModManager.ModSettings
     public int Perc4 = 2;
     public int Language = 0;
 
-    public bool ReplaceTooEarly = false;
-    public bool ReplaceVeryEarly = false;
-    public bool ReplaceEarlyPerfect = false;
+    public bool ReplaceTooEarly = true;
+    public bool ReplaceVeryEarly = true;
+    public bool ReplaceEarlyPerfect = true;
     public bool ReplacePerfect = true;
-    public bool ReplaceLatePerfect = false;
-    public bool ReplaceVeryLate = false;
-    public bool ReplaceTooLate = false;
-    public bool ReplaceMultipress = false;
-    public bool ReplaceFailMiss = false;
-    public bool ReplaceFailOverload = false;
+    public bool ReplaceLatePerfect = true;
+    public bool ReplaceVeryLate = true;
+    public bool ReplaceTooLate = true;
+    public bool ReplaceMultipress = true;
+    public bool ReplaceFailMiss = true;
+    public bool ReplaceFailOverload = true;
 
     public bool ShowTimingHUD = false;
     public float HUD_x = 0f;
