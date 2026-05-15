@@ -14,9 +14,10 @@ if not exist "%TARGET%" (
     mkdir "%TARGET%"
 )
 
-copy /y "%SOURCE%\TimingShow.dll" "%TARGET%\" >nul
-copy /y "%SOURCE%\TimingShow.pdb" "%TARGET%\" >nul
-copy /y "%SOURCE%\Info.json" "%TARGET%\" >nul
+del /f /s /q "%TARGET%\Settings.xml"
+copy /y "%SOURCE%\TimingShow.dll" "%TARGET%\"
+copy /y "%SOURCE%\TimingShow.pdb" "%TARGET%\"
+copy /y "%SOURCE%\Info.json" "%TARGET%\"
 
 set "GAME_PATH=E:\Games\Steam\steamapps\common\A Dance of Fire and Ice"
 set "GAME_EXE=A Dance of Fire and Ice.exe"

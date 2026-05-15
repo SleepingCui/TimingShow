@@ -157,32 +157,23 @@ namespace TimingShow
         {
             bool isplay = scrController.instance != null && scrConductor.instance != null && scrConductor.instance.isGameWorld && !scrController.instance.paused;
 
-            if (isplay)
-            {
-                if (hudObject == null)
-                {
-                    hudObject = new GameObject("TimingShow_HUD");
-                    UnityEngine.Object.DontDestroyOnLoad(hudObject);
-                    hudInstance = hudObject.AddComponent<TextUI>();
-                }
+            if (!Settings.ShowTimingHUD) isplay = false;
 
-                hudInstance.gameObject.SetActive(true);
-                hudInstance.SetText(string.Format(Settings.HUD_Format, LastTiming.ToString("F" + Settings.PercHUD)));
-                hudInstance.SetPosition(Settings.HUD_x, Settings.HUD_y);
-                hudInstance.transform.localScale = new Vector3(Settings.HUD_scale, Settings.HUD_scale, 1f);
-                hudInstance.text.alignment = hudInstance.ToAlign(Settings.HUD_align);
-                hudInstance.text.fontStyle = Settings.HUD_bold ? FontStyle.Bold : FontStyle.Normal;
-                hudInstance.text.fontSize = (int)(24 * Settings.HUD_scale);
-            }
-            else
+            if (hudObject == null)
             {
-                if (hudObject != null)
-                {
-                    UnityEngine.Object.Destroy(hudObject);
-                    hudObject = null;
-                    hudInstance = null;
-                }
+                hudObject = new GameObject("TimingShow_HUD");
+                Object.DontDestroyOnLoad(hudObject);
+                hudInstance = hudObject.AddComponent<TextUI>();
             }
+            hudObject.SetActive(isplay);
+
+            if (!isplay) return;
+
+            hudInstance.SetText(string.Format(Settings.HUD_Format,LastTiming.ToString("F" + Settings.PercHUD)));
+            hudInstance.SetPosition(Settings.HUD_x,Settings.HUD_y);
+            hudInstance.SetSize((int)(24 * Settings.HUD_scale));          
+            hudInstance.text.alignment = hudInstance.ToAlign(Settings.HUD_align);
+            hudInstance.text.fontStyle = Settings.HUD_bold? FontStyle.Bold: FontStyle.Normal;
         }
 
     }
