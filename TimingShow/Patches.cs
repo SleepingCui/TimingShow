@@ -102,7 +102,15 @@ namespace TimingShow
         public static void Postfix(scrUIController __instance)
         {
             if (Main.IsEnabled && Main.Settings.ShowInSongTitle && Main.IsPlaying() && __instance.txtLevelName != null)
-                __instance.txtLevelName.text = Main.Format(Main.LastTiming, Main.Settings.Perc1);
+            {
+                string timing = Main.Format(Main.LastTiming, Main.Settings.Perc1);
+                if (Main.Settings.Title_UseJudgeColor)
+                {
+                    timing = $"<color=#{ColorUtility.ToHtmlStringRGB(Main.LastTimingColor)}>" + timing + "</color>";
+                }
+                __instance.txtLevelName.supportRichText = true;
+                __instance.txtLevelName.text = timing;
+            }
 
             if (Main.IsEnabled && Main.IsPlaying() && Main.Settings.ShowTimingHUD)
             {

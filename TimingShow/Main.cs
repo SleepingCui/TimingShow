@@ -50,6 +50,13 @@ namespace TimingShow
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
             DrawSettingRow(L(Locale_zh.Toggle_Title, Locale_en.Toggle_Title), ref Settings.ShowInSongTitle, ref Settings.Perc1);
+            if (Settings.ShowInSongTitle)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                Settings.Title_UseJudgeColor =GUILayout.Toggle(Settings.Title_UseJudgeColor,L(Locale_zh.HUD_UseJudgeColor, Locale_en.HUD_UseJudgeColor));
+                GUILayout.EndHorizontal();
+            }
             DrawSettingRow(L(Locale_zh.Toggle_Planet, Locale_en.Toggle_Planet), ref Settings.ShowOnPlanet, ref Settings.Perc2);
             if (Settings.ShowOnPlanet)
             {
@@ -161,8 +168,7 @@ namespace TimingShow
 
         public static void UpdateHUD()
         {
-            bool isplay = scrController.instance != null && scrConductor.instance != null && scrConductor.instance.isGameWorld && !scrController.instance.paused;
-
+            bool isplay = IsPlaying() && scrController.instance != null && scrConductor.instance != null && scrConductor.instance.isGameWorld && !scrController.instance.paused;
             if (!Settings.ShowTimingHUD) isplay = false;
 
             if (hudObject == null)
@@ -172,8 +178,7 @@ namespace TimingShow
                 hudInstance = hudObject.AddComponent<TextUI>();
             }
             hudObject.SetActive(isplay);
-
-            if (!isplay) return;
+            if (!IsPlaying()) hudInstance.SetText("");
 
             string timing = LastTiming.ToString("F" + Settings.PercHUD);
             if (Settings.HUD_UseJudgeColor)

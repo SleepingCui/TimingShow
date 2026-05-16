@@ -16,20 +16,26 @@ namespace TimingShow
             canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 10001;
-            gameObject.AddComponent<CanvasScaler>();
-            gameObject.AddComponent<GraphicRaycaster>();
+
+            CanvasScaler scaler = gameObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+
             rootRect = gameObject.GetComponent<RectTransform>();
-
             textObject = new GameObject("TextComponent");
-            textObject.transform.SetParent(transform, false);
-            RectTransform textRect = textObject.AddComponent<RectTransform>();
+            textObject.transform.SetParent(transform,false);
 
+            RectTransform textRect = textObject.AddComponent<RectTransform>();
             textRect.anchorMin = new Vector2(0.5f, 0.5f);
             textRect.anchorMax = new Vector2(0.5f, 0.5f);
             textRect.pivot = new Vector2(0.5f, 0.5f);
             textRect.sizeDelta = new Vector2(1000f, 200f);
 
             text = textObject.AddComponent<Text>();
+            text.raycastTarget = false;
+            text.supportRichText = true;
             text.font =RDString.GetFontDataForLanguage(RDString.language).font;
             text.color = Color.white;
             text.alignment = TextAnchor.MiddleCenter;
@@ -37,7 +43,7 @@ namespace TimingShow
             text.verticalOverflow = VerticalWrapMode.Overflow;
 
             shadow = textObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
+            shadow.effectColor =new Color(0f,0f,0f,0.45f);
             shadow.effectDistance = new Vector2(2f, -2f);
         }
 

@@ -6,6 +6,7 @@ public class Settings : UnityModManager.ModSettings
     public bool ShowOnPlanet = true;
     public bool ShowOnDeath = true;
     public bool ShowInWinPage = true;
+    public bool Title_UseJudgeColor = false;
     public int Perc1 = 1;
     public int Perc2 = 1;
     public int Perc3 = 1;
