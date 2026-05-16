@@ -14,6 +14,7 @@ namespace TimingShow
         public static bool IsEnabled;
         public static Settings Settings;
         public static double LastTiming = 0;
+        public static Color LastTimingColor = Color.white;
         public static GameObject hudObject;
         public static TextUI hudInstance;
         public static List<double> SessionOffsets = new List<double>();
@@ -124,6 +125,11 @@ namespace TimingShow
                 GUILayout.Label(L(Locale_zh.Label_Precision, Locale_en.Label_Precision) + $"{Settings.PercHUD}", GUILayout.Width(120));
                 Settings.PercHUD = Mathf.RoundToInt(GUILayout.HorizontalSlider(Settings.PercHUD, 0, 5, GUILayout.Width(100)));
                 GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                Settings.HUD_UseJudgeColor =GUILayout.Toggle(Settings.HUD_UseJudgeColor, L(Locale_zh.HUD_UseJudgeColor, Locale_en.HUD_UseJudgeColor));
+                GUILayout.EndHorizontal();
             }
 
             GUILayout.Space(15);
@@ -169,7 +175,12 @@ namespace TimingShow
 
             if (!isplay) return;
 
-            hudInstance.SetText(string.Format(Settings.HUD_Format,LastTiming.ToString("F" + Settings.PercHUD)));
+            string timing = LastTiming.ToString("F" + Settings.PercHUD);
+            if (Settings.HUD_UseJudgeColor)
+            {
+                timing = $"<color=#{ColorUtility.ToHtmlStringRGB(LastTimingColor)}>" + timing + "</color>";
+            }
+            hudInstance.SetText(string.Format(Settings.HUD_Format, timing));
             hudInstance.SetPosition(Settings.HUD_x,Settings.HUD_y);
             hudInstance.SetSize((int)(24 * Settings.HUD_scale));          
             hudInstance.text.alignment = hudInstance.ToAlign(Settings.HUD_align);

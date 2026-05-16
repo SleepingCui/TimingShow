@@ -50,9 +50,12 @@ namespace TimingShow
             }
             if (shouldReplace)
             {
-                var textField = AccessTools.Field(typeof(scrHitTextMesh), "text");
+                var textField = AccessTools.Field(typeof(scrHitTextMesh),"text");
                 if (textField?.GetValue(__instance) is TextMesh tm)
-                    tm.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
+                {
+                    Main.LastTimingColor = tm.color;
+                    tm.text = Main.Format(Main.LastTiming,Main.Settings.Perc2);
+                }
             }
         }
     }

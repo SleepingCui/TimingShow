@@ -31,6 +31,7 @@ public class Settings : UnityModManager.ModSettings
     public int HUD_align = 0;
     public int PercHUD = 1;
     public string HUD_Format = "Timing - {0}ms";
+    public bool HUD_UseJudgeColor = false;
 
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }

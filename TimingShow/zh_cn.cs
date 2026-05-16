@@ -31,5 +31,6 @@
         public const string Btn_Center = "居中";
         public const string Btn_Right = "右对齐";
         public const string Label_Format = "显示格式: ";
+        public const string HUD_UseJudgeColor = "跟随判定改变颜色";
     }
 }
