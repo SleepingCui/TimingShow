@@ -25,7 +25,7 @@ namespace TimingShow
 
             rootRect = gameObject.GetComponent<RectTransform>();
             textObject = new GameObject("TextComponent");
-            textObject.transform.SetParent(transform,false);
+            textObject.transform.SetParent(transform, false);
 
             RectTransform textRect = textObject.AddComponent<RectTransform>();
             textRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -36,14 +36,14 @@ namespace TimingShow
             text = textObject.AddComponent<Text>();
             text.raycastTarget = false;
             text.supportRichText = true;
-            text.font =RDString.GetFontDataForLanguage(RDString.language).font;
+            text.font = RDString.GetFontDataForLanguage(RDString.language).font;
             text.color = Color.white;
             text.alignment = TextAnchor.MiddleCenter;
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
             text.verticalOverflow = VerticalWrapMode.Overflow;
 
             shadow = textObject.AddComponent<Shadow>();
-            shadow.effectColor =new Color(0f,0f,0f,0.45f);
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
             shadow.effectDistance = new Vector2(2f, -2f);
         }
 
@@ -63,7 +63,7 @@ namespace TimingShow
         {
             if (textObject == null) return;
             RectTransform rect = textObject.GetComponent<RectTransform>();
-            rect.anchoredPosition = new Vector2(x * Screen.width,y * Screen.height);
+            rect.anchoredPosition = new Vector2(x * Screen.width, y * Screen.height);
         }
 
         public TextAnchor ToAlign(int align)
@@ -73,7 +73,7 @@ namespace TimingShow
                 case 0: return TextAnchor.MiddleLeft;
                 case 1: return TextAnchor.MiddleCenter;
                 case 2: return TextAnchor.MiddleRight;
-                default:return TextAnchor.MiddleCenter;
+                default: return TextAnchor.MiddleCenter;
             }
         }
     }

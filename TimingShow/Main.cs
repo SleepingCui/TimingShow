@@ -25,15 +25,28 @@ namespace TimingShow
         {
             Logger = modEntry.Logger;
             Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
+
+            var harmony = new Harmony(modEntry.Info.Id);
             modEntry.OnToggle = (entry, value) => {
                 IsEnabled = value;
-                if (!value) SessionOffsets.Clear();
+                if (value) harmony.PatchAll();
+                else
+                {
+                    harmony.UnpatchAll(modEntry.Info.Id);
+                    SessionOffsets.Clear();
+                    LastTiming = 0;
+                    if (hudObject != null)
+                    {
+                        Object.Destroy(hudObject);
+                        hudObject = null;
+                        hudInstance = null;
+                    }
+                }
                 return true;
             };
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
 
-            new Harmony(modEntry.Info.Id).PatchAll();
             return true;
         }
 
@@ -168,8 +181,7 @@ namespace TimingShow
 
         public static void UpdateHUD()
         {
-            bool isplay = IsPlaying() && scrController.instance != null && scrConductor.instance != null && scrConductor.instance.isGameWorld && !scrController.instance.paused;
-            if (!Settings.ShowTimingHUD) isplay = false;
+            bool isplay = IsPlaying() && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused && Settings.ShowTimingHUD;
 
             if (hudObject == null)
             {
@@ -178,7 +190,8 @@ namespace TimingShow
                 hudInstance = hudObject.AddComponent<TextUI>();
             }
             hudObject.SetActive(isplay);
-            if (!IsPlaying()) hudInstance.SetText("");
+
+            if (!isplay) return;
 
             string timing = LastTiming.ToString("F" + Settings.PercHUD);
             if (Settings.HUD_UseJudgeColor)
@@ -186,10 +199,10 @@ namespace TimingShow
                 timing = $"<color=#{ColorUtility.ToHtmlStringRGB(LastTimingColor)}>" + timing + "</color>";
             }
             hudInstance.SetText(string.Format(Settings.HUD_Format, timing));
-            hudInstance.SetPosition(Settings.HUD_x,Settings.HUD_y);
-            hudInstance.SetSize((int)(24 * Settings.HUD_scale));          
+            hudInstance.SetPosition(Settings.HUD_x, Settings.HUD_y);
+            hudInstance.SetSize((int)(24 * Settings.HUD_scale));
             hudInstance.text.alignment = hudInstance.ToAlign(Settings.HUD_align);
-            hudInstance.text.fontStyle = Settings.HUD_bold? FontStyle.Bold: FontStyle.Normal;
+            hudInstance.text.fontStyle = Settings.HUD_bold ? FontStyle.Bold : FontStyle.Normal;
         }
 
     }
