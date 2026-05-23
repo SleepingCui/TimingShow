@@ -1,66 +1,78 @@
 ﻿using HarmonyLib;
 using System;
+using System.Reflection;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TimingShow
 {
-    //timing calc
+    public static class ReflectCache
+    {
+        public static readonly FieldInfo HitTextMeshField = AccessTools.Field(typeof(scrHitTextMesh), "text");
+    }
+
+    // timing calc
     [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
     public static class Patches
     {
         public static void Prefix(scrPlanet __instance)
         {
             if (!Main.IsEnabled || scrController.instance == null) return;
-            try
+            if (__instance.conductor == null || __instance.conductor.song == null) return;
+
+            double bpm = (double)__instance.conductor.bpm;
+            double speed = (double)scrController.instance.speed;
+            double pitch = (double)__instance.conductor.song.pitch;
+            bool isCW = scrController.instance.isCW;
+
+            if (bpm * speed *pitch == 0) return;
+            double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
+
+            Main.LastTiming = diff;
+            UIReplacePatch.dirty = true; 
+
+            if (Main.IsPlaying() && Main.Settings.ShowInWinPage && !RDC.auto)
             {
-                double bpm = (double)__instance.conductor.bpm;
-                double speed = (double)scrController.instance.speed;
-                double pitch = (double)__instance.conductor.song.pitch;
-                bool isCW = scrController.instance.isCW;
-                double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
-                Main.LastTiming = diff;
-                if (Main.IsPlaying() && Main.Settings.ShowInWinPage && !RDC.auto)
-                    Main.SessionOffsets.Add(diff);
+                Main.SessionOffsets.Add(diff);
             }
-            catch { }
         }
     }
-    //jd text
+
+    // jd text
     [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
     public static class HitTextMeshShowPatch
     {
         public static void Postfix(scrHitTextMesh __instance)
         {
             if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying()) return;
-
-            bool shouldReplace = false;
+            bool replace = false;
             switch (__instance.hitMargin)
             {
-                case HitMargin.TooEarly: shouldReplace = Main.Settings.ReplaceTooEarly; break;
-                case HitMargin.VeryEarly: shouldReplace = Main.Settings.ReplaceVeryEarly; break;
-                case HitMargin.EarlyPerfect: shouldReplace = Main.Settings.ReplaceEarlyPerfect; break;
-                case HitMargin.Perfect: shouldReplace = Main.Settings.ReplacePerfect; break;
-                case HitMargin.LatePerfect: shouldReplace = Main.Settings.ReplaceLatePerfect; break;
-                case HitMargin.VeryLate: shouldReplace = Main.Settings.ReplaceVeryLate; break;
-                case HitMargin.TooLate: shouldReplace = Main.Settings.ReplaceTooLate; break;
-                case HitMargin.Multipress: shouldReplace = Main.Settings.ReplaceMultipress; break;
-                case HitMargin.FailMiss: shouldReplace = Main.Settings.ReplaceFailMiss; break;
-                case HitMargin.FailOverload: shouldReplace = Main.Settings.ReplaceFailOverload; break;
-                default: shouldReplace = false; break;
+                case HitMargin.TooEarly: replace = Main.Settings.ReplaceTooEarly; break;
+                case HitMargin.VeryEarly: replace = Main.Settings.ReplaceVeryEarly; break;
+                case HitMargin.EarlyPerfect: replace = Main.Settings.ReplaceEarlyPerfect; break;
+                case HitMargin.Perfect: replace = Main.Settings.ReplacePerfect; break;
+                case HitMargin.LatePerfect: replace = Main.Settings.ReplaceLatePerfect; break;
+                case HitMargin.VeryLate: replace = Main.Settings.ReplaceVeryLate; break;
+                case HitMargin.TooLate: replace = Main.Settings.ReplaceTooLate; break;
+                case HitMargin.Multipress: replace = Main.Settings.ReplaceMultipress; break;
+                case HitMargin.FailMiss: replace = Main.Settings.ReplaceFailMiss; break;
+                case HitMargin.FailOverload: replace = Main.Settings.ReplaceFailOverload; break;
+                default: replace = false; break;
             }
-            if (shouldReplace)
+
+            if (replace)
             {
-                var textField = AccessTools.Field(typeof(scrHitTextMesh),"text");
-                if (textField?.GetValue(__instance) is TextMesh tm)
+                if (ReflectCache.HitTextMeshField != null && ReflectCache.HitTextMeshField.GetValue(__instance) is TextMesh tm)
                 {
                     Main.LastTimingColor = tm.color;
-                    tm.text = Main.Format(Main.LastTiming,Main.Settings.Perc2);
+                    tm.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
                 }
             }
         }
     }
 
-    //fail text
+    // fail text
     [HarmonyPatch(typeof(scrController), "Fail2Action")]
     public static class Fail2ActionPatch
     {
@@ -69,50 +81,60 @@ namespace TimingShow
             if (!Main.IsEnabled) return;
             Main.SessionOffsets.Clear();
             if (Main.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
+            {
                 __instance.txtTryCalibrating.text = Main.Format(Main.LastTiming, Main.Settings.Perc3);
+            }
         }
     }
 
-    //finish text
+    // finish text
     [HarmonyPatch(typeof(scrController), "OnLandOnPortal")]
     public static class WinPagePatch
     {
         public static void Postfix(scrController __instance)
         {
-            if (!Main.IsEnabled || !Main.Settings.ShowInWinPage || Main.SessionOffsets.Count == 0) return;
-            try 
+            if (!Main.IsEnabled || !Main.Settings.ShowInWinPage) return;
+
+            if (__instance.txtResults != null && __instance.txtResults.gameObject.activeSelf)
             {
                 double avgOffset = 0;
-                foreach (var offset in Main.SessionOffsets) avgOffset += offset;
-                avgOffset /= Main.SessionOffsets.Count;
-                string info = Main.L(Locale_zh.Avg_Timing, Locale_en.Avg_Timing) + Main.Format(avgOffset, Main.Settings.Perc4);
-                if (__instance.txtResults != null && __instance.txtResults.gameObject.activeSelf) {
-                    __instance.txtResults.text += info;
+                int count = Main.SessionOffsets.Count;
+                for (int i = 0; i < count; i++) { 
+                    avgOffset += Main.SessionOffsets[i];
                 }
-                Main.SessionOffsets.Clear();
+                avgOffset /= count;
+
+                string info = Main.L(Locale_zh.Avg_Timing, Locale_en.Avg_Timing) + Main.Format(avgOffset, Main.Settings.Perc4);
+                __instance.txtResults.text += info;
             }
-            catch {}
+            Main.SessionOffsets.Clear();
         }
     }
 
-    //lvl name
+    // lvl name
     [HarmonyPatch(typeof(scrUIController), "Update")]
     public static class UIReplacePatch
     {
+        public static bool dirty = true;
         public static void Postfix(scrUIController __instance)
         {
-            if (Main.IsEnabled && Main.Settings.ShowInSongTitle && Main.IsPlaying() && __instance.txtLevelName != null)
+            if (!Main.IsEnabled) return;
+            if (Main.Settings.ShowInSongTitle && Main.IsPlaying() && __instance.txtLevelName != null)
             {
-                string timing = Main.Format(Main.LastTiming, Main.Settings.Perc1);
-                if (Main.Settings.Title_UseJudgeColor)
+                if (dirty)
                 {
-                    timing = $"<color=#{ColorUtility.ToHtmlStringRGB(Main.LastTimingColor)}>" + timing + "</color>";
+                    string timing = Main.Format(Main.LastTiming, Main.Settings.Perc1);
+                    if (Main.Settings.Title_UseJudgeColor)
+                    {
+                        timing = "<color=#" + ColorUtility.ToHtmlStringRGB(Main.LastTimingColor) + ">" + timing + "</color>";
+                    }
+                    __instance.txtLevelName.supportRichText = true;
+                    __instance.txtLevelName.text = timing;
+                    dirty = false;
                 }
-                __instance.txtLevelName.supportRichText = true;
-                __instance.txtLevelName.text = timing;
             }
 
-            if (Main.IsEnabled && Main.IsPlaying() && Main.Settings.ShowTimingHUD)
+            if (Main.IsPlaying() && Main.Settings.ShowTimingHUD)
             {
                 Main.UpdateHUD();
             }
