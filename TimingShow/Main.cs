@@ -74,17 +74,25 @@ namespace TimingShow
             if (Settings.ShowOnPlanet)
             {
                 GUILayout.Label(L(Locale_zh.Setting_Title, Locale_en.Setting_Title));
-
-                Settings.ReplaceFailOverload = GUILayout.Toggle(Settings.ReplaceFailOverload, L(Locale_zh.Toggle_FailOverload, Locale_en.Toggle_FailOverload));
-                Settings.ReplaceTooEarly = GUILayout.Toggle(Settings.ReplaceTooEarly, L(Locale_zh.Toggle_TooEarly, Locale_en.Toggle_TooEarly));
-                Settings.ReplaceVeryEarly = GUILayout.Toggle(Settings.ReplaceVeryEarly, L(Locale_zh.Toggle_VeryEarly, Locale_en.Toggle_VeryEarly));
-                Settings.ReplaceEarlyPerfect = GUILayout.Toggle(Settings.ReplaceEarlyPerfect, L(Locale_zh.Toggle_EarlyPerfect, Locale_en.Toggle_EarlyPerfect));
-                Settings.ReplacePerfect = GUILayout.Toggle(Settings.ReplacePerfect, L(Locale_zh.Toggle_Perfect, Locale_en.Toggle_Perfect));
-                Settings.ReplaceLatePerfect = GUILayout.Toggle(Settings.ReplaceLatePerfect, L(Locale_zh.Toggle_LatePerfect, Locale_en.Toggle_LatePerfect));
-                Settings.ReplaceVeryLate = GUILayout.Toggle(Settings.ReplaceVeryLate, L(Locale_zh.Toggle_VeryLate, Locale_en.Toggle_VeryLate));
-                Settings.ReplaceTooLate = GUILayout.Toggle(Settings.ReplaceTooLate, L(Locale_zh.Toggle_TooLate, Locale_en.Toggle_TooLate));
-                Settings.ReplaceFailMiss = GUILayout.Toggle(Settings.ReplaceFailMiss, L(Locale_zh.Toggle_FailMiss, Locale_en.Toggle_FailMiss));
-                Settings.ReplaceMultipress = GUILayout.Toggle(Settings.ReplaceMultipress, L(Locale_zh.Toggle_Multipress, Locale_en.Toggle_Multipress));
+                GUILayout.BeginHorizontal();
+                {
+                    GUILayout.Space(20);
+                    GUILayout.BeginVertical();
+                    {
+                        Settings.ReplaceFailOverload = GUILayout.Toggle(Settings.ReplaceFailOverload, L(Locale_zh.Toggle_FailOverload, Locale_en.Toggle_FailOverload));
+                        Settings.ReplaceTooEarly = GUILayout.Toggle(Settings.ReplaceTooEarly, L(Locale_zh.Toggle_TooEarly, Locale_en.Toggle_TooEarly));
+                        Settings.ReplaceVeryEarly = GUILayout.Toggle(Settings.ReplaceVeryEarly, L(Locale_zh.Toggle_VeryEarly, Locale_en.Toggle_VeryEarly));
+                        Settings.ReplaceEarlyPerfect = GUILayout.Toggle(Settings.ReplaceEarlyPerfect, L(Locale_zh.Toggle_EarlyPerfect, Locale_en.Toggle_EarlyPerfect));
+                        Settings.ReplacePerfect = GUILayout.Toggle(Settings.ReplacePerfect, L(Locale_zh.Toggle_Perfect, Locale_en.Toggle_Perfect));
+                        Settings.ReplaceLatePerfect = GUILayout.Toggle(Settings.ReplaceLatePerfect, L(Locale_zh.Toggle_LatePerfect, Locale_en.Toggle_LatePerfect));
+                        Settings.ReplaceVeryLate = GUILayout.Toggle(Settings.ReplaceVeryLate, L(Locale_zh.Toggle_VeryLate, Locale_en.Toggle_VeryLate));
+                        Settings.ReplaceTooLate = GUILayout.Toggle(Settings.ReplaceTooLate, L(Locale_zh.Toggle_TooLate, Locale_en.Toggle_TooLate));
+                        Settings.ReplaceFailMiss = GUILayout.Toggle(Settings.ReplaceFailMiss, L(Locale_zh.Toggle_FailMiss, Locale_en.Toggle_FailMiss));
+                        Settings.ReplaceMultipress = GUILayout.Toggle(Settings.ReplaceMultipress, L(Locale_zh.Toggle_Multipress, Locale_en.Toggle_Multipress));
+                    }
+                    GUILayout.EndVertical();
+                }
+                GUILayout.EndHorizontal();
             }
             DrawSettingRow(L(Locale_zh.Toggle_Death, Locale_en.Toggle_Death), ref Settings.ShowOnDeath, ref Settings.Perc3);
             DrawSettingRow(L(Locale_zh.Toggle_Win, Locale_en.Toggle_Win), ref Settings.ShowInWinPage, ref Settings.Perc4);

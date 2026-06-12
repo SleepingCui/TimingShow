@@ -1,7 +1,8 @@
 ﻿using HarmonyLib;
 using System;
-using System.Reflection;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace TimingShow
@@ -21,9 +22,9 @@ namespace TimingShow
             if (__instance.conductor == null || __instance.conductor.song == null) return;
 
             double bpm = (double)__instance.conductor.bpm;
-            double speed = (double)scrController.instance.speed;
+            double speed = (double)scrController.instance.planetarySystem.speed;
             double pitch = (double)__instance.conductor.song.pitch;
-            bool isCW = scrController.instance.isCW;
+            bool isCW = scrController.instance.planetarySystem.isCW;
 
             if (bpm * speed *pitch == 0) return;
             double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
@@ -38,8 +39,8 @@ namespace TimingShow
         }
     }
 
-    // jd text
-    [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
+// jd text
+[HarmonyPatch(typeof(scrHitTextMesh), "Show")]
     public static class HitTextMeshShowPatch
     {
         public static void Postfix(scrHitTextMesh __instance)
@@ -61,13 +62,30 @@ namespace TimingShow
                 default: replace = false; break;
             }
 
-            if (replace)
+            if (replace && __instance.text != null)
             {
-                if (ReflectCache.HitTextMeshField != null && ReflectCache.HitTextMeshField.GetValue(__instance) is TextMesh tm)
+                ColourSchemeHitMargin hitMarginColours = RDConstants.data.hitMarginColours;
+                Color targetColor = Color.gray;
+
+                switch (__instance.hitMargin)
                 {
-                    Main.LastTimingColor = tm.color;
-                    tm.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
+                    case HitMargin.TooEarly: targetColor = hitMarginColours.colourTooEarly; break;
+                    case HitMargin.VeryEarly: targetColor = hitMarginColours.colourVeryEarly; break;
+                    case HitMargin.EarlyPerfect: targetColor = hitMarginColours.colourLittleEarly; break;
+                    case HitMargin.Perfect: targetColor = hitMarginColours.colourPerfect; break;
+                    case HitMargin.LatePerfect: targetColor = hitMarginColours.colourLittleLate; break;
+                    case HitMargin.VeryLate: targetColor = hitMarginColours.colourVeryLate; break;
+                    case HitMargin.TooLate: targetColor = hitMarginColours.colourTooLate; break;
+                    case HitMargin.Multipress: targetColor = hitMarginColours.colourMultipress; break;
+                    case HitMargin.FailMiss: targetColor = hitMarginColours.colourFail; break;
+                    case HitMargin.FailOverload: targetColor = hitMarginColours.colourFail; break;
+                    case HitMargin.OverPress: targetColor = hitMarginColours.colourFail; break;
                 }
+
+                Main.LastTimingColor = targetColor;
+                __instance.text.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
+                __instance.text.color = targetColor;
+                __instance.text.ForceMeshUpdate(false, false);
             }
         }
     }
@@ -87,25 +105,40 @@ namespace TimingShow
         }
     }
 
-    // finish text
+    //finish test
     [HarmonyPatch(typeof(scrController), "OnLandOnPortal")]
     public static class WinPagePatch
     {
         public static void Postfix(scrController __instance)
         {
             if (!Main.IsEnabled || !Main.Settings.ShowInWinPage) return;
-
-            if (__instance.txtResults != null && __instance.txtResults.gameObject.activeSelf)
+            if (__instance.detailedResults != null && __instance.detailedResults.textComponent != null && __instance.detailedResults.gameObject.activeSelf)
             {
                 double avgOffset = 0;
                 int count = Main.SessionOffsets.Count;
-                for (int i = 0; i < count; i++) { 
-                    avgOffset += Main.SessionOffsets[i];
+                if (count > 0)
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        avgOffset += Main.SessionOffsets[i];
+                    }
+                    avgOffset /= count;
                 }
-                avgOffset /= count;
 
-                string info = Main.L(Locale_zh.Avg_Timing, Locale_en.Avg_Timing) + Main.Format(avgOffset, Main.Settings.Perc4);
-                __instance.txtResults.text += info;
+                string info = "\n" + Main.L(Locale_zh.Avg_Timing, Locale_en.Avg_Timing) + Main.Format(avgOffset, Main.Settings.Perc4);
+                var resultsField = typeof(DetailedResults).GetField("results", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (resultsField != null)
+                {
+                    string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];
+                    if (resultsArray != null)
+                    {
+                        for (int i = 0; i < resultsArray.Length; i++)
+                        {
+                            resultsArray[i] += info;
+                        }
+                    }
+                }
+               __instance.detailedResults.textComponent.text += info;
             }
             Main.SessionOffsets.Clear();
         }
