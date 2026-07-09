@@ -39,7 +39,6 @@ namespace TimingShow
         }
     }
 
-// jd text
 [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
     public static class HitTextMeshShowPatch
     {
