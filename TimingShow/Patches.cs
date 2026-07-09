@@ -1,15 +1,9 @@
 ﻿using HarmonyLib;
 using System;
-using System.Reflection;
 using UnityEngine;
 
 namespace TimingShow
 {
-    public static class ReflectCache
-    {
-        public static readonly FieldInfo HitTextMeshField = AccessTools.Field(typeof(scrHitTextMesh), "text");
-    }
-
     //timing calc
     [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
     public static class Patches
