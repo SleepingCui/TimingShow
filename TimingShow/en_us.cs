@@ -32,5 +32,6 @@
         public const string Btn_Right = "Right";
         public const string Label_Format = "Display Format: ";
         public const string HUD_UseJudgeColor = "Change color with judgment";
+        public const string Enable_XP = "Enable XPerfect (Requires Editor Restart)";
     }
 }

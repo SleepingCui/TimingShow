@@ -160,6 +160,8 @@ namespace TimingShow
                 GUILayout.EndHorizontal();
             }
 
+            Settings.EnableXPerfect = GUILayout.Toggle(Settings.EnableXPerfect, L(Locale_zh.Enable_XP,Locale_en.Enable_XP));
+
             GUILayout.Space(15);
             if (GUILayout.Button(L(Locale_zh.Btn_Reset, Locale_en.Btn_Reset), GUILayout.Width(150)))
             {
@@ -204,7 +206,13 @@ namespace TimingShow
             string timing = LastTiming.ToString("F" + Settings.PercHUD);
             if (Settings.HUD_UseJudgeColor)
             {
-                timing = $"<color=#{ColorUtility.ToHtmlStringRGB(LastTimingColor)}>" + timing + "</color>";
+                Color fColor = LastTimingColor;
+                if (!Settings.EnableXPerfect && fColor == CalcXP.XPColor)
+                {
+                    fColor = RDConstants.data.hitMarginColours.colourPerfect;
+                }
+
+                timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
             }
             hudInstance.SetText(string.Format(Settings.HUD_Format, timing));
             hudInstance.SetPosition(Settings.HUD_x, Settings.HUD_y);

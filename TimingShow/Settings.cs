@@ -25,6 +25,7 @@ public class Settings : UnityModManager.ModSettings
     public bool ReplaceFailOverload = true;
 
     public bool ShowTimingHUD = false;
+    public bool EnableXPerfect = false;
     public float HUD_x = 0f;
     public float HUD_y = 0f;
     public float HUD_scale = 1.0f;

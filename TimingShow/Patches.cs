@@ -1,7 +1,5 @@
 ﻿using HarmonyLib;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -12,10 +10,11 @@ namespace TimingShow
         public static readonly FieldInfo HitTextMeshField = AccessTools.Field(typeof(scrHitTextMesh), "text");
     }
 
-    // timing calc
+    //timing calc
     [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
     public static class Patches
     {
+
         public static void Prefix(scrPlanet __instance)
         {
             if (!Main.IsEnabled || scrController.instance == null) return;
@@ -26,25 +25,31 @@ namespace TimingShow
             double pitch = (double)__instance.conductor.song.pitch;
             bool isCW = scrController.instance.planetarySystem.isCW;
 
-            if (bpm * speed *pitch == 0) return;
+            if (bpm * speed * pitch == 0) return;
             double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
-
+            
             Main.LastTiming = diff;
-            UIReplacePatch.dirty = true; 
+            UIReplacePatch.dirty = true;
 
             if (Main.IsPlaying() && Main.Settings.ShowInWinPage && !RDC.auto)
             {
                 Main.SessionOffsets.Add(diff);
             }
-        }
-    }
 
-[HarmonyPatch(typeof(scrHitTextMesh), "Show")]
+            Main.LastTimingColor = CalcXP.XPc(__instance, diff, bpm, speed, pitch);
+        }
+
+    
+    }
+    
+    // jd text
+    [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
     public static class HitTextMeshShowPatch
     {
         public static void Postfix(scrHitTextMesh __instance)
         {
             if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying()) return;
+
             bool replace = false;
             switch (__instance.hitMargin)
             {
@@ -66,22 +71,28 @@ namespace TimingShow
                 ColourSchemeHitMargin hitMarginColours = RDConstants.data.hitMarginColours;
                 Color targetColor = Color.gray;
 
-                switch (__instance.hitMargin)
+                bool isvanilla = __instance.hitMargin == HitMargin.Perfect || __instance.hitMargin == HitMargin.EarlyPerfect || __instance.hitMargin == HitMargin.LatePerfect;
+
+                if (isvanilla)
                 {
-                    case HitMargin.TooEarly: targetColor = hitMarginColours.colourTooEarly; break;
-                    case HitMargin.VeryEarly: targetColor = hitMarginColours.colourVeryEarly; break;
-                    case HitMargin.EarlyPerfect: targetColor = hitMarginColours.colourLittleEarly; break;
-                    case HitMargin.Perfect: targetColor = hitMarginColours.colourPerfect; break;
-                    case HitMargin.LatePerfect: targetColor = hitMarginColours.colourLittleLate; break;
-                    case HitMargin.VeryLate: targetColor = hitMarginColours.colourVeryLate; break;
-                    case HitMargin.TooLate: targetColor = hitMarginColours.colourTooLate; break;
-                    case HitMargin.Multipress: targetColor = hitMarginColours.colourMultipress; break;
-                    case HitMargin.FailMiss: targetColor = hitMarginColours.colourFail; break;
-                    case HitMargin.FailOverload: targetColor = hitMarginColours.colourFail; break;
-                    case HitMargin.OverPress: targetColor = hitMarginColours.colourFail; break;
+                    targetColor = Main.LastTimingColor;
+                }
+                else
+                {
+                    switch (__instance.hitMargin)
+                    {
+                        case HitMargin.TooEarly: targetColor = hitMarginColours.colourTooEarly; break;
+                        case HitMargin.VeryEarly: targetColor = hitMarginColours.colourVeryEarly; break;
+                        case HitMargin.VeryLate: targetColor = hitMarginColours.colourVeryLate; break;
+                        case HitMargin.TooLate: targetColor = hitMarginColours.colourTooLate; break;
+                        case HitMargin.Multipress: targetColor = hitMarginColours.colourMultipress; break;
+                        case HitMargin.FailMiss: targetColor = hitMarginColours.colourFail; break;
+                        case HitMargin.FailOverload: targetColor = hitMarginColours.colourFail; break;
+                        case HitMargin.OverPress: targetColor = hitMarginColours.colourFail; break;
+                    }
+                    Main.LastTimingColor = targetColor;
                 }
 
-                Main.LastTimingColor = targetColor;
                 __instance.text.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
                 __instance.text.color = targetColor;
                 __instance.text.ForceMeshUpdate(false, false);
@@ -104,7 +115,7 @@ namespace TimingShow
         }
     }
 
-    //finish test
+    // finish text
     [HarmonyPatch(typeof(scrController), "OnLandOnPortal")]
     public static class WinPagePatch
     {
@@ -117,10 +128,7 @@ namespace TimingShow
                 int count = Main.SessionOffsets.Count;
                 if (count > 0)
                 {
-                    for (int i = 0; i < count; i++)
-                    {
-                        avgOffset += Main.SessionOffsets[i];
-                    }
+                    for (int i = 0; i < count; i++) avgOffset += Main.SessionOffsets[i];
                     avgOffset /= count;
                 }
 
@@ -131,13 +139,10 @@ namespace TimingShow
                     string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];
                     if (resultsArray != null)
                     {
-                        for (int i = 0; i < resultsArray.Length; i++)
-                        {
-                            resultsArray[i] += info;
-                        }
+                        for (int i = 0; i < resultsArray.Length; i++) resultsArray[i] += info;
                     }
                 }
-               __instance.detailedResults.textComponent.text += info;
+                __instance.detailedResults.textComponent.text += info;
             }
             Main.SessionOffsets.Clear();
         }
@@ -151,7 +156,7 @@ namespace TimingShow
         public static void Postfix(scrUIController __instance)
         {
             if (!Main.IsEnabled) return;
-            if (Main.Settings.ShowInSongTitle && Main.IsPlaying() && __instance.txtLevelName != null)
+            if (Main.IsPlaying() && Main.Settings.ShowInSongTitle && __instance.txtLevelName != null)
             {
                 if (dirty)
                 {

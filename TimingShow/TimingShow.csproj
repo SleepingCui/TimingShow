@@ -89,6 +89,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CalcXP.cs" />
     <Compile Include="en_us.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Patches.cs" />
