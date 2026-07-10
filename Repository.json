@@ -1,0 +1,10 @@
+{
+  "Releases": [
+    {
+      "Id": "TimingShow",
+      "Version": "1.6.0",
+      "DownloadUrl": "https://github.com/SleepingCui/TimingShow/releases/download/1.6.0/TimingShow.zip",
+      "Changes": "细化XPerfect选项，可分别在SongTitle,HitText,HUD分别设置是否启用\n优化代码结构\n优化多语言管理，添加KR翻译(GPT)"
+    }
+  ]
+}
