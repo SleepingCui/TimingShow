@@ -6,11 +6,12 @@ namespace TimingShow
     public static class CalcXP
     {
         public static readonly Color32 XPColor = new Color32(77, 204, byte.MaxValue, byte.MaxValue);
-        public static Color XPc(scrPlanet planet, double diff, double bpm, double speed, double pitch)
+
+        public static Color XPc(scrPlanet planet, double diff, double bpm, double speed, double pitch, bool enableXP)
         {
             ColourSchemeHitMargin hitMarginColours = RDConstants.data.hitMarginColours;
 
-            if (!Main.Settings.EnableXPerfect) return hitMarginColours.colourPerfect;
+            if (!enableXP) return hitMarginColours.colourPerfect;
 
             if (RDC.auto) return XPColor;
 

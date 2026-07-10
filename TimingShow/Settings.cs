@@ -11,7 +11,7 @@ public class Settings : UnityModManager.ModSettings
     public int Perc2 = 1;
     public int Perc3 = 1;
     public int Perc4 = 2;
-    public int Language = 0;
+    public string Language = "en";
 
     public bool ReplaceTooEarly = true;
     public bool ReplaceVeryEarly = true;
@@ -25,7 +25,6 @@ public class Settings : UnityModManager.ModSettings
     public bool ReplaceFailOverload = true;
 
     public bool ShowTimingHUD = false;
-    public bool EnableXPerfect = false;
     public float HUD_x = 0f;
     public float HUD_y = 0f;
     public float HUD_scale = 1.0f;
@@ -34,6 +33,10 @@ public class Settings : UnityModManager.ModSettings
     public int PercHUD = 1;
     public string HUD_Format = "Timing - {0}ms";
     public bool HUD_UseJudgeColor = false;
+
+    public bool Title_EnableXPerfect = false;
+    public bool Planet_EnableXPerfect = false;
+    public bool HUD_EnableXPerfect = false;
 
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }

@@ -4,11 +4,10 @@ using UnityEngine;
 
 namespace TimingShow
 {
-    //timing calc
+    // timing calc
     [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
     public static class Patches
     {
-
         public static void Prefix(scrPlanet __instance)
         {
             if (!Main.IsEnabled || scrController.instance == null) return;
@@ -21,7 +20,7 @@ namespace TimingShow
 
             if (bpm * speed * pitch == 0) return;
             double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
-            
+
             Main.LastTiming = diff;
             UIReplacePatch.dirty = true;
 
@@ -29,13 +28,9 @@ namespace TimingShow
             {
                 Main.SessionOffsets.Add(diff);
             }
-
-            Main.LastTimingColor = CalcXP.XPc(__instance, diff, bpm, speed, pitch);
         }
-
-    
     }
-    
+
     // jd text
     [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
     public static class HitTextMeshShowPatch
@@ -69,7 +64,8 @@ namespace TimingShow
 
                 if (isvanilla)
                 {
-                    targetColor = Main.LastTimingColor;
+                    var cond = scrController.instance.chosenPlanet.conductor;
+                    targetColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Planet_EnableXPerfect);
                 }
                 else
                 {
@@ -84,7 +80,6 @@ namespace TimingShow
                         case HitMargin.FailOverload: targetColor = hitMarginColours.colourFail; break;
                         case HitMargin.OverPress: targetColor = hitMarginColours.colourFail; break;
                     }
-                    Main.LastTimingColor = targetColor;
                 }
 
                 __instance.text.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
@@ -126,7 +121,7 @@ namespace TimingShow
                     avgOffset /= count;
                 }
 
-                string info = "\n" + Main.L(Locale_zh.Avg_Timing, Locale_en.Avg_Timing) + Main.Format(avgOffset, Main.Settings.Perc4);
+                string info = "\n" + LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4);
                 var resultsField = typeof(DetailedResults).GetField("results", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 if (resultsField != null)
                 {
@@ -157,7 +152,9 @@ namespace TimingShow
                     string timing = Main.Format(Main.LastTiming, Main.Settings.Perc1);
                     if (Main.Settings.Title_UseJudgeColor)
                     {
-                        timing = "<color=#" + ColorUtility.ToHtmlStringRGB(Main.LastTimingColor) + ">" + timing + "</color>";
+                        var cond = scrController.instance.chosenPlanet.conductor;
+                        Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Title_EnableXPerfect);
+                        timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
                     }
                     __instance.txtLevelName.supportRichText = true;
                     __instance.txtLevelName.text = timing;
@@ -167,7 +164,7 @@ namespace TimingShow
 
             if (Main.IsPlaying() && Main.Settings.ShowTimingHUD)
             {
-                Main.UpdateHUD();
+                HUDMan.UpdateHUD();
             }
         }
     }

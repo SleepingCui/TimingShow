@@ -2,7 +2,7 @@
   "Id": "TimingShow",
   "DisplayName": "TimingShow",
   "Author": "SleepingCui",
-  "Version": "1.5.0",
+  "Version": "1.6.0",
   "HomePage": "https://github.com/SleepingCui/TimingShow",
   "AssemblyName": "TimingShow.dll",
   "EntryMethod": "TimingShow.Main.Load"
