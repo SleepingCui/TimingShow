@@ -32,13 +32,13 @@ namespace TimingShow
 
         public static string T(string key)
         {
-            string curLang = Main.Settings?.Language ?? "en";
+            string curLang = Main.Settings?.Language ?? "English";
 
             if (LangData.TryGetValue(curLang, out var langDict) && langDict.TryGetValue(key, out string text))
             {
                 return text;
             }
-            if (LangData.TryGetValue("en", out var enDict) && enDict.TryGetValue(key, out string enText))
+            if (LangData.TryGetValue("English", out var enDict) && enDict.TryGetValue(key, out string enText))
             {
                 return enText;
             }

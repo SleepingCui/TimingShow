@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
+using System.Threading;
 using UnityModManagerNet;
 
 namespace TimingShow
@@ -27,7 +28,7 @@ namespace TimingShow
                     harmony.UnpatchAll(modEntry.Info.Id);
                     SessionOffsets.Clear();
                     LastTiming = 0;
-                    HUDMan.DestroyHUD();
+                    HUDMan.Destroy();
                 }
                 return true;
             };

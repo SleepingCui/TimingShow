@@ -7,7 +7,7 @@ namespace TimingShow
         public static GameObject hudObject;
         public static TextUI hudInstance;
 
-        public static void DestroyHUD()
+        public static void Destroy()
         {
             if (hudObject != null)
             {
@@ -17,7 +17,7 @@ namespace TimingShow
             }
         }
 
-        public static void UpdateHUD()
+        public static void Update()
         {
             bool isplay = Main.IsPlaying() && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused && Main.Settings.ShowTimingHUD;
 
@@ -35,15 +35,7 @@ namespace TimingShow
             if (Main.Settings.HUD_UseJudgeColor)
             {
                 var cond = scrController.instance.chosenPlanet.conductor;
-                Color fColor = CalcXP.XPc(
-                    scrController.instance.chosenPlanet,
-                    Main.LastTiming,
-                    cond.bpm,
-                    scrController.instance.planetarySystem.speed,
-                    cond.song.pitch,
-                    Main.Settings.HUD_EnableXPerfect
-                );
-
+                Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.HUD_EnableXPerfect);
                 timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
             }
 

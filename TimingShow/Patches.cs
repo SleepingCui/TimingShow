@@ -164,7 +164,7 @@ namespace TimingShow
 
             if (Main.IsPlaying() && Main.Settings.ShowTimingHUD)
             {
-                HUDMan.UpdateHUD();
+                HUDMan.Update();
             }
         }
     }

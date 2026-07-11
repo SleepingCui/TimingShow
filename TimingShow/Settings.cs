@@ -2,16 +2,16 @@
 
 public class Settings : UnityModManager.ModSettings
 {
-    public bool ShowInSongTitle = true;
-    public bool ShowOnPlanet = true;
-    public bool ShowOnDeath = true;
-    public bool ShowInWinPage = true;
+    public bool ShowInSongTitle = false;
+    public bool ShowOnPlanet = false;
+    public bool ShowOnDeath = false;
+    public bool ShowInWinPage = false;
     public bool Title_UseJudgeColor = false;
     public int Perc1 = 1;
     public int Perc2 = 1;
     public int Perc3 = 1;
-    public int Perc4 = 2;
-    public string Language = "en";
+    public int Perc4 = 1;
+    public string Language = "English";
 
     public bool ReplaceTooEarly = true;
     public bool ReplaceVeryEarly = true;

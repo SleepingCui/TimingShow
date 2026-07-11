@@ -12,16 +12,15 @@ namespace TimingShow
             ColourSchemeHitMargin hitMarginColours = RDConstants.data.hitMarginColours;
 
             if (!enableXP) return hitMarginColours.colourPerfect;
-
             if (RDC.auto) return XPColor;
 
             double absDiff = Math.Abs(diff);
-            double xpAngleInRad = 0.01667 * (Math.PI * bpm * speed * pitch / 60.0);
-            double xpAngleInDeg = xpAngleInRad * 57.295780181884766;
-            double finalXpBoundaryDeg = Math.Max(15.0, xpAngleInDeg);
-            double finalXpBoundary = (finalXpBoundaryDeg * 60000.0) / (57.295780181884766 * Math.PI * bpm * speed * pitch);
+            double angleR = 0.01667 * (Math.PI * bpm * speed * pitch / 60.0);
+            double angleD = angleR * 57.295780181884766;
+            double fBoundaryD = Math.Max(15.0, angleD);
+            double fBoundary = (fBoundaryD * 60000.0) / (57.295780181884766 * Math.PI * bpm * speed * pitch);
 
-            return (absDiff <= finalXpBoundary) ? (Color)XPColor : hitMarginColours.colourPerfect;
+            return (absDiff <= fBoundary) ? (Color)XPColor : hitMarginColours.colourPerfect;
         }
     }
 }
