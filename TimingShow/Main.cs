@@ -11,6 +11,7 @@ namespace TimingShow
         public static bool IsEnabled;
         public static Settings Settings;
         public static double LastTiming = 0;
+        public static HitMargin LastHitMargin = HitMargin.Perfect;
         public static List<double> SessionOffsets = new List<double>();
 
         public static bool Load(UnityModManager.ModEntry modEntry)

@@ -38,7 +38,7 @@ namespace TimingShow
         public static void Postfix(scrHitTextMesh __instance)
         {
             if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying()) return;
-
+            Main.LastHitMargin = __instance.hitMargin;
             bool replace = false;
             switch (__instance.hitMargin)
             {
@@ -65,7 +65,7 @@ namespace TimingShow
                 if (isvanilla)
                 {
                     var cond = scrController.instance.chosenPlanet.conductor;
-                    targetColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Planet_EnableXPerfect);
+                    targetColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Planet_EnableXPerfect, __instance.hitMargin);
                 }
                 else
                 {
@@ -153,7 +153,7 @@ namespace TimingShow
                     if (Main.Settings.Title_UseJudgeColor)
                     {
                         var cond = scrController.instance.chosenPlanet.conductor;
-                        Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Title_EnableXPerfect);
+                        Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Title_EnableXPerfect, Main.LastHitMargin);
                         timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
                     }
                     __instance.txtLevelName.supportRichText = true;
