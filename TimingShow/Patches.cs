@@ -4,9 +4,36 @@ using UnityEngine;
 
 namespace TimingShow
 {
+    // timing logger
+    [HarmonyPatch(typeof(scrController), "Start_Rewind")]
+    public static class LevelStartPatch
+    {
+        public static void Postfix()
+        {
+            if (!Main.IsEnabled || scrController.instance == null || !Main.Settings.EnableLogging)
+            {
+                TimingLogger.CloseSession();
+                return;
+            }
+
+            try
+            {
+                if (scnGame.instance == null || scnGame.instance.levelData == null) return;
+                if (RDC.auto) return;
+                if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
+
+                TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename);
+            }
+            catch (Exception e)
+            {
+                Main.Logger.Error($"Failed to start timing session: {e.Message}");
+            }
+        }
+    }
+
     // timing calc
     [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
-    public static class Patches
+    public static class PlanetSwitchPatch
     {
         public static void Prefix(scrPlanet __instance)
         {
@@ -24,10 +51,24 @@ namespace TimingShow
             Main.LastTiming = diff;
             UIReplacePatch.dirty = true;
 
-            if (Main.IsPlaying() && Main.Settings.ShowInWinPage && !RDC.auto)
+            if (Main.IsPlaying() && !RDC.auto)
             {
-                Main.SessionOffsets.Add(diff);
+                if (Main.Settings.ShowInWinPage && Main.SessionOffsets != null)
+                {
+                    Main.SessionOffsets.Add(diff);
+                }
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
+    public static class MarginTrackerAddHitPatch
+    {
+        public static void Prefix(HitMargin hit)
+        {
+            if (!Main.IsEnabled || !Main.IsPlaying() || RDC.auto) return;
+            Main.LastHitMargin = hit;
+            TimingLogger.LogHit(Main.LastTiming, hit);
         }
     }
 
@@ -38,7 +79,7 @@ namespace TimingShow
         public static void Postfix(scrHitTextMesh __instance)
         {
             if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying()) return;
-            Main.LastHitMargin = __instance.hitMargin;
+            //Main.LastHitMargin = __instance.hitMargin;
             bool replace = false;
             switch (__instance.hitMargin)
             {
@@ -95,8 +136,9 @@ namespace TimingShow
     {
         public static void Postfix(scrController __instance)
         {
+            TimingLogger.CloseSession();
             if (!Main.IsEnabled) return;
-            Main.SessionOffsets.Clear();
+            if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
             if (Main.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
             {
                 __instance.txtTryCalibrating.text = Main.Format(Main.LastTiming, Main.Settings.Perc3);
@@ -110,7 +152,9 @@ namespace TimingShow
     {
         public static void Postfix(scrController __instance)
         {
-            if (!Main.IsEnabled || !Main.Settings.ShowInWinPage) return;
+            TimingLogger.CloseSession();
+            if (!Main.IsEnabled) return;
+            if (!Main.Settings.ShowInWinPage) return;
             if (__instance.detailedResults != null && __instance.detailedResults.textComponent != null && __instance.detailedResults.gameObject.activeSelf)
             {
                 double avgOffset = 0;
@@ -133,7 +177,7 @@ namespace TimingShow
                 }
                 __instance.detailedResults.textComponent.text += info;
             }
-            Main.SessionOffsets.Clear();
+            if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
         }
     }
 

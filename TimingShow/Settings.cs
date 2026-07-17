@@ -38,5 +38,7 @@ public class Settings : UnityModManager.ModSettings
     public bool Planet_EnableXPerfect = false;
     public bool HUD_EnableXPerfect = false;
 
+    public bool EnableLogging = false;
+
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }

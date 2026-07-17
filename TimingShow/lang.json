@@ -30,7 +30,9 @@
     "Btn_Right": "右对齐",
     "Label_Format": "显示格式: ",
     "HUD_UseJudgeColor": "跟随判定改变颜色",
-    "Enable_XP": "启用 XPerfect"
+    "Enable_XP": "启用 XPerfect",
+    "Toggle_Logging": "启用 Timing 记录",
+    "Btn_OpenLogs": "打开 Logs 文件夹"
   },
   "English": {
     "Toggle_Title": "Show in Song Title",
@@ -63,7 +65,9 @@
     "Btn_Right": "Right",
     "Label_Format": "Display Format: ",
     "HUD_UseJudgeColor": "Change color with judgment",
-    "Enable_XP": "Enable XPerfect"
+    "Enable_XP": "Enable XPerfect",
+    "Toggle_Logging": "Enable Timing Logging",
+    "Btn_OpenLogs": "Open Logs Folder"
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",
@@ -96,6 +100,8 @@
     "Btn_Right": "오른쪽",
     "Label_Format": "표시 형식: ",
     "HUD_UseJudgeColor": "판정에 따라 색상 변경",
-    "Enable_XP": "XPerfect 활성화"
+    "Enable_XP": "XPerfect 활성화",
+    "Toggle_Logging": "타이밍 로깅 활성화",
+    "Btn_OpenLogs": "로그 폴더 열기"
   }
 }

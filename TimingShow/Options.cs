@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using System.IO;
+using UnityEngine;
 using UnityModManagerNet;
 
 namespace TimingShow
@@ -145,9 +147,38 @@ namespace TimingShow
             }
 
             GUILayout.Space(15);
+            GUILayout.BeginVertical();
+            {
+                Main.Settings.EnableLogging = GUILayout.Toggle(Main.Settings.EnableLogging, LangMan.T("Toggle_Logging"));
+
+                if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
+                {
+                    try
+                    {
+                        string logDir = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
+                        if (!Directory.Exists(logDir))
+                        {
+                            Directory.CreateDirectory(logDir);
+                        }
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
+                        {
+                            FileName = logDir,
+                            UseShellExecute = true,
+                            Verb = "open"
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        Main.Logger.Error(e.Message);
+                    }
+                }
+            }
+            GUILayout.EndVertical();
+
             if (GUILayout.Button(LangMan.T("Btn_Reset"), GUILayout.Width(150)))
             {
                 Main.SessionOffsets.Clear();
+                Main.LastHitMargin = HitMargin.Perfect;
                 Main.LastTiming = 0;
             }
         }
