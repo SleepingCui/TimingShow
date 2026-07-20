@@ -310,36 +310,22 @@ namespace TimingShow
             }
         }
 
-        // 在 Options 静态类中添加静态辅助方法
         private static string GetAbsoluteLogPath(string logDir)
         {
             if (string.IsNullOrWhiteSpace(logDir))
                 return null;
-
             try
             {
-                // 先基于当前路径解析，处理任何 ../ 或相对路径
                 string basePath = Application.dataPath;
-
-                // 如果 logDir 是绝对路径，直接返回
-                if (Path.IsPathRooted(logDir))
-                {
-                    // 但仍需要规范化路径（处理 .. 等）
-                    return Path.GetFullPath(logDir);
-                }
-
-                // 组合并解析相对路径（包括处理 ..）
-                // Application.dataPath 是游戏数据目录，需要先回到游戏根目录再组合
+                if (Path.IsPathRooted(logDir)) return Path.GetFullPath(logDir);
                 string gameRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
                 string fullPath = Path.GetFullPath(Path.Combine(gameRoot, logDir));
-
-                // 再次规范化，确保路径正确
                 return Path.GetFullPath(fullPath);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                Main.Logger.Log($"解析路径失败: {ex.Message}");
-                return logDir; // 解析失败时返回原值
+                Main.Logger.Log($"Err parsing path: {e.Message}");
+                return logDir;
             }
         }
     }
