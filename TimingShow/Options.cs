@@ -1,12 +1,16 @@
 ﻿using System;
 using System.IO;
+using System.Diagnostics;
 using UnityEngine;
 using UnityModManagerNet;
+using UnityFileDialog;
 
 namespace TimingShow
 {
     public static class Options
     {
+        private static string bufferSizeText = null;
+
         public static void OnGUI(UnityModManager.ModEntry modEntry)
         {
             GUILayout.BeginHorizontal();
@@ -78,8 +82,6 @@ namespace TimingShow
             Main.Settings.ShowTimingHUD = GUILayout.Toggle(Main.Settings.ShowTimingHUD, LangMan.T("Toggle_TimingHUD"));
             if (Main.Settings.ShowTimingHUD)
             {
-                GUILayout.Label(LangMan.T("Title_TimingHUD"));
-
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
                 GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.HUD_x:F2}", GUILayout.Width(120));
@@ -151,16 +153,53 @@ namespace TimingShow
             {
                 Main.Settings.EnableLogging = GUILayout.Toggle(Main.Settings.EnableLogging, LangMan.T("Toggle_Logging"));
 
+                if (Main.Settings.EnableLogging)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    Main.Settings.LogAutoplay = GUILayout.Toggle(Main.Settings.LogAutoplay, LangMan.T("Toggle_LogAutoplay"));
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(160));
+                    Main.Settings.LogDirectory = GUILayout.TextField(Main.Settings.LogDirectory, GUILayout.Width(220));
+
+                    if (GUILayout.Button(LangMan.T("Btn_Browse"), GUILayout.Width(70)))
+                    {
+                        string defaultDir = string.IsNullOrWhiteSpace(Main.Settings.LogDirectory) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Main.Settings.LogDirectory;
+
+                        string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], LangMan.T("Label_LogDir"));
+
+                        if (!string.IsNullOrEmpty(selectedFolder)) Main.Settings.LogDirectory = selectedFolder;
+                        
+                    }
+
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(160));
+
+                    if (bufferSizeText == null) bufferSizeText = Main.Settings.LogBufferSizeKB.ToString();
+
+                    string newBufferSizeText = GUILayout.TextField(bufferSizeText, GUILayout.Width(80));
+                    if (newBufferSizeText != bufferSizeText)
+                    {
+                        bufferSizeText = newBufferSizeText;
+                        if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal > 0) Main.Settings.LogBufferSizeKB = parsedVal;
+                    }
+                    GUILayout.EndHorizontal();
+                }
+
                 if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
                     try
                     {
-                        string logDir = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
-                        if (!Directory.Exists(logDir))
-                        {
-                            Directory.CreateDirectory(logDir);
-                        }
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
+                        string logDir = string.IsNullOrWhiteSpace(Main.Settings.LogDirectory) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Main.Settings.LogDirectory;
+
+                        if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+
+                        Process.Start(new ProcessStartInfo()
                         {
                             FileName = logDir,
                             UseShellExecute = true,

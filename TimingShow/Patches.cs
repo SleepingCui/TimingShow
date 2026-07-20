@@ -10,7 +10,11 @@ namespace TimingShow
     {
         public static void Postfix()
         {
-            if (!Main.IsEnabled || scrController.instance == null || !Main.Settings.EnableLogging)
+            bool isAuto = RDC.auto;
+            bool shouldLogAuto = isAuto && Main.Settings.LogAutoplay;
+            bool shouldLogPlayer = !isAuto;
+
+            if (!Main.IsEnabled || scrController.instance == null || !Main.Settings.EnableLogging || (!shouldLogAuto && !shouldLogPlayer))
             {
                 TimingLogger.CloseSession();
                 return;
@@ -19,10 +23,9 @@ namespace TimingShow
             try
             {
                 if (scnGame.instance == null || scnGame.instance.levelData == null) return;
-                if (RDC.auto) return;
                 if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
 
-                TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename);
+                TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename, Main.Settings.LogDirectory, Main.Settings.LogBufferSizeKB);
             }
             catch (Exception e)
             {
@@ -51,16 +54,26 @@ namespace TimingShow
             Main.LastTiming = diff;
             UIReplacePatch.dirty = true;
 
-            if (Main.IsPlaying() && !RDC.auto)
+            bool isAuto = RDC.auto;
+            bool canRecord = !isAuto || Main.Settings.LogAutoplay;
+
+            if (Main.IsPlaying() && canRecord)
             {
                 if (Main.Settings.ShowInWinPage && Main.SessionOffsets != null)
                 {
                     Main.SessionOffsets.Add(diff);
                 }
+
+                if (isAuto && Main.Settings.EnableLogging)
+                {
+                    Main.LastHitMargin = HitMargin.Perfect;
+                    TimingLogger.LogHit(diff, HitMargin.Perfect);
+                }
             }
         }
     }
 
+    // hit
     [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
     public static class MarginTrackerAddHitPatch
     {

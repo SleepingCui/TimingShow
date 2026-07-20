@@ -39,6 +39,9 @@ public class Settings : UnityModManager.ModSettings
     public bool HUD_EnableXPerfect = false;
 
     public bool EnableLogging = false;
+    public bool LogAutoplay = false;
+    public string LogDirectory = "../Mods/TimingShow/Logs";
+    public int LogBufferSizeKB = 64; 
 
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }

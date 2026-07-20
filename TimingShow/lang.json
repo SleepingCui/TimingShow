@@ -19,7 +19,6 @@
     "Toggle_FailMiss": "失误...",
     "Toggle_Multipress": "多次按键!",
     "Toggle_TimingHUD": "显示 Timing HUD",
-    "Title_TimingHUD": "Timing 显示设置",
     "Label_XOffset": "X轴偏移: ",
     "Label_YOffset": "Y轴偏移: ",
     "Label_Scale": "缩放大小: ",
@@ -32,7 +31,11 @@
     "HUD_UseJudgeColor": "跟随判定改变颜色",
     "Enable_XP": "启用 XPerfect",
     "Toggle_Logging": "启用 Timing 记录",
-    "Btn_OpenLogs": "打开 Logs 文件夹"
+    "Btn_OpenLogs": "打开 Logs 文件夹",
+    "Toggle_LogAutoplay": "自动演奏时也录制",
+    "Label_LogDir": "保存路径: ",
+    "Btn_Browse": "浏览...",
+    "Label_BufferSize": "缓冲区大小 (KB): "
   },
   "English": {
     "Toggle_Title": "Show in Song Title",
@@ -54,7 +57,6 @@
     "Toggle_FailMiss": "Miss",
     "Toggle_Multipress": "MultiPress",
     "Toggle_TimingHUD": "Show Timing HUD",
-    "Title_TimingHUD": "Timing HUD Settings",
     "Label_XOffset": "X Offset: ",
     "Label_YOffset": "Y Offset: ",
     "Label_Scale": "Scale: ",
@@ -67,7 +69,11 @@
     "HUD_UseJudgeColor": "Change color with judgment",
     "Enable_XP": "Enable XPerfect",
     "Toggle_Logging": "Enable Timing Logging",
-    "Btn_OpenLogs": "Open Logs Folder"
+    "Btn_OpenLogs": "Open Logs Folder",
+    "Toggle_LogAutoplay": "Record Autoplay",
+    "Label_LogDir": "Save Path: ",
+    "Btn_Browse": "Browse...",
+    "Label_BufferSize": "Buffer Size (KB): "
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",
@@ -89,7 +95,6 @@
     "Toggle_FailMiss": "미스...",
     "Toggle_Multipress": "다중 입력!",
     "Toggle_TimingHUD": "타이밍 HUD 표시",
-    "Title_TimingHUD": "타이밍 HUD 설정",
     "Label_XOffset": "X축 오프셋: ",
     "Label_YOffset": "Y축 오프셋: ",
     "Label_Scale": "크기 조정: ",
@@ -102,6 +107,10 @@
     "HUD_UseJudgeColor": "판정에 따라 색상 변경",
     "Enable_XP": "XPerfect 활성화",
     "Toggle_Logging": "타이밍 로깅 활성화",
-    "Btn_OpenLogs": "로그 폴더 열기"
+    "Btn_OpenLogs": "로그 폴더 열기",
+    "Toggle_LogAutoplay": "자동 재생도 기록",
+    "Label_LogDir": "저장 경로: ",
+    "Btn_Browse": "찾아보기...",
+    "Label_BufferSize": "버퍼 크기 (KB): "
   }
 }

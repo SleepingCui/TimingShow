@@ -87,6 +87,10 @@
       <HintPath>E:\Games\Steam\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.UIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityFileDialog">
+      <HintPath>E:\Games\Steam\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityFileDialog.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityModManager">
       <HintPath>E:\Games\Adofai\umm\UnityModManager.dll</HintPath>
       <Private>False</Private>

@@ -11,15 +11,15 @@ namespace TimingShow
         private static string _currentFilePath;
         private static bool _isFirstEntry = true;
 
-        public static void StartNewSession(string levelPath, string songName)
+        public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSizeKB)
         {
             CloseSession();
             _isFirstEntry = true;
             try
             {
-                string dir = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
-                if (!Directory.Exists(dir))
-                    Directory.CreateDirectory(dir);
+                string dir = string.IsNullOrWhiteSpace(customDir) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : customDir;
+
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                 string safeSongName = "Unknown";
                 if (!string.IsNullOrEmpty(songName))
@@ -32,7 +32,9 @@ namespace TimingShow
                 _currentFilePath = Path.Combine(dir, $"{timestamp}_{safeSongName}.json");
                 FileStream fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
 
-                _writer = new StreamWriter(fs, new UTF8Encoding(false), 65536);
+                int bufferSizeBytes = Math.Max(4, bufferSizeKB) * 1024;
+                _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
+
                 _writer.WriteLine("{");
                 _writer.WriteLine($"  \"songName\": \"{JsonEscape(safeSongName)}\",");
                 _writer.WriteLine($"  \"levelPath\": \"{JsonEscape(levelPath ?? "")}\",");

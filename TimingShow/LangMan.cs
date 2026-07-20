@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace TimingShow
 {
@@ -15,7 +16,7 @@ namespace TimingShow
             {
                 if (File.Exists(jsonPath))
                 {
-                    LangData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(jsonPath, System.Text.Encoding.UTF8));
+                    LangData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(jsonPath, System.Text.Encoding.UTF8));
                     Main.Logger.Log("Languages loaded successfully");
                 }
                 else
@@ -24,9 +25,9 @@ namespace TimingShow
                     LangData = new Dictionary<string, Dictionary<string, string>>();
                 }
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                Main.Logger.Error($"Failed to load lang.json: {ex.Message}");
+                Main.Logger.Error($"Failed to load lang.json: {e.Message}");
             }
         }
 
