@@ -119,8 +119,20 @@ namespace TimingShow
 
                 if (isvanilla)
                 {
-                    var cond = scrController.instance.chosenPlanet.conductor;
-                    targetColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Planet_EnableXPerfect, __instance.hitMargin);
+                    var controller = scrController.instance;
+                    var conductor = scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
+
+                    if (controller != null && conductor != null && conductor.song != null)
+                    {
+                        double bpm = (double)conductor.bpm;
+                        double speed = controller.planetarySystem != null ? (double)controller.planetarySystem.speed : 1.0;
+                        double pitch = (double)conductor.song.pitch;
+                        targetColor = CalcXP.XPc(controller.chosenPlanet, Main.LastTiming, bpm, speed, pitch, Main.Settings.Planet_EnableXPerfect, __instance.hitMargin);
+                    }
+                    else
+                    {
+                        targetColor = hitMarginColours.colourPerfect;
+                    }
                 }
                 else
                 {
