@@ -17,7 +17,7 @@ namespace TimingShow
             _isFirstEntry = true;
             try
             {
-                string dir = string.IsNullOrWhiteSpace(customDir) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : customDir;
+                string dir = string.IsNullOrWhiteSpace(customDir) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Path.GetFullPath(Path.Combine(Application.dataPath, "..", customDir));
 
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
