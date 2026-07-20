@@ -107,6 +107,7 @@
     <Compile Include="Settings.cs" />
     <Compile Include="TextUI.cs" />
     <Compile Include="TimingLogger.cs" />
+    <Compile Include="XPerfectBridge.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Info.json">

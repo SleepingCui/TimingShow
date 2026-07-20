@@ -10,6 +10,7 @@ namespace TimingShow
     public static class Options
     {
         private static string bufferSizeText = null;
+        private static bool showAdvancedSettings = false;
 
         public static void OnGUI(UnityModManager.ModEntry modEntry)
         {
@@ -148,7 +149,6 @@ namespace TimingShow
                 }
             }
 
-            GUILayout.Space(15);
             GUILayout.BeginVertical();
             {
                 Main.Settings.EnableLogging = GUILayout.Toggle(Main.Settings.EnableLogging, LangMan.T("Toggle_Logging"));
@@ -172,7 +172,7 @@ namespace TimingShow
                         string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], LangMan.T("Label_LogDir"));
 
                         if (!string.IsNullOrEmpty(selectedFolder)) Main.Settings.LogDirectory = selectedFolder;
-                        
+
                     }
 
                     GUILayout.EndHorizontal();
@@ -191,6 +191,7 @@ namespace TimingShow
                     GUILayout.EndHorizontal();
                 }
 
+                GUILayout.Space(15);
                 if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
                     try
@@ -219,6 +220,79 @@ namespace TimingShow
                 Main.SessionOffsets.Clear();
                 Main.LastHitMargin = HitMargin.Perfect;
                 Main.LastTiming = 0;
+            }
+
+           
+            string foldoutArrow = showAdvancedSettings ? "▲" : "▼";
+            if (GUILayout.Button($"{LangMan.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
+            {
+                showAdvancedSettings = !showAdvancedSettings;
+            }
+
+            if (showAdvancedSettings)
+            {
+                GUILayout.BeginVertical();
+                {
+                    GUILayout.Space(5);
+                    bool newHookMode = GUILayout.Toggle(Main.Settings.UseHookMode, LangMan.T("Toggle_HookMode"));
+                    GUILayout.BeginHorizontal();
+                    {
+                        GUILayout.Space(20);
+                        GUILayout.Label($"<color=#888888>{LangMan.T("Desc_HookMode")}</color>");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    if (newHookMode != Main.Settings.UseHookMode)
+                    {
+                        Main.Settings.UseHookMode = newHookMode;
+
+                        if (newHookMode)
+                        {
+                            XPerfectBridge.TryInit(force: true);
+                        }
+                        else
+                        {
+                            XPerfectBridge.UnloadHook();
+                        }
+                    }
+
+                    XPerfectBridge.HookState currentState = XPerfectBridge.CurrentState;
+                    string statusDisplayText;
+
+                    switch (currentState)
+                    {
+                        case XPerfectBridge.HookState.Success:
+                            statusDisplayText = $"<color=#55FF55>{LangMan.T("Status_HookSuccess")}</color>";
+                            break;
+                        case XPerfectBridge.HookState.Failed:
+                            statusDisplayText = $"<color=#FF5555>{LangMan.T("Status_HookFailed")}{XPerfectBridge.LastErrorMessage}</color>";
+                            break;
+                        case XPerfectBridge.HookState.Disabled:
+                        default:
+                            statusDisplayText = $"<color=#888888>{LangMan.T("Status_HookDisabled")}</color>";
+                            break;
+                    }
+
+                    GUILayout.BeginHorizontal();
+                    {
+                        GUILayout.Space(20);
+                        GUILayout.Label($"{LangMan.T("Label_CurrentStatus")}{statusDisplayText}");
+                    }
+                    GUILayout.EndHorizontal();
+
+
+                    GUILayout.Space(5);
+
+
+                    Main.Settings.DisplayCurrMode = GUILayout.Toggle(Main.Settings.DisplayCurrMode, LangMan.T("Toggle_DisplayCurrMode"));
+                    GUILayout.BeginHorizontal();
+                    {
+                        GUILayout.Space(20);
+                        GUILayout.Label($"<color=#888888>{LangMan.T("Desc_DisplayCurrMode")}</color> <color=#FF96B4>#FF96B4</color>");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndVertical();
             }
         }
 

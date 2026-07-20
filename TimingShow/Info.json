@@ -2,9 +2,10 @@
   "Id": "TimingShow",
   "DisplayName": "TimingShow",
   "Author": "SleepingCui",
-  "Version": "1.7.2",
+  "Version": "1.7.3",
   "HomePage": "https://github.com/SleepingCui/TimingShow",
   "Repository": "https://raw.githubusercontent.com/SleepingCui/TimingShow/refs/heads/master/Repository.json",
   "AssemblyName": "TimingShow.dll",
-  "EntryMethod": "TimingShow.Main.Load"
+  "EntryMethod": "TimingShow.Main.Load",
+  "LoadAfter": [ "XPerfect" ]
 }

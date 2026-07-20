@@ -6,6 +6,7 @@ namespace TimingShow
     public static class CalcXP
     {
         public static readonly Color32 XPColor = new Color32(77, 204, byte.MaxValue, byte.MaxValue);
+        public static readonly Color32 HkModeColor = new Color32(255, 150, 180,byte.MaxValue);
 
         public static Color XPc(scrPlanet planet, double diff, double bpm, double speed, double pitch, bool enableXP, HitMargin margin)
         {
@@ -17,11 +18,21 @@ namespace TimingShow
                 if (!enableXP) return hitMarginColours.colourPerfect;
                 if (RDC.auto) return XPColor;
 
+                // use xp mod
+                if (XPerfectBridge.IsAvailable)
+                {
+                    if (Main.Settings.DisplayCurrMode) return XPerfectBridge.IsXPerfect() ? (Color)HkModeColor : (Color)HkModeColor;
+                    else return XPerfectBridge.IsXPerfect() ? (Color)XPColor : hitMarginColours.colourPerfect;
+                }
+
+                double denominator = Math.PI * bpm * speed * pitch;
+                if (denominator == 0) return hitMarginColours.colourPerfect;
+
                 double absDiff = Math.Abs(diff);
-                double angleR = 0.01667 * (Math.PI * bpm * speed * pitch / 60.0);
+                double angleR = 0.01667 * (denominator / 60.0);
                 double angleD = angleR * 57.295780181884766;
                 double fBoundaryD = Math.Max(15.0, angleD);
-                double fBoundary = (fBoundaryD * 60000.0) / (57.295780181884766 * Math.PI * bpm * speed * pitch);
+                double fBoundary = (fBoundaryD * 60000.0) / (57.295780181884766 * denominator);
 
                 return (absDiff <= fBoundary) ? (Color)XPColor : hitMarginColours.colourPerfect;
             }

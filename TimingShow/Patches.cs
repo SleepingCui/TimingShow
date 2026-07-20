@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using System;
+using System.Reflection;
 using UnityEngine;
 
 namespace TimingShow
@@ -179,7 +180,7 @@ namespace TimingShow
                 }
 
                 string info = "\n" + LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4);
-                var resultsField = typeof(DetailedResults).GetField("results", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (resultsField != null)
                 {
                     string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];

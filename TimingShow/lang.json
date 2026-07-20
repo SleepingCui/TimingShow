@@ -35,7 +35,21 @@
     "Toggle_LogAutoplay": "自动演奏时也录制",
     "Label_LogDir": "保存路径: ",
     "Btn_Browse": "浏览...",
-    "Label_BufferSize": "缓冲区大小 (KB): "
+    "Label_BufferSize": "缓冲区大小 (KB): ",
+    "Btn_Advanced": "高级功能",
+    "Toggle_HookMode": "开启 XPerfect Hook 模式",
+    "Desc_HookMode": "开启后优先通过反射获取 XPerfect 模组的判定数据,否则使用mod内部 XPerfect 算法",
+    "Label_CurrentStatus": "当前状态: ",
+    "Status_HookSuccess": "Hook成功",
+    "Status_HookFailed": "Hook失败: ",
+    "Status_HookDisabled": "Hook未开启",
+    "Toggle_DisplayCurrMode": "显示当前模式",
+    "Desc_DisplayCurrMode": "反映当前使用的XP算法。如果使用的为 XPerfect 模组的判定数据，则判定文字为",
+    "Err_AssemblyNotFound": "未检测到 XPerfect 模组程序集",
+    "Err_PropertyNotFound": "未找到 LastJudgeForText 或 LastJudge 属性",
+    "Err_GetterNotFound": "无法获取属性 Getter 方法",
+    "Err_DelegateFailed": "创建委托失败",
+    "Err_UnhandledException": "Hook 发生未处理异常: "
   },
   "English": {
     "Toggle_Title": "Show in Song Title",
@@ -73,7 +87,22 @@
     "Toggle_LogAutoplay": "Record Autoplay",
     "Label_LogDir": "Save Path: ",
     "Btn_Browse": "Browse...",
-    "Label_BufferSize": "Buffer Size (KB): "
+    "Label_BufferSize": "Buffer Size (KB): ",
+    "Btn_Advanced": "Advanced Features",
+    "Toggle_HookMode": "Enable XPerfect Hook Mode",
+    "Desc_HookMode": "When enabled, prioritizes getting judgment data via reflection from XPerfect mod; otherwise uses internal algorithm.",
+    "Label_CurrentStatus": "Current Status: ",
+    "Status_HookSuccess": "Hook Successful",
+    "Status_HookFailed": "Hook Failed: ",
+    "Status_HookDisabled": "Hook Disabled",
+    "Toggle_DisplayCurrMode": "Display Current Mode",
+    "Desc_DisplayCurrMode": "Reflects the current XP algorithm in use. If using XPerfect mod data, text color will be",
+    "Err_AssemblyNotFound": "XPerfect mod assembly not found",
+    "Err_PropertyNotFound": "Property LastJudgeForText or LastJudge not found",
+    "Err_GetterNotFound": "Failed to get property getter method",
+    "Err_DelegateFailed": "Failed to create delegate",
+    "Err_UnhandledException": "Unhandled exception during hook: "
+
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",
@@ -111,6 +140,20 @@
     "Toggle_LogAutoplay": "자동 재생도 기록",
     "Label_LogDir": "저장 경로: ",
     "Btn_Browse": "찾아보기...",
-    "Label_BufferSize": "버퍼 크기 (KB): "
+    "Label_BufferSize": "버퍼 크기 (KB): ",
+    "Btn_Advanced": "고급 기능",
+    "Toggle_HookMode": "XPerfect Hook 모드 활성화",
+    "Desc_HookMode": "활성화 시 리플렉션을 통해 XPerfect 모드의 판정 데이터를 우선 가져오며, 그렇지 않으면 내장 알고리즘을 사용합니다.",
+    "Label_CurrentStatus": "현재 상태: ",
+    "Status_HookSuccess": "Hook 성공",
+    "Status_HookFailed": "Hook 실패: ",
+    "Status_HookDisabled": "Hook 비활성화됨",
+    "Toggle_DisplayCurrMode": "현재 모드 표시",
+    "Desc_DisplayCurrMode": "현재 사용 중인 XP 알고리즘을 반영합니다. XPerfect 모드 데이터를 사용하는 경우 텍스트 색상은",
+    "Err_AssemblyNotFound": "XPerfect 모드 어셈블리를 찾을 수 없습니다",
+    "Err_PropertyNotFound": "LastJudgeForText 또는 LastJudge 속성을 찾을 수 없습니다",
+    "Err_GetterNotFound": "속성 Getter 메서드를 가져올 수 없습니다",
+    "Err_DelegateFailed": "대리자(Delegate) 생성 실패",
+    "Err_UnhandledException": "Hook 처리 중 예외 발생: "
   }
 }

@@ -18,7 +18,9 @@ namespace TimingShow
         {
             Logger = modEntry.Logger;
             Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
+
             LangMan.LoadLanguages(modEntry.Path);
+            XPerfectBridge.TryInit();
 
             var harmony = new Harmony(modEntry.Info.Id);
             modEntry.OnToggle = (entry, value) => {

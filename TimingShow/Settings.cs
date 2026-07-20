@@ -41,7 +41,10 @@ public class Settings : UnityModManager.ModSettings
     public bool EnableLogging = false;
     public bool LogAutoplay = false;
     public string LogDirectory = "../Mods/TimingShow/Logs";
-    public int LogBufferSizeKB = 64; 
+    public int LogBufferSizeKB = 64;
+
+    public bool UseHookMode = false;
+    public bool DisplayCurrMode = false;
 
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }
