@@ -76,7 +76,7 @@ namespace TimingShow
                 if (accuracyStateType == null)
                 {
                     SetFailedState(LangMan.T("Err_AssemblyNotFound"));
-                    Main.Logger?.Log("XPerfect not installed or not loaded.");
+                    Main.Logger.Log("XPerfect not installed or not loaded");
                     return;
                 }
 
@@ -102,7 +102,7 @@ namespace TimingShow
                 {
                     internalState = HookState.Success;
                     internalErrorMsg = string.Empty;
-                    Main.Logger?.Log("Successfully hooked into XPerfect mod.");
+                    Main.Logger.Log("Successfully hooked into XPerfect mod");
                 }
                 else
                 {
@@ -112,7 +112,7 @@ namespace TimingShow
             catch (Exception e)
             {
                 SetFailedState($"{LangMan.T("Err_UnhandledException")}{e.Message}");
-                Main.Logger?.Error($"Failed to hook XPerfect: {e.Message}");
+                Main.Logger.Error($"Failed to hook XPerfect: {e.Message}");
             }
         }
 

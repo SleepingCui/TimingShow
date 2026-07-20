@@ -163,33 +163,41 @@ namespace TimingShow
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(160));
-                    Main.Settings.LogDirectory = GUILayout.TextField(Main.Settings.LogDirectory, GUILayout.Width(220));
+
+
+                    string absolutePath = GetAbsoluteLogPath(Main.Settings.LogDirectory);
+                    string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "未选择" : absolutePath;
+                    GUILayout.Label(displayPath, GUILayout.MinWidth(300), GUILayout.MaxWidth(500));
 
                     if (GUILayout.Button(LangMan.T("Btn_Browse"), GUILayout.Width(70)))
                     {
-                        string defaultDir = string.IsNullOrWhiteSpace(Main.Settings.LogDirectory) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Main.Settings.LogDirectory;
+                        string defaultDir = GetAbsoluteLogPath(Main.Settings.LogDirectory);
+                        if (string.IsNullOrWhiteSpace(defaultDir)) defaultDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
 
                         string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], LangMan.T("Label_LogDir"));
-
-                        if (!string.IsNullOrEmpty(selectedFolder)) Main.Settings.LogDirectory = selectedFolder;
-
+                        if (!string.IsNullOrEmpty(selectedFolder))
+                        {
+                            Main.Settings.LogDirectory = Path.GetFullPath(selectedFolder);
+                        }
                     }
 
                     GUILayout.EndHorizontal();
+
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(160));
 
                     if (bufferSizeText == null) bufferSizeText = Main.Settings.LogBufferSizeKB.ToString();
-
                     string newBufferSizeText = GUILayout.TextField(bufferSizeText, GUILayout.Width(80));
                     if (newBufferSizeText != bufferSizeText)
                     {
                         bufferSizeText = newBufferSizeText;
-                        if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal > 0) Main.Settings.LogBufferSizeKB = parsedVal;
+                        if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal > 0)
+                            Main.Settings.LogBufferSizeKB = parsedVal;
                     }
                     GUILayout.EndHorizontal();
                 }
+
 
                 GUILayout.Space(15);
                 if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
@@ -197,15 +205,8 @@ namespace TimingShow
                     try
                     {
                         string logDir = string.IsNullOrWhiteSpace(Main.Settings.LogDirectory) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Main.Settings.LogDirectory;
-
                         if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
-
-                        Process.Start(new ProcessStartInfo()
-                        {
-                            FileName = logDir,
-                            UseShellExecute = true,
-                            Verb = "open"
-                        });
+                        Process.Start(new ProcessStartInfo() { FileName = logDir, UseShellExecute = true, Verb = "open" });
                     }
                     catch (Exception e)
                     {
@@ -225,9 +226,7 @@ namespace TimingShow
            
             string foldoutArrow = showAdvancedSettings ? "▲" : "▼";
             if (GUILayout.Button($"{LangMan.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
-            {
                 showAdvancedSettings = !showAdvancedSettings;
-            }
 
             if (showAdvancedSettings)
             {
@@ -296,6 +295,7 @@ namespace TimingShow
             }
         }
 
+
         private static void DrawSettingRow(string label, ref bool toggle, ref int precision)
         {
             toggle = GUILayout.Toggle(toggle, label);
@@ -307,6 +307,22 @@ namespace TimingShow
                 GUILayout.Label($"{precisionLabel}{precision}", GUILayout.Width(120));
                 precision = Mathf.RoundToInt(GUILayout.HorizontalSlider(precision, 0, 5, GUILayout.Width(100)));
                 GUILayout.EndHorizontal();
+            }
+        }
+
+        private static string GetAbsoluteLogPath(string logDir)
+        {
+            if (string.IsNullOrWhiteSpace(logDir)) return null;
+
+            if (Path.IsPathRooted(logDir)) return logDir;
+
+            try
+            {
+                return Path.GetFullPath(Path.Combine(Application.dataPath, "..", logDir));
+            }
+            catch
+            {
+                return logDir; 
             }
         }
     }

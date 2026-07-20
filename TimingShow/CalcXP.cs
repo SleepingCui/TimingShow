@@ -16,14 +16,15 @@ namespace TimingShow
             if (isPS)
             {
                 if (!enableXP) return hitMarginColours.colourPerfect;
-                if (RDC.auto) return XPColor;
 
                 // use xp mod
                 if (XPerfectBridge.IsAvailable)
                 {
-                    if (Main.Settings.DisplayCurrMode) return XPerfectBridge.IsXPerfect() ? (Color)HkModeColor : (Color)HkModeColor;
+                    if (Main.Settings.DisplayCurrMode) return (Color)HkModeColor;
                     else return XPerfectBridge.IsXPerfect() ? (Color)XPColor : hitMarginColours.colourPerfect;
                 }
+
+                if (RDC.auto) return XPColor;
 
                 double denominator = Math.PI * bpm * speed * pitch;
                 if (denominator == 0) return hitMarginColours.colourPerfect;

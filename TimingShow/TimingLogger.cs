@@ -31,6 +31,7 @@ namespace TimingShow
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 _currentFilePath = Path.Combine(dir, $"{timestamp}_{safeSongName}.json");
                 FileStream fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+                Main.Logger.Log($"created {_currentFilePath}");
 
                 int bufferSizeBytes = Math.Max(4, bufferSizeKB) * 1024;
                 _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
@@ -81,8 +82,12 @@ namespace TimingShow
                 _writer.WriteLine("]");
                 _writer.Write("}");
                 _writer.Flush();
+                Main.Logger.Log($"Successfully closed session: {_currentFilePath}");
             }
-            catch { }
+            catch (Exception e)
+            {
+                Main.Logger.Log($"Err closing log session: {e.Message}");
+            }
             finally
             {
                 _writer.Dispose();

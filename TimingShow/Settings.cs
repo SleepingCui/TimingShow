@@ -1,4 +1,6 @@
 ﻿using UnityModManagerNet;
+using UnityEngine;
+using System.IO;
 
 public class Settings : UnityModManager.ModSettings
 {
@@ -40,7 +42,7 @@ public class Settings : UnityModManager.ModSettings
 
     public bool EnableLogging = false;
     public bool LogAutoplay = false;
-    public string LogDirectory = "../Mods/TimingShow/Logs";
+    public string LogDirectory = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
     public int LogBufferSizeKB = 64;
 
     public bool UseHookMode = false;
