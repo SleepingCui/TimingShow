@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 
-namespace TimingShow
+namespace TimingShow.Patches
 {
     public static class PlayStatePatches
     {
