@@ -45,7 +45,7 @@ namespace TimingShow
                 _writer.WriteLine($"  \"timestamp\": {timestamp},");
 
                 if (Main.Settings.UseOldJsonFormat)
-                    _writer.WriteLine("  \"offsets\": {");
+                    _writer.Write("  \"offsets\": {");
                 else
                     _writer.Write("  \"offsets\": [");
 
@@ -66,18 +66,20 @@ namespace TimingShow
             {
                 int marginCode = (int)margin;
                 if (Main.Settings.Logger_EnableXPerfect && Main.LastIsXP) marginCode = 12;
-
-                string prefix = _isFirstEntry ? "" : ",";
-                _isFirstEntry = false;
                 _hitIndex++;
 
                 if (Main.Settings.UseOldJsonFormat)
                 {
-                    _writer.WriteLine();
-                    _writer.Write($"    \"{_hitIndex}\": {{\"v\": {timing.ToString("F4")}, \"j\": {marginCode}}}{prefix}");
+                    if (!_isFirstEntry)
+                        _writer.WriteLine(",");
+                    else
+                        _writer.WriteLine();
+
+                    _writer.Write($"    \"{_hitIndex}\": {{\"v\": {timing.ToString("F4")}, \"j\": {marginCode}}}");
                 }
                 else
                 {
+                    string prefix = _isFirstEntry ? "" : ",";
                     _writer.Write(prefix);
                     _writer.Write("[");
                     _writer.Write(timing.ToString("F4"));
@@ -85,6 +87,8 @@ namespace TimingShow
                     _writer.Write(marginCode);
                     _writer.Write("]");
                 }
+
+                _isFirstEntry = false;
             }
             catch (Exception ex)
             {
