@@ -32,7 +32,7 @@
     "Enable_XP": "启用 XPerfect",
     "Toggle_Logging": "启用 Timing 记录",
     "Btn_OpenLogs": "打开 Logs 文件夹",
-    "Toggle_LogAutoplay": "自动演奏时也录制",
+    "Toggle_LogAutoplay": "自动播放时也录制",
     "Label_LogDir": "保存路径: ",
     "Btn_Browse": "浏览...",
     "Label_BufferSize": "缓冲区大小 (KB): ",
