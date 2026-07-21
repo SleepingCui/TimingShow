@@ -52,11 +52,13 @@ namespace TimingShow
 
         public static void LogHit(double timing, HitMargin margin)
         {
-            if (_writer == null)
-                return;
+            if (_writer == null) return;
+
             try
             {
                 int marginCode = (int)margin;
+                if (Main.Settings.Logger_EnableXPerfect && Main.LastIsXP) marginCode = 12;
+
                 string prefix = _isFirstEntry ? "" : ",";
                 _isFirstEntry = false;
 

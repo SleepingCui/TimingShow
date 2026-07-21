@@ -1,52 +1,32 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 
 namespace TimingShow
 {
     public static class XPerfectBridge
     {
-        private static bool isInitialized = false;
-        private static bool isAvailable = false;
-        private static Func<int> getLastJudgeDelegate;
         private const int XPERFECT_ENUM_VALUE = 1;
+        private static bool isInitialized;
+        private static Func<int> getLastJudgeDelegate;
 
-        public enum HookState
+
+        public enum HookState { Disabled, Success, Failed }
+
+        public static HookState CurrentState { get; private set; } = HookState.Disabled;
+        public static string LastErrorMessage { get; private set; } = string.Empty;
+
+        public static bool IsAvailable => ProtInitialize() && CurrentState == HookState.Success && getLastJudgeDelegate != null;
+        private static bool ProtInitialize()
         {
-            Disabled,
-            Success,
-            Failed
-        }
-
-        private static HookState internalState = HookState.Disabled;
-        private static string internalErrorMsg = string.Empty;
-
-        public static HookState CurrentState
-        {
-            get
+            if (!Main.Settings.UseHookMode)
             {
-                if (!Main.Settings.UseHookMode) return HookState.Disabled;
-                if (!isInitialized) TryInit();
-                return internalState;
+                if (isInitialized) UnloadHook();
+                return false;
             }
-        }
 
-        public static string LastErrorMessage
-        {
-            get
-            {
-                if (!Main.Settings.UseHookMode) return string.Empty;
-                return internalErrorMsg;
-            }
-        }
-
-        public static bool IsAvailable
-        {
-            get
-            {
-                if (!Main.Settings.UseHookMode) return false;
-                if (!isInitialized) TryInit();
-                return isAvailable;
-            }
+            if (!isInitialized) TryInit();
+            return true;
         }
 
         public static void TryInit(bool force = false)
@@ -62,56 +42,34 @@ namespace TimingShow
 
             try
             {
-                Type accuracyStateType = null;
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                var type = AppDomain.CurrentDomain.GetAssemblies().Select(asm => asm.GetType("XPerfect.AccuracyState")).FirstOrDefault(t => t != null);
+                if (type == null)
                 {
-                    var type = asm.GetType("XPerfect.AccuracyState");
-                    if (type != null)
-                    {
-                        accuracyStateType = type;
-                        break;
-                    }
-                }
-
-                if (accuracyStateType == null)
-                {
-                    SetFailedState(LangMan.T("Err_AssemblyNotFound"));
                     Main.Logger.Log("XPerfect not installed or not loaded");
+                    SetState(HookState.Failed, LangMan.T("Err_AssemblyNotFound"));
                     return;
                 }
 
-                PropertyInfo prop = accuracyStateType.GetProperty("LastJudgeForText", BindingFlags.Public | BindingFlags.Static) ?? accuracyStateType.GetProperty("LastJudge", BindingFlags.Public | BindingFlags.Static);
-
-                if (prop == null)
-                {
-                    SetFailedState(LangMan.T("Err_PropertyNotFound"));
-                    return;
-                }
-
-                MethodInfo getter = prop.GetGetMethod();
+                var prop = type.GetProperty("LastJudgeForText", BindingFlags.Public | BindingFlags.Static) ?? type.GetProperty("LastJudge", BindingFlags.Public | BindingFlags.Static);
+                var getter = prop?.GetGetMethod();
                 if (getter == null)
                 {
-                    SetFailedState(LangMan.T("Err_GetterNotFound"));
+                    SetState(HookState.Failed, LangMan.T(prop == null ? "Err_PropertyNotFound" : "Err_GetterNotFound"));
                     return;
                 }
 
                 getLastJudgeDelegate = (Func<int>)Delegate.CreateDelegate(typeof(Func<int>), getter);
-                isAvailable = (getLastJudgeDelegate != null);
-
-                if (isAvailable)
+                if (getLastJudgeDelegate != null)
                 {
-                    internalState = HookState.Success;
-                    internalErrorMsg = string.Empty;
+                    SetState(HookState.Success);
                     Main.Logger.Log("Successfully hooked into XPerfect mod");
                 }
                 else
-                {
-                    SetFailedState(LangMan.T("Err_DelegateFailed"));
-                }
+                    SetState(HookState.Failed, LangMan.T("Err_DelegateFailed"));
             }
             catch (Exception e)
             {
-                SetFailedState($"{LangMan.T("Err_UnhandledException")}{e.Message}");
+                SetState(HookState.Failed, $"{LangMan.T("Err_UnhandledException")}{e.Message}");
                 Main.Logger.Error($"Failed to hook XPerfect: {e.Message}");
             }
         }
@@ -119,27 +77,20 @@ namespace TimingShow
         public static void UnloadHook()
         {
             isInitialized = false;
-            isAvailable = false;
             getLastJudgeDelegate = null;
-            internalState = HookState.Disabled;
-            internalErrorMsg = string.Empty;
+            SetState(HookState.Disabled);
         }
 
-        private static void SetFailedState(string errorMsg)
+        private static void SetState(HookState state, string errorMsg = "")
         {
-            isAvailable = false;
-            getLastJudgeDelegate = null;
-            internalState = HookState.Failed;
-            internalErrorMsg = errorMsg;
+            CurrentState = state;
+            LastErrorMessage = errorMsg;
+            if (state != HookState.Success) getLastJudgeDelegate = null;
         }
 
         public static bool IsXPerfect()
         {
-            if (!Main.Settings.UseHookMode || !IsAvailable || getLastJudgeDelegate == null)
-            {
-                return false;
-            }
-
+            if (!IsAvailable) return false;
             try
             {
                 return getLastJudgeDelegate() == XPERFECT_ENUM_VALUE;

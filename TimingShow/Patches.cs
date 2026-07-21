@@ -55,6 +55,8 @@ namespace TimingShow
             Main.LastTiming = diff;
             UIReplacePatch.dirty = true;
 
+            Main.LastIsXP = CalcXP.IsXPerfect(diff, bpm, speed, pitch);
+
             bool isAuto = RDC.auto;
             bool canRecord = !isAuto || Main.Settings.LogAutoplay;
 

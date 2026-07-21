@@ -39,6 +39,7 @@ public class Settings : UnityModManager.ModSettings
     public bool Title_EnableXPerfect = false;
     public bool Planet_EnableXPerfect = false;
     public bool HUD_EnableXPerfect = false;
+    public bool Logger_EnableXPerfect = false;
 
     public bool EnableLogging = false;
     public bool LogAutoplay = false;

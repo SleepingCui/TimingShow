@@ -155,10 +155,9 @@ namespace TimingShow
 
                 if (Main.Settings.EnableLogging)
                 {
-                    GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
+                    Main.Settings.Logger_EnableXPerfect = GUILayout.Toggle(Main.Settings.Logger_EnableXPerfect, LangMan.T("Enable_XP"));
                     Main.Settings.LogAutoplay = GUILayout.Toggle(Main.Settings.LogAutoplay, LangMan.T("Toggle_LogAutoplay"));
-                    GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);

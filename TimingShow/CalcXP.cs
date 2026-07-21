@@ -6,7 +6,24 @@ namespace TimingShow
     public static class CalcXP
     {
         public static readonly Color32 XPColor = new Color32(77, 204, byte.MaxValue, byte.MaxValue);
-        public static readonly Color32 HkModeColor = new Color32(255, 150, 180,byte.MaxValue);
+        public static readonly Color32 HkModeColor = new Color32(255, 150, 180, byte.MaxValue);
+
+        public static bool IsXPerfect(double diff, double bpm, double speed, double pitch)
+        {
+            if (XPerfectBridge.IsAvailable && XPerfectBridge.IsXPerfect()) return true;
+            if (RDC.auto) return true;
+
+            double denominator = Math.PI * bpm * speed * pitch;
+            if (denominator == 0) return false;
+
+            double absDiff = Math.Abs(diff);
+            double angleR = 0.01667 * (denominator / 60.0);
+            double angleD = angleR * 57.295780181884766;
+            double fBoundaryD = Math.Max(15.0, angleD);
+            double fBoundary = (fBoundaryD * 60000.0) / (57.295780181884766 * denominator);
+
+            return absDiff <= fBoundary;
+        }
 
         public static Color XPc(scrPlanet planet, double diff, double bpm, double speed, double pitch, bool enableXP, HitMargin margin)
         {
@@ -17,25 +34,10 @@ namespace TimingShow
             {
                 if (!enableXP) return hitMarginColours.colourPerfect;
 
-                // use xp mod
-                if (XPerfectBridge.IsAvailable)
-                {
-                    if (Main.Settings.DisplayCurrMode) return (Color)HkModeColor;
-                    else return XPerfectBridge.IsXPerfect() ? (Color)XPColor : hitMarginColours.colourPerfect;
-                }
+                if (XPerfectBridge.IsAvailable && Main.Settings.DisplayCurrMode)
+                    return (Color)HkModeColor;
 
-                if (RDC.auto) return XPColor;
-
-                double denominator = Math.PI * bpm * speed * pitch;
-                if (denominator == 0) return hitMarginColours.colourPerfect;
-
-                double absDiff = Math.Abs(diff);
-                double angleR = 0.01667 * (denominator / 60.0);
-                double angleD = angleR * 57.295780181884766;
-                double fBoundaryD = Math.Max(15.0, angleD);
-                double fBoundary = (fBoundaryD * 60000.0) / (57.295780181884766 * denominator);
-
-                return (absDiff <= fBoundary) ? (Color)XPColor : hitMarginColours.colourPerfect;
+                return IsXPerfect(diff, bpm, speed, pitch) ? (Color)XPColor : hitMarginColours.colourPerfect;
             }
 
             switch (margin)
