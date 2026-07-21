@@ -289,6 +289,16 @@ namespace TimingShow
                         GUILayout.Label($"<color=#888888>{LangMan.T("Desc_DisplayCurrMode")}</color> <color=#FF96B4>#FF96B4</color>");
                     }
                     GUILayout.EndHorizontal();
+
+                    GUILayout.Space(5);
+
+                    Main.Settings.UseOldJsonFormat = GUILayout.Toggle(Main.Settings.UseOldJsonFormat, LangMan.T("Toggle_UseOldJsonFormat"));
+                    GUILayout.BeginHorizontal();
+                    {
+                        GUILayout.Space(20);
+                        GUILayout.Label($"<color=#888888>{LangMan.T("Desc_UseOldJsonFormat")}</color>");
+                    }
+                    GUILayout.EndHorizontal();
                 }
                 GUILayout.EndVertical();
             }

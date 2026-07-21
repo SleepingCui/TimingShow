@@ -10,11 +10,14 @@ namespace TimingShow
         private static StreamWriter _writer;
         private static string _currentFilePath;
         private static bool _isFirstEntry = true;
+        private static int _hitIndex = 0;
 
         public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSizeKB)
         {
             CloseSession();
             _isFirstEntry = true;
+            _hitIndex = 0;
+
             try
             {
                 string dir = string.IsNullOrWhiteSpace(customDir) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Path.GetFullPath(Path.Combine(Application.dataPath, "..", customDir));
@@ -40,7 +43,12 @@ namespace TimingShow
                 _writer.WriteLine($"  \"songName\": \"{JsonEscape(safeSongName)}\",");
                 _writer.WriteLine($"  \"levelPath\": \"{JsonEscape(levelPath ?? "")}\",");
                 _writer.WriteLine($"  \"timestamp\": {timestamp},");
-                _writer.Write("  \"offsets\": [");
+
+                if (Main.Settings.UseOldJsonFormat)
+                    _writer.WriteLine("  \"offsets\": {");
+                else
+                    _writer.Write("  \"offsets\": [");
+
                 _writer.Flush();
             }
             catch (Exception ex)
@@ -61,13 +69,22 @@ namespace TimingShow
 
                 string prefix = _isFirstEntry ? "" : ",";
                 _isFirstEntry = false;
+                _hitIndex++;
 
-                _writer.Write(prefix);
-                _writer.Write("[");
-                _writer.Write(timing.ToString("F4"));
-                _writer.Write(",");
-                _writer.Write(marginCode);
-                _writer.Write("]");
+                if (Main.Settings.UseOldJsonFormat)
+                {
+                    _writer.WriteLine();
+                    _writer.Write($"    \"{_hitIndex}\": {{\"v\": {timing.ToString("F4")}, \"j\": {marginCode}}}{prefix}");
+                }
+                else
+                {
+                    _writer.Write(prefix);
+                    _writer.Write("[");
+                    _writer.Write(timing.ToString("F4"));
+                    _writer.Write(",");
+                    _writer.Write(marginCode);
+                    _writer.Write("]");
+                }
             }
             catch (Exception ex)
             {
@@ -77,11 +94,20 @@ namespace TimingShow
 
         public static void CloseSession()
         {
-            if (_writer == null)
-                return;
+            if (_writer == null) return;
+
             try
             {
-                _writer.WriteLine("]");
+                if (Main.Settings.UseOldJsonFormat)
+                {
+                    _writer.WriteLine();
+                    _writer.WriteLine("  }");
+                }
+                else
+                {
+                    _writer.WriteLine("]");
+                }
+
                 _writer.Write("}");
                 _writer.Flush();
                 Main.Logger.Log($"Successfully closed session: {_currentFilePath}");
@@ -100,8 +126,7 @@ namespace TimingShow
 
         private static string JsonEscape(string str)
         {
-            if (string.IsNullOrEmpty(str))
-                return "";
+            if (string.IsNullOrEmpty(str)) return "";
             return str.Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
     }

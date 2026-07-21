@@ -49,7 +49,9 @@
     "Err_PropertyNotFound": "未找到 LastJudgeForText 或 LastJudge 属性",
     "Err_GetterNotFound": "无法获取属性 Getter 方法",
     "Err_DelegateFailed": "创建委托失败",
-    "Err_UnhandledException": "Hook 发生未处理异常: "
+    "Err_UnhandledException": "Hook 发生未处理异常: ",
+    "Toggle_UseOldJsonFormat": "使用旧版 JSON 格式",
+    "Desc_UseOldJsonFormat": "启用 v1.7.0 的存储格式,这将导致文件体积增加约 155%"
   },
   "English": {
     "Toggle_Title": "Show in Song Title",
@@ -101,7 +103,9 @@
     "Err_PropertyNotFound": "Property LastJudgeForText or LastJudge not found",
     "Err_GetterNotFound": "Failed to get property getter method",
     "Err_DelegateFailed": "Failed to create delegate",
-    "Err_UnhandledException": "Unhandled exception during hook: "
+    "Err_UnhandledException": "Unhandled exception during hook: ",
+    "Toggle_UseOldJsonFormat": "Use Old JSON Format",
+    "Desc_UseOldJsonFormat": "Enable the v1.7.0 storage format. This will increase file size by approximately 155%."
 
   },
   "한국어": {
@@ -154,6 +158,8 @@
     "Err_PropertyNotFound": "LastJudgeForText 또는 LastJudge 속성을 찾을 수 없습니다",
     "Err_GetterNotFound": "속성 Getter 메서드를 가져올 수 없습니다",
     "Err_DelegateFailed": "대리자(Delegate) 생성 실패",
-    "Err_UnhandledException": "Hook 처리 중 예외 발생: "
+    "Err_UnhandledException": "Hook 처리 중 예외 발생: ",
+    "Toggle_UseOldJsonFormat": "이전 JSON 형식 사용",
+    "Desc_UseOldJsonFormat": "v1.7.0 저장 형식을 활성화합니다. 파일 크기가 약 155% 증가합니다."
   }
 }
