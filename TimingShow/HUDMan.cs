@@ -19,12 +19,12 @@ namespace TimingShow
 
         public static void Update()
         {
-            bool isplay = Main.IsPlaying() && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused && Main.Settings.ShowTimingHUD;
+            bool isplay = Main.IsPlaying && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused && Main.Settings.ShowTimingHUD;
 
             if (hudObject == null)
             {
                 hudObject = new GameObject("TimingShow_HUD");
-                Object.DontDestroyOnLoad(hudObject);
+                //Object.DontDestroyOnLoad(hudObject);
                 hudInstance = hudObject.AddComponent<TextUI>();
             }
             hudObject.SetActive(isplay);

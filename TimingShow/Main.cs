@@ -43,7 +43,7 @@ namespace TimingShow
             return true;
         }
 
-        public static bool IsPlaying() => scrController.instance != null && scrController.instance.state == States.PlayerControl;
+        public static bool IsPlaying { get; set; } = false;
         public static string Format(double val, int precision) => $"{val.ToString("F" + precision)}ms";
     }
 }
