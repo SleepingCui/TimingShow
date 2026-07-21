@@ -8,6 +8,7 @@ namespace TimingShow.Patches
     {
         // jd text
         [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
+        [HarmonyPriority(199)]
         public static class HitTextMeshShowPatch
         {
             public static void Postfix(scrHitTextMesh __instance)
