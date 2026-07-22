@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using System;
 using System.Reflection;
 using UnityEngine;
 
@@ -103,17 +104,31 @@ namespace TimingShow.Patches
                 TimingLogger.CloseSession();
                 if (!Main.IsEnabled) return;
                 if (!Main.Settings.ShowInWinPage) return;
+
                 if (__instance.detailedResults != null && __instance.detailedResults.textComponent != null && __instance.detailedResults.gameObject.activeSelf)
                 {
                     double avgOffset = 0;
-                    int count = Main.SessionOffsets.Count;
+                    double urValue = 0;
+                    int count = Main.SessionOffsets != null ? Main.SessionOffsets.Count : 0;
+
                     if (count > 0)
                     {
                         for (int i = 0; i < count; i++) avgOffset += Main.SessionOffsets[i];
                         avgOffset /= count;
+                        double sumOfSquares = 0;
+                        for (int i = 0; i < count; i++)
+                        {
+                            double diff = Main.SessionOffsets[i] - avgOffset;
+                            sumOfSquares += diff * diff;
+                        }
+                        double stdDev = Math.Sqrt(sumOfSquares / count);
+                        urValue = stdDev * 10.0;
                     }
 
-                    string info = "\n" + LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4);
+                    string fmt = "F" + Math.Max(0, Main.Settings.Perc4);
+
+                    string info =  LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4) + "    " + LangMan.T("Label_UR") + (urValue >= 0 ? "+" : "") + urValue.ToString(fmt);
+
                     var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (resultsField != null)
                     {

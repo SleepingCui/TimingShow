@@ -63,6 +63,7 @@
     "Label_Precision": "Decimal Places: ",
     "Btn_Reset": "Reset Statistics",
     "Avg_Timing": "Average Timing: ",
+    "Label_UR": "UR: ",
     "Setting_Title": "Replacement Settings",
     "Toggle_FailOverload": "Overload",
     "Toggle_TooEarly": "TooEarly",
