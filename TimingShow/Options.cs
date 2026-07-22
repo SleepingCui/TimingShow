@@ -155,14 +155,17 @@ namespace TimingShow
 
                 if (Main.Settings.EnableLogging)
                 {
+                    GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
+                    GUILayout.Label(LangMan.T("Label_Precision") + $"{Main.Settings.PercLog}", GUILayout.Width(120));
+                    Main.Settings.PercLog = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercLog, 0, 5, GUILayout.Width(100)));
+                    GUILayout.EndHorizontal();
+
                     Main.Settings.Logger_EnableXPerfect = GUILayout.Toggle(Main.Settings.Logger_EnableXPerfect, LangMan.T("Enable_XP"));
                     Main.Settings.LogAutoplay = GUILayout.Toggle(Main.Settings.LogAutoplay, LangMan.T("Toggle_LogAutoplay"));
 
                     GUILayout.BeginHorizontal();
-                    GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(160));
-
 
                     string absolutePath = GetAbsoluteLogPath(Main.Settings.LogDirectory);
                     string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "未选择" : absolutePath;
@@ -197,7 +200,6 @@ namespace TimingShow
                     GUILayout.EndHorizontal();
                 }
 
-
                 GUILayout.Space(15);
                 if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
@@ -222,7 +224,6 @@ namespace TimingShow
                 Main.LastTiming = 0;
             }
 
-           
             string foldoutArrow = showAdvancedSettings ? "▲" : "▼";
             if (GUILayout.Button($"{LangMan.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
                 showAdvancedSettings = !showAdvancedSettings;
@@ -278,9 +279,7 @@ namespace TimingShow
                     }
                     GUILayout.EndHorizontal();
 
-
                     GUILayout.Space(5);
-
 
                     Main.Settings.DisplayCurrMode = GUILayout.Toggle(Main.Settings.DisplayCurrMode, LangMan.T("Toggle_DisplayCurrMode"));
                     GUILayout.BeginHorizontal();
@@ -303,7 +302,6 @@ namespace TimingShow
                 GUILayout.EndVertical();
             }
         }
-
 
         private static void DrawSettingRow(string label, ref bool toggle, ref int precision)
         {

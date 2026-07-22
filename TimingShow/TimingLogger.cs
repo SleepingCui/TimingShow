@@ -64,9 +64,11 @@ namespace TimingShow
 
             try
             {
-                int marginCode = (int)margin;
-                if (Main.Settings.Logger_EnableXPerfect && Main.LastIsXP) marginCode = 12;
+                int marginCode = RDC.auto ? 10 : (Main.Settings.Logger_EnableXPerfect && Main.LastIsXP ? 12 : (int)margin);
                 _hitIndex++;
+
+                string fmt = "F" + Math.Max(0, Main.Settings.PercLog);
+                string formattedTiming = timing.ToString(fmt);
 
                 if (Main.Settings.UseOldJsonFormat)
                 {
@@ -75,14 +77,14 @@ namespace TimingShow
                     else
                         _writer.WriteLine();
 
-                    _writer.Write($"    \"{_hitIndex}\": {{\"v\": {timing.ToString("F4")}, \"j\": {marginCode}}}");
+                    _writer.Write($"    \"{_hitIndex}\": {{\"v\": {formattedTiming}, \"j\": {marginCode}}}");
                 }
                 else
                 {
                     string prefix = _isFirstEntry ? "" : ",";
                     _writer.Write(prefix);
                     _writer.Write("[");
-                    _writer.Write(timing.ToString("F4"));
+                    _writer.Write(formattedTiming);
                     _writer.Write(",");
                     _writer.Write(marginCode);
                     _writer.Write("]");

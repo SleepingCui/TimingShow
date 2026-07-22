@@ -44,6 +44,7 @@ public class Settings : UnityModManager.ModSettings
     public bool EnableLogging = false;
     public bool LogAutoplay = false;
     public string LogDirectory = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
+    public int PercLog = 4;
     public int LogBufferSizeKB = 64;
 
     public bool UseHookMode = false;
