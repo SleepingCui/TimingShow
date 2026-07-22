@@ -291,6 +291,22 @@ namespace TimingShow
 
                     GUILayout.Space(5);
 
+                    Main.Settings.UseBinaryWriter = GUILayout.Toggle(Main.Settings.UseBinaryWriter, LangMan.T("Toggle_UseBinaryWriter"));
+                    GUILayout.BeginHorizontal();
+                    {
+                        GUILayout.Space(20);
+                        GUILayout.Label($"<color=#888888>{LangMan.T("Desc_UseBinaryWriter")}</color>");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Space(5);
+
+                    bool previousGuiState = GUI.enabled;
+                    if (Main.Settings.UseBinaryWriter)
+                    {
+                        GUI.enabled = false;
+                    }
+
                     Main.Settings.UseOldJsonFormat = GUILayout.Toggle(Main.Settings.UseOldJsonFormat, LangMan.T("Toggle_UseOldJsonFormat"));
                     GUILayout.BeginHorizontal();
                     {
@@ -298,6 +314,8 @@ namespace TimingShow
                         GUILayout.Label($"<color=#888888>{LangMan.T("Desc_UseOldJsonFormat")}</color>");
                     }
                     GUILayout.EndHorizontal();
+
+                    GUI.enabled = previousGuiState;
                 }
                 GUILayout.EndVertical();
             }

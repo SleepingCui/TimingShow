@@ -50,6 +50,7 @@ public class Settings : UnityModManager.ModSettings
     public bool UseHookMode = false;
     public bool DisplayCurrMode = false;
     public bool UseOldJsonFormat = false;
+    public bool UseBinaryWriter = false;
 
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }

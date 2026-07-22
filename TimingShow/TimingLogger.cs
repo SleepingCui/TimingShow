@@ -11,10 +11,19 @@ namespace TimingShow
         private static string _currentFilePath;
         private static bool _isFirstEntry = true;
         private static int _hitIndex = 0;
+        private static bool _isCurrentSessionBinary = false;
 
         public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSizeKB)
         {
             CloseSession();
+
+            _isCurrentSessionBinary = Main.Settings.UseBinaryWriter;
+            if (_isCurrentSessionBinary)
+            {
+                TimingLoggerBinary.StartNewSession(levelPath, songName, customDir, bufferSizeKB);
+                return;
+            }
+
             _isFirstEntry = true;
             _hitIndex = 0;
 
@@ -60,11 +69,18 @@ namespace TimingShow
 
         public static void LogHit(double timing, HitMargin margin)
         {
-            if (_writer == null) return;
+            int marginCode = RDC.auto ? 10 : (Main.Settings.Logger_EnableXPerfect && Main.LastIsXP ? 12 : (int)margin);
 
+            if (_isCurrentSessionBinary)
+            {
+                TimingLoggerBinary.LogHit(timing, marginCode);
+                return;
+            }
+
+
+            if (_writer == null) return;
             try
             {
-                int marginCode = RDC.auto ? 10 : (Main.Settings.Logger_EnableXPerfect && Main.LastIsXP ? 12 : (int)margin);
                 _hitIndex++;
 
                 string fmt = "F" + Math.Max(0, Main.Settings.PercLog);
@@ -100,6 +116,13 @@ namespace TimingShow
 
         public static void CloseSession()
         {
+            if (_isCurrentSessionBinary)
+            {
+                TimingLoggerBinary.CloseSession();
+                _isCurrentSessionBinary = false;
+                return;
+            }
+
             if (_writer == null) return;
 
             try

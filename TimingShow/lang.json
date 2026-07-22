@@ -51,7 +51,9 @@
     "Err_DelegateFailed": "创建委托失败",
     "Err_UnhandledException": "Hook 发生未处理异常: ",
     "Toggle_UseOldJsonFormat": "使用旧版 JSON 格式",
-    "Desc_UseOldJsonFormat": "启用 v1.7.0 的存储格式,这将导致文件体积增加约 155%"
+    "Desc_UseOldJsonFormat": "启用 v1.7.0 的存储格式,这将导致文件体积增加约 155%",
+    "Toggle_UseBinaryWriter": "使用二进制日志格式",
+    "Desc_UseBinaryWriter": "不推荐使用"
   },
   "English": {
     "Toggle_Title": "Show in Song Title",
@@ -105,8 +107,9 @@
     "Err_DelegateFailed": "Failed to create delegate",
     "Err_UnhandledException": "Unhandled exception during hook: ",
     "Toggle_UseOldJsonFormat": "Use Old JSON Format",
-    "Desc_UseOldJsonFormat": "Enable the v1.7.0 storage format. This will increase file size by approximately 155%."
-
+    "Desc_UseOldJsonFormat": "Enable the v1.7.0 storage format. This will increase file size by approximately 155%.",
+    "Toggle_UseBinaryWriter": "Use Binary Log Format",
+    "Desc_UseBinaryWriter": "Not recommended"
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",
@@ -160,6 +163,8 @@
     "Err_DelegateFailed": "대리자(Delegate) 생성 실패",
     "Err_UnhandledException": "Hook 처리 중 예외 발생: ",
     "Toggle_UseOldJsonFormat": "이전 JSON 형식 사용",
-    "Desc_UseOldJsonFormat": "v1.7.0 저장 형식을 활성화합니다. 파일 크기가 약 155% 증가합니다."
+    "Desc_UseOldJsonFormat": "v1.7.0 저장 형식을 활성화합니다. 파일 크기가 약 155% 증가합니다.",
+    "Toggle_UseBinaryWriter": "바이너리 로그 형식 사용",
+    "Desc_UseBinaryWriter": "권장하지 않음"
   }
 }

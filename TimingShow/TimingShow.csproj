@@ -109,6 +109,7 @@
     <Compile Include="Settings.cs" />
     <Compile Include="TextUI.cs" />
     <Compile Include="TimingLogger.cs" />
+    <Compile Include="TimingLoggerBinary.cs" />
     <Compile Include="XPerfectBridge.cs" />
   </ItemGroup>
   <ItemGroup>
