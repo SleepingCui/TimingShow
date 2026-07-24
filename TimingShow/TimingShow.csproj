@@ -97,6 +97,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />
     <Compile Include="HUDMan.cs" />
     <Compile Include="LangMan.cs" />
