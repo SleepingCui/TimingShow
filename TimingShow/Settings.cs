@@ -36,6 +36,15 @@ public class Settings : UnityModManager.ModSettings
     public string HUD_Format = "Timing - {0}ms";
     public bool HUD_UseJudgeColor = false;
 
+    public bool ShowURHUD = false;
+    public float URHUD_x = 0f;
+    public float URHUD_y = -0.05f; 
+    public float URHUD_scale = 1.0f;
+    public bool URHUD_bold = false;
+    public int URHUD_align = 0;
+    public int PercURHUD = 1;
+    public string URHUD_Format = "UR - {0}";
+
     public bool Title_EnableXPerfect = false;
     public bool Planet_EnableXPerfect = false;
     public bool HUD_EnableXPerfect = false;

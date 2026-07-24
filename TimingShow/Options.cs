@@ -149,6 +149,62 @@ namespace TimingShow
                 }
             }
 
+            Main.Settings.ShowURHUD = GUILayout.Toggle(Main.Settings.ShowURHUD, LangMan.T("Toggle_URHUD"));
+            if (Main.Settings.ShowURHUD)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.URHUD_x:F2}", GUILayout.Width(120));
+                Main.Settings.URHUD_x = GUILayout.HorizontalSlider(Main.Settings.URHUD_x, -0.5f, 0.5f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.URHUD_y:F2}", GUILayout.Width(120));
+                Main.Settings.URHUD_y = GUILayout.HorizontalSlider(Main.Settings.URHUD_y, -0.5f, 0.5f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.URHUD_scale:F2}", GUILayout.Width(120));
+                Main.Settings.URHUD_scale = GUILayout.HorizontalSlider(Main.Settings.URHUD_scale, 0.2f, 3.0f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                Main.Settings.URHUD_bold = GUILayout.Toggle(Main.Settings.URHUD_bold, LangMan.T("Toggle_Bold"));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Align"), GUILayout.Width(100));
+
+                GUIStyle urLeftStyle = new GUIStyle(GUI.skin.button);
+                if (Main.Settings.URHUD_align == 0) urLeftStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(LangMan.T("Btn_Left"), urLeftStyle, GUILayout.Width(60))) Main.Settings.URHUD_align = 0;
+
+                GUIStyle urCenterStyle = new GUIStyle(GUI.skin.button);
+                if (Main.Settings.URHUD_align == 1) urCenterStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(LangMan.T("Btn_Center"), urCenterStyle, GUILayout.Width(60))) Main.Settings.URHUD_align = 1;
+
+                GUIStyle urRightStyle = new GUIStyle(GUI.skin.button);
+                if (Main.Settings.URHUD_align == 2) urRightStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(LangMan.T("Btn_Right"), urRightStyle, GUILayout.Width(60))) Main.Settings.URHUD_align = 2;
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Format"), GUILayout.Width(100));
+                Main.Settings.URHUD_Format = GUILayout.TextField(Main.Settings.URHUD_Format, GUILayout.Width(200));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Precision") + $"{Main.Settings.PercURHUD}", GUILayout.Width(120));
+                Main.Settings.PercURHUD = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercURHUD, 0, 5, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
+            }
+
             GUILayout.BeginVertical();
             {
                 Main.Settings.EnableLogging = GUILayout.Toggle(Main.Settings.EnableLogging, LangMan.T("Toggle_Logging"));

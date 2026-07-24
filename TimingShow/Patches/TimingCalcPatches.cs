@@ -32,7 +32,8 @@ namespace TimingShow.Patches
 
                 if (Main.IsPlaying && canRecord)
                 {
-                    if (Main.Settings.ShowInWinPage && Main.SessionOffsets != null)
+                    bool needRecord = Main.Settings.ShowInWinPage || Main.Settings.ShowURHUD;
+                    if (needRecord && Main.SessionOffsets != null)
                     {
                         Main.SessionOffsets.Add(diff);
                     }

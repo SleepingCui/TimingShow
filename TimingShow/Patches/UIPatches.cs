@@ -125,15 +125,12 @@ namespace TimingShow.Patches
                         urValue = stdDev * 10.0;
                     }
 
-                    string fmt = "F" + Math.Max(0, Main.Settings.Perc4);
-
-                    string info =  LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4) + "    " + LangMan.T("Label_UR") + (urValue >= 0 ? "+" : "") + urValue.ToString(fmt);
-
+                    string info = LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4) + "    " + LangMan.T("Label_UR") + Main.Format(urValue, Main.Settings.Perc4);
                     var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (resultsField != null)
                     {
                         string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];
-                        if (resultsArray != null)
+                        if (resultsArray != null) 
                         {
                             for (int i = 0; i < resultsArray.Length; i++) resultsArray[i] += info;
                         }
@@ -169,8 +166,10 @@ namespace TimingShow.Patches
                     }
                 }
 
-                if (Main.IsPlaying && Main.Settings.ShowTimingHUD)
+                if (Main.IsPlaying && (Main.Settings.ShowTimingHUD || Main.Settings.ShowURHUD))
+                {
                     HUDMan.Update();
+                }
             }
         }
     }
