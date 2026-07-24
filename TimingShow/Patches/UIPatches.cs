@@ -125,7 +125,7 @@ namespace TimingShow.Patches
                         urValue = stdDev * 10.0;
                     }
 
-                    string info = LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4) + "    " + LangMan.T("Label_UR") + Main.Format(urValue, Main.Settings.Perc4);
+                    string info = LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4)+ "    " + LangMan.T("Label_UR") + urValue.ToString("F" + Math.Max(0, Main.Settings.Perc4));
                     var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (resultsField != null)
                     {
