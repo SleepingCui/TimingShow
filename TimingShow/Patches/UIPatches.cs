@@ -108,29 +108,20 @@ namespace TimingShow.Patches
                 if (__instance.detailedResults != null && __instance.detailedResults.textComponent != null && __instance.detailedResults.gameObject.activeSelf)
                 {
                     double avgOffset = 0;
-                    double urValue = 0;
                     int count = Main.SessionOffsets != null ? Main.SessionOffsets.Count : 0;
 
                     if (count > 0)
                     {
                         for (int i = 0; i < count; i++) avgOffset += Main.SessionOffsets[i];
                         avgOffset /= count;
-                        double sumOfSquares = 0;
-                        for (int i = 0; i < count; i++)
-                        {
-                            double diff = Main.SessionOffsets[i] - avgOffset;
-                            sumOfSquares += diff * diff;
-                        }
-                        double stdDev = Math.Sqrt(sumOfSquares / count);
-                        urValue = stdDev * 10.0;
                     }
 
-                    string info = LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4)+ "    " + LangMan.T("Label_UR") + urValue.ToString("F" + Math.Max(0, Main.Settings.Perc4));
+                    string info = LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4) + "    " + LangMan.T("Label_UR") + CalcUR.calc(Main.SessionOffsets).ToString("F" + Math.Max(0, Main.Settings.Perc4));
                     var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (resultsField != null)
                     {
                         string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];
-                        if (resultsArray != null) 
+                        if (resultsArray != null)
                         {
                             for (int i = 0; i < resultsArray.Length; i++) resultsArray[i] += info;
                         }
