@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 # proj
 *.zip
+/libs/

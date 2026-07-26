@@ -1,0 +1,64 @@
+name: Dev Build
+
+on:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout TimingShow
+        uses: actions/checkout@v6
+        with:
+          ref: dev
+
+      - name: Checkout ADOFAI libs
+        uses: actions/checkout@v6
+        with:
+          repository: SleepingCui/adofai-libs
+          token: ${{ secrets.LIBS_ACCESS_TOKEN }}
+          path: libs
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Update Info.json version
+        shell: pwsh
+        run: |
+          $hash = "${{ github.sha }}".Substring(0,6)
+          $version = "1.8.0-dev.$hash"
+
+          Write-Host "Build version: $version"
+
+          $file = "TimingShow\Info.json"
+
+          $json = Get-Content $file -Raw | ConvertFrom-Json
+          $json.Version = $version
+
+          $json | ConvertTo-Json -Depth 10 |
+            Set-Content $file -Encoding UTF8
+
+      - name: Build
+        run: |
+          msbuild TimingShow.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path `
+              TimingShow\bin\Release\TimingShow.dll,
+              TimingShow\bin\Release\Info.json,
+              TimingShow\bin\Release\lang.json `
+            -DestinationPath TimingShow.zip `
+            -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: TimingShow-dev
+          path: TimingShow.zip
