@@ -61,5 +61,42 @@ public class Settings : UnityModManager.ModSettings
     public bool UseOldJsonFormat = false;
     public bool UseBinaryWriter = false;
 
+    public bool ShowDebugInfo = false;
+    public int DebugUpdateIntervalMs = 500;
+
+    public bool ShowURGraph = false;
+    public float URGraph_X = 0.05f;        
+    public float URGraph_Y = 0.70f;         
+    public float URGraph_Width = 260f;     
+    public float URGraph_Height = 100f;      
+    public float URGraph_Scale = 1.0f;     
+    public int URGraph_WindowSize = 30;     
+    public float URGraph_MaxUR = 150f;     
+    public int URGraph_MaxPoints = 100;
+
+    public Color URGraph_BgColor = new Color(0f, 0f, 0f, 0.5f);
+    public Color URGraph_LineColor = new Color(0.2f, 0.8f, 1f, 1f);
+    public Color URGraph_GridColor = new Color(1f, 1f, 1f, 0.25f);
+    public Color URGraph_TextColor = new Color(1f, 1f, 1f, 0.8f);
+
+
+
+    public bool ShowXACCGraph = false;
+    public float XACCGraph_X = 0.05f;    
+    public float XACCGraph_Y = 0.50f;         
+    public float XACCGraph_Width = 260f;     
+    public float XACCGraph_Height = 100f;     
+    public float XACCGraph_Scale = 1.0f;      
+    public int XACCGraph_MaxPoints = 250;     
+
+    public Color XACCGraph_TextColor = new Color(1f, 1f, 1f, 0.8f);
+    public Color XACCGraph_BgColor = new Color(0f, 0f, 0f, 0.6f);
+    public Color XACCGraph_LineColor = new Color(0.2f, 0.9f, 0.3f, 1f);
+    public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 0.15f);     
+    public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);  
+    public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f); 
+
+
+
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }

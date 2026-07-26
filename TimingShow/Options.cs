@@ -372,6 +372,77 @@ namespace TimingShow
                     GUILayout.EndHorizontal();
 
                     GUI.enabled = previousGuiState;
+
+
+                    Main.Settings.ShowURGraph = GUILayout.Toggle(Main.Settings.ShowURGraph, LangMan.T("Toggle_URGraph"));
+                    if (Main.Settings.ShowURGraph)
+                    {
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.URGraph_X:F2}", GUILayout.Width(120));
+                        Main.Settings.URGraph_X = GUILayout.HorizontalSlider(Main.Settings.URGraph_X, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.URGraph_Y:F2}", GUILayout.Width(120));
+                        Main.Settings.URGraph_Y = GUILayout.HorizontalSlider(Main.Settings.URGraph_Y, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.URGraph_Scale:F2}", GUILayout.Width(120));
+                        Main.Settings.URGraph_Scale = GUILayout.HorizontalSlider(Main.Settings.URGraph_Scale, 0.2f, 3.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        DrawColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.URGraph_BgColor);
+                        DrawColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.URGraph_LineColor);
+                        DrawColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.URGraph_GridColor);
+                        DrawColorPicker(LangMan.T("Label_TextColor"), ref Main.Settings.URGraph_TextColor);
+                    }
+
+                    Main.Settings.ShowXACCGraph = GUILayout.Toggle(Main.Settings.ShowXACCGraph, LangMan.T("Toggle_XACCGraph"));
+                    if (Main.Settings.ShowXACCGraph)
+                    {
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.XACCGraph_X:F2}", GUILayout.Width(120));
+                        Main.Settings.XACCGraph_X = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_X, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.XACCGraph_Y:F2}", GUILayout.Width(120));
+                        Main.Settings.XACCGraph_Y = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Y, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.XACCGraph_Scale:F2}", GUILayout.Width(120));
+                        Main.Settings.XACCGraph_Scale = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Scale, 0.2f, 3.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        DrawColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.XACCGraph_BgColor);
+                        DrawColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.XACCGraph_LineColor);
+                        DrawColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.XACCGraph_GridColor);
+                        DrawColorPicker(LangMan.T("Label_AxisTextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
+                        DrawColorPicker(LangMan.T("Label_ValueTextColor"), ref Main.Settings.XACCGraph_ValueTextColor);
+                    }
+
+
+                    Main.Settings.ShowDebugInfo = GUILayout.Toggle(Main.Settings.ShowDebugInfo, LangMan.T("Toggle_ShowDebugInfo"));
+                    if (Main.Settings.ShowDebugInfo)
+                    {
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_DebugInterval") + $"{Main.Settings.DebugUpdateIntervalMs}", GUILayout.Width(200));
+                        Main.Settings.DebugUpdateIntervalMs = (int)GUILayout.HorizontalSlider(Main.Settings.DebugUpdateIntervalMs, 50, 2000, GUILayout.Width(150));
+                        GUILayout.EndHorizontal();
+                    }
+
+
+
+
                 }
                 GUILayout.EndVertical();
             }
@@ -390,6 +461,27 @@ namespace TimingShow
                 GUILayout.EndHorizontal();
             }
         }
+
+        // 辅助方法：绘制简易 RGBA 调节器
+        private static void DrawColorPicker(string label, ref Color color)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(label, GUILayout.Width(100));
+
+            GUILayout.Label("R", GUILayout.Width(15));
+            color.r = GUILayout.HorizontalSlider(color.r, 0f, 1f, GUILayout.Width(50));
+            GUILayout.Label("G", GUILayout.Width(15));
+            color.g = GUILayout.HorizontalSlider(color.g, 0f, 1f, GUILayout.Width(50));
+            GUILayout.Label("B", GUILayout.Width(15));
+            color.b = GUILayout.HorizontalSlider(color.b, 0f, 1f, GUILayout.Width(50));
+            GUILayout.Label("A", GUILayout.Width(15));
+            color.a = GUILayout.HorizontalSlider(color.a, 0f, 1f, GUILayout.Width(50));
+
+            GUILayout.EndHorizontal();
+        }
+
+
 
         private static string GetAbsoluteLogPath(string logDir)
         {

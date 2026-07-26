@@ -112,7 +112,16 @@
     "Toggle_UseOldJsonFormat": "Use Old JSON Format",
     "Desc_UseOldJsonFormat": "Enable the v1.7.0 storage format. This will increase file size by approximately 155%.",
     "Toggle_UseBinaryWriter": "Use Binary Log Format",
-    "Desc_UseBinaryWriter": "Not recommended"
+    "Desc_UseBinaryWriter": "Not recommended",
+    "Toggle_URGraph": "Show UR Graph",
+    "Label_BgColor": "Background Color",
+    "Label_LineColor": "Curve Color",
+    "Label_GridColor": "Grid/Scale Color",
+    "Toggle_XACCGraph": "Show XACC Trend Line Chart",
+    "Label_AxisTextColor": "Axis Tick Label Color",
+    "Label_ValueTextColor": "XACC Value Color",
+    "Toggle_ShowDebugInfo": "Show Debug Info",
+    "Label_DebugInterval": "Debug Update Interval (ms): "
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",

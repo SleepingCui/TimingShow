@@ -13,9 +13,17 @@ namespace TimingShow
         private static int _hitIndex = 0;
         private static bool _isCurrentSessionBinary = false;
 
+        public static bool IsBinarySession => _isCurrentSessionBinary;
+        public static long CurrentBufferBytes { get; private set; } = 0;
+        public static long TotalBufferBytes => Main.Settings.LogBufferSizeKB * 1024L;
+        public static long FlushCount { get; private set; } = 0;
+
         public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSizeKB)
         {
             CloseSession();
+
+            CurrentBufferBytes = 0;
+            FlushCount = 0;
 
             _isCurrentSessionBinary = Main.Settings.UseBinaryWriter;
             if (_isCurrentSessionBinary)
@@ -48,17 +56,17 @@ namespace TimingShow
                 int bufferSizeBytes = Math.Max(4, bufferSizeKB) * 1024;
                 _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
 
-                _writer.WriteLine("{");
-                _writer.WriteLine($"  \"songName\": \"{JsonEscape(safeSongName)}\",");
-                _writer.WriteLine($"  \"levelPath\": \"{JsonEscape(levelPath ?? "")}\",");
-                _writer.WriteLine($"  \"timestamp\": {timestamp},");
+                string header = "{\n" +
+                                $"  \"songName\": \"{JsonEscape(safeSongName)}\",\n" +
+                                $"  \"levelPath\": \"{JsonEscape(levelPath ?? "")}\",\n" +
+                                $"  \"timestamp\": {timestamp},\n" +
+                                (Main.Settings.UseOldJsonFormat ? "  \"offsets\": {" : "  \"offsets\": [");
 
-                if (Main.Settings.UseOldJsonFormat)
-                    _writer.Write("  \"offsets\": {");
-                else
-                    _writer.Write("  \"offsets\": [");
+                _writer.Write(header);
+                TrackWrittenBytes(Encoding.UTF8.GetByteCount(header));
 
                 _writer.Flush();
+                OnBufferFlushed();
             }
             catch (Exception ex)
             {
@@ -77,7 +85,6 @@ namespace TimingShow
                 return;
             }
 
-
             if (_writer == null) return;
             try
             {
@@ -85,33 +92,41 @@ namespace TimingShow
 
                 string fmt = "F" + Math.Max(0, Main.Settings.PercLog);
                 string formattedTiming = timing.ToString(fmt);
+                string contentToWrite = string.Empty;
 
                 if (Main.Settings.UseOldJsonFormat)
                 {
-                    if (!_isFirstEntry)
-                        _writer.WriteLine(",");
-                    else
-                        _writer.WriteLine();
-
-                    _writer.Write($"    \"{_hitIndex}\": {{\"v\": {formattedTiming}, \"j\": {marginCode}}}");
+                    string lineBreak = !_isFirstEntry ? ",\n" : "\n";
+                    contentToWrite = $"{lineBreak}    \"{_hitIndex}\": {{\"v\": {formattedTiming}, \"j\": {marginCode}}}";
                 }
                 else
                 {
                     string prefix = _isFirstEntry ? "" : ",";
-                    _writer.Write(prefix);
-                    _writer.Write("[");
-                    _writer.Write(formattedTiming);
-                    _writer.Write(",");
-                    _writer.Write(marginCode);
-                    _writer.Write("]");
+                    contentToWrite = $"{prefix}[{formattedTiming},{marginCode}]";
                 }
 
+                _writer.Write(contentToWrite);
                 _isFirstEntry = false;
+                int bytesWritten = Encoding.UTF8.GetByteCount(contentToWrite);
+                TrackWrittenBytes(bytesWritten);
             }
             catch (Exception ex)
             {
                 Main.Logger.Error($"Failed to write log: {ex.Message}");
             }
+        }
+
+        private static void TrackWrittenBytes(int bytes)
+        {
+            CurrentBufferBytes += bytes;
+            if (CurrentBufferBytes >= TotalBufferBytes && TotalBufferBytes > 0)
+                OnBufferFlushed();
+        }
+
+        private static void OnBufferFlushed()
+        {
+            FlushCount++;
+            CurrentBufferBytes %= TotalBufferBytes; 
         }
 
         public static void CloseSession()
@@ -127,18 +142,11 @@ namespace TimingShow
 
             try
             {
-                if (Main.Settings.UseOldJsonFormat)
-                {
-                    _writer.WriteLine();
-                    _writer.WriteLine("  }");
-                }
-                else
-                {
-                    _writer.WriteLine("]");
-                }
-
-                _writer.Write("}");
+                string footer = Main.Settings.UseOldJsonFormat ? "\n  }\n}" : "]\n}";
+                _writer.Write(footer);
                 _writer.Flush();
+                OnBufferFlushed();
+
                 Main.Logger.Log($"Successfully closed session: {_currentFilePath}");
             }
             catch (Exception e)
@@ -150,6 +158,7 @@ namespace TimingShow
                 _writer.Dispose();
                 _writer = null;
                 _currentFilePath = null;
+                CurrentBufferBytes = 0;
             }
         }
 

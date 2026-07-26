@@ -12,6 +12,8 @@ namespace TimingShow.Patches
             public static void Postfix()
             {
                 Main.IsPlaying = true;
+                Main.IsLevelFinished = false;
+                Main.FullXAccHistory.Clear();
                 Main.LastTiming = 0;
                 Main.LastHitMargin = HitMargin.Perfect;
                 Main.SessionOffsets?.Clear();
@@ -61,6 +63,16 @@ namespace TimingShow.Patches
                 Main.IsPlaying = false;
                 TimingLogger.CloseSession();
                 HUDMan.Destroy();
+            }
+        }
+
+        // land
+        [HarmonyPatch(typeof(scrController), "OnLandOnPortal")]
+        public static class OnLandOnPortalPatch
+        {
+            public static void Postfix()
+            {
+                Main.IsLevelFinished = true;
             }
         }
     }

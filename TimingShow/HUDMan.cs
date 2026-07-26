@@ -10,6 +10,12 @@ namespace TimingShow
         public static GameObject urHudObject;
         public static TextUI urHudInstance;
 
+        public static GameObject urGraphObject;
+        public static URGraphDrawer urGraphInstance;
+
+        public static GameObject xaccGraphObject;
+        public static XACCGraphDrawer xaccGraphInstance;
+
         public static void Destroy()
         {
             if (hudObject != null)
@@ -24,6 +30,20 @@ namespace TimingShow
                 Object.Destroy(urHudObject);
                 urHudObject = null;
                 urHudInstance = null;
+            }
+
+            if (urGraphObject != null)
+            {
+                Object.Destroy(urGraphObject);
+                urGraphObject = null;
+                urGraphInstance = null;
+            }
+
+            if (xaccGraphObject != null)
+            {
+                Object.Destroy(xaccGraphObject);
+                xaccGraphObject = null;
+                xaccGraphInstance = null;
             }
         }
 
@@ -77,6 +97,24 @@ namespace TimingShow
                 urHudInstance.text.alignment = urHudInstance.ToAlign(Main.Settings.URHUD_align);
                 urHudInstance.text.fontStyle = Main.Settings.URHUD_bold ? FontStyle.Bold : FontStyle.Normal;
             }
+
+            // ur gr
+            bool isGraphPlay = isPlayBase && Main.Settings.ShowURGraph;
+            if (urGraphObject == null)
+            {
+                urGraphObject = new GameObject("TimingShow_URGraph");
+                urGraphInstance = urGraphObject.AddComponent<URGraphDrawer>();
+            }
+            urGraphObject.SetActive(isGraphPlay);
+
+            // xacc gr
+            bool isXACCPlay = isPlayBase && Main.Settings.ShowXACCGraph;
+            if (xaccGraphObject == null)
+            {
+                xaccGraphObject = new GameObject("TimingShow_XACCGraph");
+                xaccGraphInstance = xaccGraphObject.AddComponent<XACCGraphDrawer>();
+            }
+            xaccGraphObject.SetActive(isXACCPlay);
         }
     }
 }

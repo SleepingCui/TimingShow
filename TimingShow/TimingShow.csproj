@@ -99,6 +99,8 @@
   <ItemGroup>
     <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />
+    <Compile Include="DebugInfoDrawer.cs.cs" />
+    <Compile Include="GraphDrawerBase.cs" />
     <Compile Include="HUDMan.cs" />
     <Compile Include="LangMan.cs" />
     <Compile Include="Main.cs" />
@@ -111,6 +113,8 @@
     <Compile Include="TextUI.cs" />
     <Compile Include="TimingLogger.cs" />
     <Compile Include="TimingLoggerBinary.cs" />
+    <Compile Include="URGraphDrawer.cs" />
+    <Compile Include="XACCGraphDrawer.cs" />
     <Compile Include="XPerfectBridge.cs" />
   </ItemGroup>
   <ItemGroup>
