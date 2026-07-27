@@ -156,8 +156,7 @@ namespace TimingShow.Patches
                         dirty = false;
                     }
                 }
-
-                if (Main.IsPlaying && (Main.Settings.ShowTimingHUD || Main.Settings.ShowURHUD))
+                if (Main.IsPlaying && (Main.Settings.ShowTimingHUD || Main.Settings.ShowURHUD || Main.Settings.ShowURGraph || Main.Settings.ShowXACCGraph))
                 {
                     HUDMan.Update();
                 }

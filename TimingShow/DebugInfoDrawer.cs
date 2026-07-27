@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
-
 namespace TimingShow
 {
     public class DebugInfoDrawer : MonoBehaviour
@@ -10,6 +10,9 @@ namespace TimingShow
         private float _lastUpdateTime = -999f;
         private string _cachedDebugText = string.Empty;
         private GUIStyle _rightAlignedStyle;
+        private float _fps = 0f;
+        private long _lastFrameGcMemory = 0;
+        private long _lastFrameAllocatedBytes = 0;
 
         public static void Init()
         {
@@ -54,17 +57,43 @@ namespace TimingShow
         {
             List<string> debugLines = new List<string>();
 
+            debugLines.Add($"Mod Version: {Main.ModVersion}");
+
+            float unscaledDelta = Time.unscaledDeltaTime;
+            _fps = 1.0f / Mathf.Max(0.0001f, unscaledDelta);
+            float frameTimeMs = unscaledDelta * 1000f;
+
+            long currentGcMemory = GC.GetTotalMemory(false);
+            int gcCount0 = GC.CollectionCount(0);
+
+            if (currentGcMemory > _lastFrameGcMemory && _lastFrameGcMemory > 0)
+                _lastFrameAllocatedBytes = currentGcMemory - _lastFrameGcMemory;
+            else if (currentGcMemory < _lastFrameGcMemory)
+                _lastFrameAllocatedBytes = 0; 
+            _lastFrameGcMemory = currentGcMemory;
+
+            float heapMb = currentGcMemory / (1024f * 1024f);
+            float allocKb = _lastFrameAllocatedBytes / 1024f;
+
+
+            debugLines.Add($"Perf: {_fps:F0} FPS ({frameTimeMs:F1}ms)");
+            debugLines.Add($"GC Heap: {heapMb:F1} MB (GC0: {gcCount0}) | Alloc: {allocKb:F1} KB/f");
+
             string binFlag = TimingLogger.IsBinarySession ? " (Binary)" : "";
             long currentBytes = TimingLogger.CurrentBufferBytes;
             long totalBytes = TimingLogger.TotalBufferBytes;
 
             debugLines.Add($"Logger Buffer: {currentBytes} / {totalBytes} bytes{binFlag}");
-            debugLines.Add($"Logger Flush Count: {TimingLogger.FlushCount}");
+            debugLines.Add($"Logger Flush: {TimingLogger.FlushCount}");
 
             string xpStatus = $"XPerfect State: {XPerfectBridge.CurrentState}"; 
             if (XPerfectBridge.CurrentState == XPerfectBridge.HookState.Failed && !string.IsNullOrEmpty(XPerfectBridge.LastErrorMessage)) 
                 xpStatus += $" ({XPerfectBridge.LastErrorMessage})"; 
             debugLines.Add(xpStatus);
+
+
+            AddGraphDebugInfo(debugLines, HUDMan.urGraphInstance);
+            AddGraphDebugInfo(debugLines, HUDMan.xaccGraphInstance);
 
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < debugLines.Count; i++)
@@ -72,6 +101,12 @@ namespace TimingShow
                 sb.AppendLine(debugLines[i]);
             }
             _cachedDebugText = sb.ToString();
+        }
+
+        private void AddGraphDebugInfo(List<string> lines, GraphDrawerBase graph)
+        {
+            if (graph == null || !graph.enabled || !graph.gameObject.activeInHierarchy) return;
+            lines.Add($"{graph.GraphName} Graph: {graph.RenderedPoints} pts | Upd: {graph.UpdateTimeMs:F2}ms | Draw: {graph.RenderTimeMs:F2}ms");
         }
 
         private void OnGUI()

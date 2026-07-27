@@ -13,6 +13,7 @@ namespace TimingShow
         public static double LastTiming = 0;
         public static bool LastIsXP;
         public static HitMargin LastHitMargin = HitMargin.Perfect;
+        public static string ModVersion { get; private set; } = "Unknown";
 
         public static List<float> FullXAccHistory = new List<float>();
         public static bool IsLevelFinished = false;
@@ -25,6 +26,7 @@ namespace TimingShow
         {
             Logger = modEntry.Logger;
             Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
+            ModVersion = modEntry.Info.Version;
 
             LangMan.LoadLanguages(modEntry.Path);
             XPerfectBridge.TryInit();

@@ -21,7 +21,7 @@ namespace TimingShow
         protected override Color AxisTextColor => Main.Settings.XACCGraph_AxisTextColor;
         protected override Color ValueTextColor => Main.Settings.XACCGraph_ValueTextColor;
         protected override int MaxPoints => Main.Settings.XACCGraph_MaxPoints > 0 ? Main.Settings.XACCGraph_MaxPoints : 250;
-        protected override string GraphName => "XACC";
+        public override string GraphName => "XACC";
 
         private float _cachedMinY;
         private float _cachedMaxY;

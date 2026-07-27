@@ -14,6 +14,9 @@ namespace TimingShow
 
         public static void OnGUI(UnityModManager.ModEntry modEntry)
         {
+            GUILayout.Label("<color=yellow>You are currently using a Dev branch build, which may contain unexpected bugs.</color>");
+            GUILayout.Space(5);
+
             GUILayout.BeginHorizontal();
 
             foreach (string langCode in LangMan.AvailableLanguages)
@@ -462,7 +465,6 @@ namespace TimingShow
             }
         }
 
-        // 辅助方法：绘制简易 RGBA 调节器
         private static void DrawColorPicker(string label, ref Color color)
         {
             GUILayout.BeginHorizontal();

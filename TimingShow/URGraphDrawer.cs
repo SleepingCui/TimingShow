@@ -25,7 +25,7 @@ namespace TimingShow
         protected override Color AxisTextColor => Main.Settings.URGraph_TextColor;
         protected override Color ValueTextColor => Main.Settings.URGraph_TextColor;
         protected override int MaxPoints => Main.Settings.URGraph_MaxPoints > 0 ? Main.Settings.URGraph_MaxPoints : 100;
-        protected override string GraphName => "UR";
+        public override string GraphName => "UR";
 
         protected override void UpdateData()
         {

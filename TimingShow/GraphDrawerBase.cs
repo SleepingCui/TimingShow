@@ -1,12 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 namespace TimingShow
 {
-
     public abstract class GraphDrawerBase : MonoBehaviour
     {
+        public float RenderTimeMs { get; protected set; } = 0f;
+        public float UpdateTimeMs { get; protected set; } = 0f;
+        public int RenderedPoints { get; protected set; } = 0;
+
+        protected Stopwatch renderTimer = new Stopwatch();
+        protected Stopwatch updateTimer = new Stopwatch();
+
         protected Texture2D bgTexture;
         protected Texture2D lineTexture;
 
@@ -26,7 +33,7 @@ namespace TimingShow
         protected abstract Color AxisTextColor { get; }
         protected abstract Color ValueTextColor { get; }
         protected abstract int MaxPoints { get; }
-        protected abstract string GraphName { get; } 
+        public abstract string GraphName { get; }
 
         protected abstract void UpdateData();
         protected abstract int GetDataCount();
@@ -89,14 +96,32 @@ namespace TimingShow
 
         protected virtual void OnGUI()
         {
-            if (!IsEnabled || !ShowGraph) return;
+            if (!IsEnabled || !ShowGraph)
+            {
+                RenderedPoints = 0;
+                RenderTimeMs = 0f;
+                UpdateTimeMs = 0f;
+                return;
+            }
             if (Event.current.type != EventType.Repaint) return;
 
+            renderTimer.Restart();
+
             InitStyles(11f, 12f);
+
+            updateTimer.Restart();
             UpdateData();
+            updateTimer.Stop();
+            UpdateTimeMs = (float)updateTimer.Elapsed.TotalMilliseconds;
 
             int count = GetDataCount();
-            if (count < 2) return;
+            RenderedPoints = count;
+            if (count < 2)
+            {
+                renderTimer.Stop();
+                RenderTimeMs = (float)renderTimer.Elapsed.TotalMilliseconds;
+                return;
+            }
 
             float scale = Scale;
             float w = Width * scale;
@@ -127,6 +152,9 @@ namespace TimingShow
             DrawDataCurve(posX, posY, w, h, scale, count, minY, rangeY);
 
             GUI.color = oldColor;
+
+            renderTimer.Stop();
+            RenderTimeMs = (float)renderTimer.Elapsed.TotalMilliseconds;
         }
 
         protected virtual void DrawGridLines(float posX, float posY, float w, float h, float scale)
