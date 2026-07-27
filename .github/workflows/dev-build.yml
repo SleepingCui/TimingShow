@@ -72,75 +72,7 @@ jobs:
           path: TimingShow-*.zip
 
 
-      # ===============================
-      # Push to ts-dev
-      # ===============================
-
-      - name: Checkout ts-dev
-        uses: actions/checkout@v6
-        with:
-          repository: SleepingCui/ts-dev
-          token: ${{ secrets.DEV_REPO_TOKEN }}
-          path: ts-dev
 
 
-      - name: Update ts-dev
-        shell: pwsh
-        run: |
 
-          $version="${{ steps.version.outputs.version }}"
-          $file="TimingShow-$version.zip"
-
-          mkdir ts-dev\builds -Force
-
-          Copy-Item `
-            $file `
-            "ts-dev\builds\$file"
-
-
-          if(Test-Path ts-dev\builds.json)
-          {
-              $builds = Get-Content ts-dev\builds.json -Raw |
-                  ConvertFrom-Json
-          }
-          else
-          {
-              $builds=@()
-          }
-
-
-          $changelog = ""
-
-          if(Test-Path changelog.txt)
-          {
-              $changelog = Get-Content changelog.txt -Raw
-          }
-
-
-          $entry=[PSCustomObject]@{
-              version=$version
-              commit="${{ github.sha }}"
-              time=(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-              download="builds/$file"
-              changelog=$changelog
-          }
-
-
-          $builds=@($entry)+$builds
-
-
-          $builds |
-            ConvertTo-Json -Depth 10 |
-            Set-Content ts-dev\builds.json -Encoding UTF8
-
-
-          cd ts-dev
-
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-          git add .
-
-          git commit -m "Update dev build $version"
-
-          git push
+      
