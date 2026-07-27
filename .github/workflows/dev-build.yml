@@ -27,10 +27,13 @@ jobs:
         uses: microsoft/setup-msbuild@v3
 
       - name: Update Info.json version
+        id: version
         shell: pwsh
         run: |
           $hash = "${{ github.sha }}".Substring(0,6)
           $version = "1.8.0-dev.$hash"
+
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
           Write-Host "Build version: $version"
 
@@ -42,23 +45,102 @@ jobs:
           $json | ConvertTo-Json -Depth 10 |
             Set-Content $file -Encoding UTF8
 
+
       - name: Build
         run: |
           msbuild TimingShow.sln /p:Configuration=Release /p:Platform="Any CPU"
 
+
       - name: Package
         shell: pwsh
         run: |
+          $version="${{ steps.version.outputs.version }}"
+
           Compress-Archive `
             -Path `
               TimingShow\bin\Release\TimingShow.dll,
               TimingShow\bin\Release\Info.json,
               TimingShow\bin\Release\lang.json `
-            -DestinationPath TimingShow.zip `
+            -DestinationPath "TimingShow-$version.zip" `
             -Force
+
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: TimingShow-dev
-          path: TimingShow.zip
+          path: TimingShow-*.zip
+
+
+      # ===============================
+      # Push to ts-dev
+      # ===============================
+
+      - name: Checkout ts-dev
+        uses: actions/checkout@v6
+        with:
+          repository: SleepingCui/ts-dev
+          token: ${{ secrets.DEV_REPO_TOKEN }}
+          path: ts-dev
+
+
+      - name: Update ts-dev
+        shell: pwsh
+        run: |
+
+          $version="${{ steps.version.outputs.version }}"
+          $file="TimingShow-$version.zip"
+
+          mkdir ts-dev\builds -Force
+
+          Copy-Item `
+            $file `
+            "ts-dev\builds\$file"
+
+
+          if(Test-Path ts-dev\builds.json)
+          {
+              $builds = Get-Content ts-dev\builds.json -Raw |
+                  ConvertFrom-Json
+          }
+          else
+          {
+              $builds=@()
+          }
+
+
+          $changelog = ""
+
+          if(Test-Path changelog.txt)
+          {
+              $changelog = Get-Content changelog.txt -Raw
+          }
+
+
+          $entry=[PSCustomObject]@{
+              version=$version
+              commit="${{ github.sha }}"
+              time=(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+              download="builds/$file"
+              changelog=$changelog
+          }
+
+
+          $builds=@($entry)+$builds
+
+
+          $builds |
+            ConvertTo-Json -Depth 10 |
+            Set-Content ts-dev\builds.json -Encoding UTF8
+
+
+          cd ts-dev
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add .
+
+          git commit -m "Update dev build $version"
+
+          git push
