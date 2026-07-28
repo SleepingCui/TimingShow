@@ -117,11 +117,14 @@
     "Label_BgColor": "Background Color",
     "Label_LineColor": "Curve Color",
     "Label_GridColor": "Grid/Scale Color",
-    "Toggle_XACCGraph": "Show XACC Trend Line Chart",
+    "Toggle_XACCGraph": "Show XACC Graph",
     "Label_AxisTextColor": "Axis Tick Label Color",
     "Label_ValueTextColor": "XACC Value Color",
     "Toggle_ShowDebugInfo": "Show Debug Info",
-    "Label_DebugInterval": "Debug Update Interval (ms): "
+    "Label_DebugInterval": "Debug Update Interval (ms): ",
+    "Label_GridAlpha": "Grid Alpha: ",
+    "Label_AxisTextAlpha": "Axis Text Alpha: ",
+    "Label_InfoTextAlpha": "HUD Text Alpha: "
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",

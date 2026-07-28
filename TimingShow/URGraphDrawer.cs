@@ -9,7 +9,9 @@ namespace TimingShow
         private readonly Queue<float> urQueue = new Queue<float>();
         private readonly List<float> urCache = new List<float>();
 
+        private float currentMinUR = 0f;
         private float currentMaxUR = 100f;
+
         private int lastProcessedCount = 0;
 
         protected override bool IsEnabled => Main.IsEnabled && Main.IsPlaying;
@@ -24,6 +26,10 @@ namespace TimingShow
         protected override Color LineColor => Main.Settings.URGraph_LineColor;
         protected override Color AxisTextColor => Main.Settings.URGraph_TextColor;
         protected override Color ValueTextColor => Main.Settings.URGraph_TextColor;
+        private float GridAlpha => Mathf.Clamp01(Main.Settings.URGraph_GridAlpha);
+        private float AxisTextAlpha => Mathf.Clamp01(Main.Settings.URGraph_AxisTextAlpha);
+        private float InfoTextAlpha => Mathf.Clamp01(Main.Settings.URGraph_InfoTextAlpha);
+
         protected override int MaxPoints => Main.Settings.URGraph_MaxPoints > 0 ? Main.Settings.URGraph_MaxPoints : 100;
         public override string GraphName => "UR";
 
@@ -34,6 +40,7 @@ namespace TimingShow
                 urQueue.Clear();
                 urCache.Clear();
                 lastProcessedCount = 0;
+                currentMinUR = 0f;
                 currentMaxUR = 100f;
                 return;
             }
@@ -65,42 +72,76 @@ namespace TimingShow
 
             if (urCache.Count > 0)
             {
-                float targetMax = 50f;
+                float minVal = float.MaxValue;
+                float maxVal = float.MinValue;
+
                 for (int i = 0; i < urCache.Count; i++)
                 {
-                    if (urCache[i] > targetMax) targetMax = urCache[i];
+                    if (urCache[i] < minVal) minVal = urCache[i];
+                    if (urCache[i] > maxVal) maxVal = urCache[i];
                 }
-                targetMax *= 1.15f;
+
+                float padding = (maxVal - minVal) * 0.15f;
+                if (padding < 2f) padding = 2f;
+
+                float targetMin = Mathf.Max(0f, minVal - padding);
+                float targetMax = maxVal + padding;
+
+                currentMinUR = Mathf.Lerp(currentMinUR, targetMin, Time.deltaTime * 5f);
                 currentMaxUR = Mathf.Lerp(currentMaxUR, targetMax, Time.deltaTime * 5f);
             }
         }
 
         protected override int GetDataCount() => urCache.Count;
         protected override float GetDataValue(int index) => urCache[index];
-        protected override float GetMinY() => 0f;
+
+        protected override float GetMinY() => currentMinUR;
         protected override float GetMaxY() => currentMaxUR;
+
+        protected override void DrawGridLines(float posX, float posY, float w, float h, float scale)
+        {
+            Color c = GridColor;
+            c.a *= GridAlpha;
+            GUI.color = c;
+
+            float lineWidth = 1.0f * scale;
+            DrawAALine(new Vector2(posX, posY), new Vector2(posX + w, posY), lineWidth);
+            DrawAALine(new Vector2(posX, posY + h * 0.5f), new Vector2(posX + w, posY + h * 0.5f), lineWidth);
+            DrawAALine(new Vector2(posX, posY + h), new Vector2(posX + w, posY + h), lineWidth);
+        }
 
         protected override void DrawAxisLabels(float posX, float posY, float w, float h, float scale, float minY, float maxY, float rangeY)
         {
             float labelWidth = 45f * scale;
+            string fmt = rangeY < 5.0f ? "F1" : "F0";
 
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY - 8f * scale, labelWidth, 16f * scale), $"{maxY:F0}", labelStyle);
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h * 0.5f - 8f * scale, labelWidth, 16f * scale), $"{maxY * 0.5f:F0}", labelStyle);
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h - 8f * scale, labelWidth, 16f * scale), "0", labelStyle);
+            Color textColor = AxisTextColor;
+            textColor.a *= AxisTextAlpha;
+            labelStyle.normal.textColor = textColor;
+
+            GUI.Label(new Rect(posX - labelWidth - 4f, posY - 8f * scale, labelWidth, 16f * scale), maxY.ToString(fmt), labelStyle);
+            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h * 0.5f - 8f * scale, labelWidth, 16f * scale), (minY + rangeY * 0.5f).ToString(fmt), labelStyle);
+            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h - 8f * scale, labelWidth, 16f * scale), minY.ToString(fmt), labelStyle);
+        }
+
+        protected override void DrawInfoText(float posX, float posY, float w, float h, float scale)
+        {
+            string infoText = GetInfoText();
+            if (!string.IsNullOrEmpty(infoText))
+            {
+                Color textColor = ValueTextColor;
+                textColor.a *= InfoTextAlpha;
+                infoStyle.normal.textColor = textColor;
+
+                GUI.Label(new Rect(posX + 5f, posY - 22f * scale, w, 20f * scale), infoText, infoStyle);
+            }
         }
 
         protected override string GetInfoText()
         {
             if (urCache.Count == 0) return string.Empty;
 
-            float sumUR = 0f;
-            for (int i = 0; i < urCache.Count; i++)
-            {
-                sumUR += urCache[i];
-            }
-            float avgUR = sumUR / urCache.Count;
             float curUR = urCache[urCache.Count - 1];
-
             double globalUR = CalcUR.calc(Main.SessionOffsets);
             string fmt = "F" + Math.Max(0, Main.Settings.Perc4);
 
@@ -115,8 +156,8 @@ namespace TimingShow
 
             for (int i = 0; i < count - 1; i++)
             {
-                float norm1 = Mathf.Clamp01(urCache[i] / currentMaxUR);
-                float norm2 = Mathf.Clamp01(urCache[i + 1] / currentMaxUR);
+                float norm1 = Mathf.Clamp01((urCache[i] - minY) / rangeY);
+                float norm2 = Mathf.Clamp01((urCache[i + 1] - minY) / rangeY);
 
                 Vector2 p1 = new Vector2(posX + i * stepX, posY + h - norm1 * h);
                 Vector2 p2 = new Vector2(posX + (i + 1) * stepX, posY + h - norm2 * h);

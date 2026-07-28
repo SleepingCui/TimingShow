@@ -20,6 +20,10 @@ namespace TimingShow
         protected override Color LineColor => Main.Settings.XACCGraph_LineColor;
         protected override Color AxisTextColor => Main.Settings.XACCGraph_AxisTextColor;
         protected override Color ValueTextColor => Main.Settings.XACCGraph_ValueTextColor;
+        private float GridAlpha => Mathf.Clamp01(Main.Settings.XACCGraph_GridAlpha);
+        private float AxisTextAlpha => Mathf.Clamp01(Main.Settings.XACCGraph_AxisTextAlpha);
+        private float InfoTextAlpha => Mathf.Clamp01(Main.Settings.XACCGraph_InfoTextAlpha);
+
         protected override int MaxPoints => Main.Settings.XACCGraph_MaxPoints > 0 ? Main.Settings.XACCGraph_MaxPoints : 250;
         public override string GraphName => "XACC";
 
@@ -40,7 +44,6 @@ namespace TimingShow
 
             if (Main.IsLevelFinished)
             {
-                // full
                 if (total <= targetPoints)
                 {
                     xaccRenderCache.AddRange(Main.FullXAccHistory);
@@ -57,7 +60,6 @@ namespace TimingShow
             }
             else
             {
-                // live
                 int startIdx = Math.Max(0, total - targetPoints);
                 for (int i = startIdx; i < total; i++)
                 {
@@ -111,12 +113,50 @@ namespace TimingShow
         protected override float GetMinY() => _cachedMinY;
         protected override float GetMaxY() => _cachedMaxY;
 
+        protected override void DrawGridLines(float posX, float posY, float w, float h, float scale)
+        {
+            Color c = GridColor;
+            c.a *= GridAlpha;
+            GUI.color = c;
+
+            float lineWidth = 1.0f * scale;
+            DrawAALine(new Vector2(posX, posY), new Vector2(posX + w, posY), lineWidth);
+            DrawAALine(new Vector2(posX, posY + h * 0.5f), new Vector2(posX + w, posY + h * 0.5f), lineWidth);
+            DrawAALine(new Vector2(posX, posY + h), new Vector2(posX + w, posY + h), lineWidth);
+        }
+
+        protected override void DrawAxisLabels(float posX, float posY, float w, float h, float scale, float minY, float maxY, float rangeY)
+        {
+            float labelWidth = 55f * scale;
+            string fmtY = rangeY < 2.0f ? "F2" : (rangeY < 10.0f ? "F1" : "F0");
+
+            Color textColor = AxisTextColor;
+            textColor.a *= AxisTextAlpha;
+            labelStyle.normal.textColor = textColor;
+
+            GUI.Label(new Rect(posX - labelWidth - 4f, posY - 8f * scale, labelWidth, 16f * scale), $"{maxY.ToString(fmtY)}%", labelStyle);
+            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h * 0.5f - 8f * scale, labelWidth, 16f * scale), $"{(minY + rangeY * 0.5f).ToString(fmtY)}%", labelStyle);
+            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h - 8f * scale, labelWidth, 16f * scale), $"{minY.ToString(fmtY)}%", labelStyle);
+        }
+
+        protected override void DrawInfoText(float posX, float posY, float w, float h, float scale)
+        {
+            string infoText = GetInfoText();
+            if (!string.IsNullOrEmpty(infoText))
+            {
+                Color textColor = ValueTextColor;
+                textColor.a *= InfoTextAlpha;
+                infoStyle.normal.textColor = textColor;
+
+                GUI.Label(new Rect(posX + 5f, posY - 22f * scale, w, 20f * scale), infoText, infoStyle);
+            }
+        }
+
         protected override string GetInfoText()
         {
             if (xaccRenderCache.Count == 0) return string.Empty;
             float curXAcc = xaccRenderCache[xaccRenderCache.Count - 1];
-            string modeStr = Main.IsLevelFinished ? "[Full]" : "[Live]";
-            return $"XACC: {curXAcc:F2}%  {modeStr}";
+            return $"XACC: {curXAcc}%";
         }
     }
 }

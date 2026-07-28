@@ -14,7 +14,7 @@ namespace TimingShow
 
         public static void OnGUI(UnityModManager.ModEntry modEntry)
         {
-            GUILayout.Label("<color=yellow>You are currently using a Dev branch build, which may contain unexpected bugs.</color>");
+            GUILayout.Label("<color=yellow>You are currently using a dev branch build, which may contain unexpected bugs.</color>");
             GUILayout.Space(5);
 
             GUILayout.BeginHorizontal();
@@ -398,11 +398,31 @@ namespace TimingShow
                         Main.Settings.URGraph_Scale = GUILayout.HorizontalSlider(Main.Settings.URGraph_Scale, 0.2f, 3.0f, GUILayout.Width(120));
                         GUILayout.EndHorizontal();
 
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_GridAlpha") + $"{Main.Settings.URGraph_GridAlpha:F2}", GUILayout.Width(120));
+                        Main.Settings.URGraph_GridAlpha = GUILayout.HorizontalSlider(Main.Settings.URGraph_GridAlpha, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_AxisTextAlpha") + $"{Main.Settings.URGraph_AxisTextAlpha:F2}", GUILayout.Width(120));
+                        Main.Settings.URGraph_AxisTextAlpha = GUILayout.HorizontalSlider(Main.Settings.URGraph_AxisTextAlpha, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_InfoTextAlpha") + $"{Main.Settings.URGraph_InfoTextAlpha:F2}", GUILayout.Width(120));
+                        Main.Settings.URGraph_InfoTextAlpha = GUILayout.HorizontalSlider(Main.Settings.URGraph_InfoTextAlpha, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
                         DrawColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.URGraph_BgColor);
                         DrawColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.URGraph_LineColor);
                         DrawColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.URGraph_GridColor);
                         DrawColorPicker(LangMan.T("Label_TextColor"), ref Main.Settings.URGraph_TextColor);
                     }
+
+
 
                     Main.Settings.ShowXACCGraph = GUILayout.Toggle(Main.Settings.ShowXACCGraph, LangMan.T("Toggle_XACCGraph"));
                     if (Main.Settings.ShowXACCGraph)
@@ -425,11 +445,28 @@ namespace TimingShow
                         Main.Settings.XACCGraph_Scale = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Scale, 0.2f, 3.0f, GUILayout.Width(120));
                         GUILayout.EndHorizontal();
 
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_GridAlpha") + $"{Main.Settings.XACCGraph_GridAlpha:F2}", GUILayout.Width(120));
+                        Main.Settings.XACCGraph_GridAlpha = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_GridAlpha, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_AxisTextAlpha") + $"{Main.Settings.XACCGraph_AxisTextAlpha:F2}", GUILayout.Width(120));
+                        Main.Settings.XACCGraph_AxisTextAlpha = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_AxisTextAlpha, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label(LangMan.T("Label_InfoTextAlpha") + $"{Main.Settings.XACCGraph_InfoTextAlpha:F2}", GUILayout.Width(120));
+                        Main.Settings.XACCGraph_InfoTextAlpha = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_InfoTextAlpha, 0.0f, 1.0f, GUILayout.Width(120));
+                        GUILayout.EndHorizontal();
+
                         DrawColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.XACCGraph_BgColor);
                         DrawColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.XACCGraph_LineColor);
                         DrawColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.XACCGraph_GridColor);
-                        DrawColorPicker(LangMan.T("Label_AxisTextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
-                        DrawColorPicker(LangMan.T("Label_ValueTextColor"), ref Main.Settings.XACCGraph_ValueTextColor);
+                        DrawColorPicker(LangMan.T("Label_TextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
                     }
 
 

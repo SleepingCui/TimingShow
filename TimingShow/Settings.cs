@@ -79,6 +79,10 @@ public class Settings : UnityModManager.ModSettings
     public Color URGraph_GridColor = new Color(1f, 1f, 1f, 0.25f);
     public Color URGraph_TextColor = new Color(1f, 1f, 1f, 0.8f);
 
+    public float URGraph_GridAlpha = 0.3f;
+    public float URGraph_AxisTextAlpha = 1.0f;
+    public float URGraph_InfoTextAlpha = 1.0f;
+
 
 
     public bool ShowXACCGraph = false;
@@ -94,7 +98,11 @@ public class Settings : UnityModManager.ModSettings
     public Color XACCGraph_LineColor = new Color(0.2f, 0.9f, 0.3f, 1f);
     public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 0.15f);     
     public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);  
-    public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f); 
+    public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
+
+    public float XACCGraph_GridAlpha = 0.3f;
+    public float XACCGraph_AxisTextAlpha = 1.0f;
+    public float XACCGraph_InfoTextAlpha = 1.0f;
 
 
 
