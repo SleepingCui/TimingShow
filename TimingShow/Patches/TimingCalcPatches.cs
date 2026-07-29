@@ -28,11 +28,10 @@ namespace TimingShow.Patches
                 Main.LastIsXP = CalcXP.IsXPerfect(diff, bpm, speed, pitch);
 
                 bool isAuto = RDC.auto;
-                bool canRecord = !isAuto || Main.Settings.LogAutoplay;
 
-                if (Main.IsPlaying && canRecord)
+                if (Main.IsPlaying)
                 {
-                    bool needRecord = Main.Settings.ShowInWinPage || Main.Settings.ShowURHUD;
+                    bool needRecord = Main.Settings.ShowInWinPage || Main.Settings.ShowURHUD || !isAuto || Main.Settings.LogAutoplay;
                     if (needRecord && Main.SessionOffsets != null)
                     {
                         Main.SessionOffsets.Add(diff);
@@ -51,11 +50,44 @@ namespace TimingShow.Patches
         [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
         public static class MarginTrackerAddHitPatch
         {
+            public static int PerfectCount = 0;
+            public static int XPerfectCount = 0;
+            public static int TotalHitsCount = 0;
+
             public static void Prefix(HitMargin hit)
             {
-                if (!Main.IsEnabled || !Main.IsPlaying || RDC.auto) return;
+                if (!Main.IsEnabled || !Main.IsPlaying) return;
+
                 Main.LastHitMargin = hit;
                 TimingLogger.LogHit(Main.LastTiming, hit);
+                TotalHitsCount++;
+                if (hit == HitMargin.Perfect) PerfectCount++;
+
+                var controller = scrController.instance;
+                var conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
+
+                if (controller != null && conductor != null && conductor.song != null)
+                {
+                    double bpm = (double)conductor.bpm;
+                    double speed = controller.planetarySystem != null ? (double)controller.planetarySystem.speed : 1.0;
+                    double pitch = (double)conductor.song.pitch;
+
+                    if (CalcXP.IsXPerfect(Main.LastTiming, bpm, speed, pitch)) XPerfectCount++;
+                }
+            }
+
+            public static void ResetCounts()
+            {
+                PerfectCount = 0;
+                XPerfectCount = 0;
+                TotalHitsCount = 0;
+            }
+
+            public static void SyncFromTracker(scrMarginTracker tracker)
+            {
+                if (tracker == null) return;
+                PerfectCount = tracker.GetHits(HitMargin.Perfect);
+                TotalHitsCount = (int)tracker.GetTotalHits();
             }
         }
     }

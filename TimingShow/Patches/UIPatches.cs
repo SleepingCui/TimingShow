@@ -157,7 +157,7 @@ namespace TimingShow.Patches
                     }
                 }
 
-                if (Main.IsPlaying && (Main.Settings.ShowTimingHUD || Main.Settings.ShowURHUD))
+                if (Main.IsPlaying && (Main.Settings.ShowTimingHUD || Main.Settings.ShowURHUD || Main.Settings.ShowRatioHUD))
                 {
                     HUDMan.Update();
                 }

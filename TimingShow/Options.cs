@@ -205,6 +205,67 @@ namespace TimingShow
                 GUILayout.EndHorizontal();
             }
 
+            Main.Settings.ShowRatioHUD = GUILayout.Toggle(Main.Settings.ShowRatioHUD, LangMan.T("Toggle_RatioHUD"));
+            if (Main.Settings.ShowRatioHUD)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.RatioHUD_x:F2}", GUILayout.Width(120));
+                Main.Settings.RatioHUD_x = GUILayout.HorizontalSlider(Main.Settings.RatioHUD_x, -0.5f, 0.5f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.RatioHUD_y:F2}", GUILayout.Width(120));
+                Main.Settings.RatioHUD_y = GUILayout.HorizontalSlider(Main.Settings.RatioHUD_y, -0.5f, 0.5f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.RatioHUD_scale:F2}", GUILayout.Width(120));
+                Main.Settings.RatioHUD_scale = GUILayout.HorizontalSlider(Main.Settings.RatioHUD_scale, 0.2f, 3.0f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                Main.Settings.RatioHUD_bold = GUILayout.Toggle(Main.Settings.RatioHUD_bold, LangMan.T("Toggle_Bold"));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Align"), GUILayout.Width(100));
+
+                GUIStyle ratioLeftStyle = new GUIStyle(GUI.skin.button);
+                if (Main.Settings.RatioHUD_align == 0) ratioLeftStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(LangMan.T("Btn_Left"), ratioLeftStyle, GUILayout.Width(60))) Main.Settings.RatioHUD_align = 0;
+
+                GUIStyle ratioCenterStyle = new GUIStyle(GUI.skin.button);
+                if (Main.Settings.RatioHUD_align == 1) ratioCenterStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(LangMan.T("Btn_Center"), ratioCenterStyle, GUILayout.Width(60))) Main.Settings.RatioHUD_align = 1;
+
+                GUIStyle ratioRightStyle = new GUIStyle(GUI.skin.button);
+                if (Main.Settings.RatioHUD_align == 2) ratioRightStyle.fontStyle = FontStyle.Bold;
+                if (GUILayout.Button(LangMan.T("Btn_Right"), ratioRightStyle, GUILayout.Width(60))) Main.Settings.RatioHUD_align = 2;
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Format"), GUILayout.Width(100));
+                Main.Settings.RatioHUD_Format = GUILayout.TextField(Main.Settings.RatioHUD_Format, GUILayout.Width(200));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Precision") + $"{Main.Settings.PercRatioHUD}", GUILayout.Width(120));
+                Main.Settings.PercRatioHUD = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercRatioHUD, 0, 5, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                Main.Settings.Ratio_UseXPerfect = GUILayout.Toggle(Main.Settings.Ratio_UseXPerfect, LangMan.T("Enable_XP"));
+                GUILayout.EndHorizontal();
+            }
+
             GUILayout.BeginVertical();
             {
                 Main.Settings.EnableLogging = GUILayout.Toggle(Main.Settings.EnableLogging, LangMan.T("Toggle_Logging"));

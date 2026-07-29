@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using static TimingShow.Patches.TimingCalcPatches;
 
 namespace TimingShow
 {
@@ -9,6 +10,9 @@ namespace TimingShow
 
         public static GameObject urHudObject;
         public static TextUI urHudInstance;
+
+        public static GameObject ratioHudObject;
+        public static TextUI ratioHudInstance;
 
         public static void Destroy()
         {
@@ -24,6 +28,13 @@ namespace TimingShow
                 Object.Destroy(urHudObject);
                 urHudObject = null;
                 urHudInstance = null;
+            }
+
+            if (ratioHudObject != null)
+            {
+                Object.Destroy(ratioHudObject);
+                ratioHudObject = null;
+                ratioHudInstance = null;
             }
         }
 
@@ -76,6 +87,26 @@ namespace TimingShow
                 urHudInstance.SetSize((int)(24 * Main.Settings.URHUD_scale));
                 urHudInstance.text.alignment = urHudInstance.ToAlign(Main.Settings.URHUD_align);
                 urHudInstance.text.fontStyle = Main.Settings.URHUD_bold ? FontStyle.Bold : FontStyle.Normal;
+            }
+
+            // ratio hud
+            bool isRatioPlay = isPlayBase && Main.Settings.ShowRatioHUD;
+            if (ratioHudObject == null)
+            {
+                ratioHudObject = new GameObject("TimingShow_RatioHUD");
+                ratioHudInstance = ratioHudObject.AddComponent<TextUI>();
+            }
+            ratioHudObject.SetActive(isRatioPlay);
+
+            if (isRatioPlay)
+            {
+                string ratioStr = CalcRatio.GetRatioString();
+
+                ratioHudInstance.SetText(string.Format(Main.Settings.RatioHUD_Format, ratioStr));
+                ratioHudInstance.SetPosition(Main.Settings.RatioHUD_x, Main.Settings.RatioHUD_y);
+                ratioHudInstance.SetSize((int)(24 * Main.Settings.RatioHUD_scale));
+                ratioHudInstance.text.alignment = ratioHudInstance.ToAlign(Main.Settings.RatioHUD_align);
+                ratioHudInstance.text.fontStyle = Main.Settings.RatioHUD_bold ? FontStyle.Bold : FontStyle.Normal;
             }
         }
     }
