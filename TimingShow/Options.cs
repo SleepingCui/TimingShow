@@ -47,7 +47,10 @@ namespace TimingShow
                 }
             }
 
+            bool oldShowOnPlanet = Main.Settings.ShowOnPlanet;
             DrawSettingRow(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2);
+            if (oldShowOnPlanet != Main.Settings.ShowOnPlanet && Main.Settings.AutoReloadInEditor) Patches.EditorReloadPatch.TriggerEditorReload();
+
             if (Main.Settings.ShowOnPlanet)
             {
                 GUILayout.BeginHorizontal();
@@ -433,9 +436,20 @@ namespace TimingShow
                     GUILayout.EndHorizontal();
 
                     GUI.enabled = previousGuiState;
+
+                    GUILayout.Space(5);
+
+                    Main.Settings.AutoReloadInEditor = GUILayout.Toggle(Main.Settings.AutoReloadInEditor, LangMan.T("Toggle_AutoReloadInEditor"));
+                    GUILayout.BeginHorizontal();
+                    {
+                        GUILayout.Space(20);
+                        GUILayout.Label($"<color=#888888>{LangMan.T("Desc_AutoReloadInEditor")}</color>");
+                    }
+                    GUILayout.EndHorizontal();
                 }
                 GUILayout.EndVertical();
             }
+
         }
 
         private static void DrawSettingRow(string label, ref bool toggle, ref int precision)
