@@ -105,6 +105,5 @@ public class Settings : UnityModManager.ModSettings
     public float XACCGraph_InfoTextAlpha = 1.0f;
 
 
-
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
 }
