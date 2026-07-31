@@ -12,26 +12,35 @@ namespace TimingShow
         private static string bufferSizeText = null;
         private static bool showAdvancedSettings = false;
 
+        private static bool foldoutTitleSettings = false;
+        private static bool foldoutPlanetSettings = false;
+        private static bool foldoutTimingHUD = false;
+        private static bool foldoutURHUD = false;
+        private static bool foldoutRatioHUD = false;
+        private static bool foldoutLogging = false;
+
+        private static GUIStyle activeButtonStyle;
+
         public static void OnGUI(UnityModManager.ModEntry modEntry)
         {
-            GUILayout.BeginHorizontal();
+            if (activeButtonStyle == null) activeButtonStyle = new GUIStyle(GUI.skin.button);
 
+            GUILayout.BeginHorizontal();
             foreach (string langCode in LangMan.AvailableLanguages)
             {
-                GUIStyle btnStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.Language == langCode) btnStyle.fontStyle = FontStyle.Bold;
+                activeButtonStyle.fontStyle = (Main.Settings.Language == langCode) ? FontStyle.Bold : FontStyle.Normal;
 
-                if (GUILayout.Button(langCode, btnStyle, GUILayout.Width(100)))
+                if (GUILayout.Button(langCode, activeButtonStyle, GUILayout.Width(100)))
                 {
                     Main.Settings.Language = langCode;
                 }
             }
-
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
 
-            DrawSettingRow(LangMan.T("Toggle_Title"), ref Main.Settings.ShowInSongTitle, ref Main.Settings.Perc1);
-            if (Main.Settings.ShowInSongTitle)
+            // title
+            DrawSettingRowFold(LangMan.T("Toggle_Title"), ref Main.Settings.ShowInSongTitle, ref Main.Settings.Perc1, ref foldoutTitleSettings);
+            if (Main.Settings.ShowInSongTitle && foldoutTitleSettings)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
@@ -47,11 +56,15 @@ namespace TimingShow
                 }
             }
 
+            // planet 
             bool oldShowOnPlanet = Main.Settings.ShowOnPlanet;
-            DrawSettingRow(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2);
-            if (oldShowOnPlanet != Main.Settings.ShowOnPlanet && Main.Settings.AutoReloadInEditor) Patches.EditorReloadPatch.TriggerEditorReload();
+            DrawSettingRowFold(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2, ref foldoutPlanetSettings);
+            if (oldShowOnPlanet != Main.Settings.ShowOnPlanet && Main.Settings.AutoReloadInEditor)
+            {
+                Patches.EditorReloadPatch.TriggerEditorReload();
+            }
 
-            if (Main.Settings.ShowOnPlanet)
+            if (Main.Settings.ShowOnPlanet && foldoutPlanetSettings)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
@@ -80,63 +93,19 @@ namespace TimingShow
                 GUILayout.EndHorizontal();
             }
 
+            // death,win
             DrawSettingRow(LangMan.T("Toggle_Death"), ref Main.Settings.ShowOnDeath, ref Main.Settings.Perc3);
             DrawSettingRow(LangMan.T("Toggle_Win"), ref Main.Settings.ShowInWinPage, ref Main.Settings.Perc4);
 
-            Main.Settings.ShowTimingHUD = GUILayout.Toggle(Main.Settings.ShowTimingHUD, LangMan.T("Toggle_TimingHUD"));
-            if (Main.Settings.ShowTimingHUD)
+            // timinghud
+            DrawToggleFold(LangMan.T("Toggle_TimingHUD"), ref Main.Settings.ShowTimingHUD, ref foldoutTimingHUD);
+            if (Main.Settings.ShowTimingHUD && foldoutTimingHUD)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.HUD_x:F2}", GUILayout.Width(120));
-                Main.Settings.HUD_x = GUILayout.HorizontalSlider(Main.Settings.HUD_x, -0.5f, 0.5f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.HUD_y:F2}", GUILayout.Width(120));
-                Main.Settings.HUD_y = GUILayout.HorizontalSlider(Main.Settings.HUD_y, -0.5f, 0.5f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.HUD_scale:F2}", GUILayout.Width(120));
-                Main.Settings.HUD_scale = GUILayout.HorizontalSlider(Main.Settings.HUD_scale, 0.2f, 3.0f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.HUD_bold = GUILayout.Toggle(Main.Settings.HUD_bold, LangMan.T("Toggle_Bold"));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Align"), GUILayout.Width(100));
-
-                GUIStyle leftStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.HUD_align == 0) leftStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Left"), leftStyle, GUILayout.Width(60))) Main.Settings.HUD_align = 0;
-
-                GUIStyle centerStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.HUD_align == 1) centerStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Center"), centerStyle, GUILayout.Width(60))) Main.Settings.HUD_align = 1;
-
-                GUIStyle rightStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.HUD_align == 2) rightStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Right"), rightStyle, GUILayout.Width(60))) Main.Settings.HUD_align = 2;
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Format"), GUILayout.Width(100));
-                Main.Settings.HUD_Format = GUILayout.TextField(Main.Settings.HUD_Format, GUILayout.Width(200));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Precision") + $"{Main.Settings.PercHUD}", GUILayout.Width(120));
-                Main.Settings.PercHUD = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercHUD, 0, 5, GUILayout.Width(100)));
-                GUILayout.EndHorizontal();
+                DrawHUDBaseSettings(
+                    ref Main.Settings.HUD_x, ref Main.Settings.HUD_y, ref Main.Settings.HUD_scale,
+                    ref Main.Settings.HUD_bold, ref Main.Settings.HUD_align, ref Main.Settings.HUD_Format,
+                    ref Main.Settings.PercHUD
+                );
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
@@ -152,116 +121,26 @@ namespace TimingShow
                 }
             }
 
-            Main.Settings.ShowURHUD = GUILayout.Toggle(Main.Settings.ShowURHUD, LangMan.T("Toggle_URHUD"));
-            if (Main.Settings.ShowURHUD)
+            // urhud
+            DrawToggleFold(LangMan.T("Toggle_URHUD"), ref Main.Settings.ShowURHUD, ref foldoutURHUD);
+            if (Main.Settings.ShowURHUD && foldoutURHUD)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.URHUD_x:F2}", GUILayout.Width(120));
-                Main.Settings.URHUD_x = GUILayout.HorizontalSlider(Main.Settings.URHUD_x, -0.5f, 0.5f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.URHUD_y:F2}", GUILayout.Width(120));
-                Main.Settings.URHUD_y = GUILayout.HorizontalSlider(Main.Settings.URHUD_y, -0.5f, 0.5f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.URHUD_scale:F2}", GUILayout.Width(120));
-                Main.Settings.URHUD_scale = GUILayout.HorizontalSlider(Main.Settings.URHUD_scale, 0.2f, 3.0f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.URHUD_bold = GUILayout.Toggle(Main.Settings.URHUD_bold, LangMan.T("Toggle_Bold"));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Align"), GUILayout.Width(100));
-
-                GUIStyle urLeftStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.URHUD_align == 0) urLeftStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Left"), urLeftStyle, GUILayout.Width(60))) Main.Settings.URHUD_align = 0;
-
-                GUIStyle urCenterStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.URHUD_align == 1) urCenterStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Center"), urCenterStyle, GUILayout.Width(60))) Main.Settings.URHUD_align = 1;
-
-                GUIStyle urRightStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.URHUD_align == 2) urRightStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Right"), urRightStyle, GUILayout.Width(60))) Main.Settings.URHUD_align = 2;
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Format"), GUILayout.Width(100));
-                Main.Settings.URHUD_Format = GUILayout.TextField(Main.Settings.URHUD_Format, GUILayout.Width(200));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Precision") + $"{Main.Settings.PercURHUD}", GUILayout.Width(120));
-                Main.Settings.PercURHUD = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercURHUD, 0, 5, GUILayout.Width(100)));
-                GUILayout.EndHorizontal();
+                DrawHUDBaseSettings(
+                    ref Main.Settings.URHUD_x, ref Main.Settings.URHUD_y, ref Main.Settings.URHUD_scale,
+                    ref Main.Settings.URHUD_bold, ref Main.Settings.URHUD_align, ref Main.Settings.URHUD_Format,
+                    ref Main.Settings.PercURHUD
+                );
             }
 
-            Main.Settings.ShowRatioHUD = GUILayout.Toggle(Main.Settings.ShowRatioHUD, LangMan.T("Toggle_RatioHUD"));
-            if (Main.Settings.ShowRatioHUD)
+            // ratiohud
+            DrawToggleFold(LangMan.T("Toggle_RatioHUD"), ref Main.Settings.ShowRatioHUD, ref foldoutRatioHUD);
+            if (Main.Settings.ShowRatioHUD && foldoutRatioHUD)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.RatioHUD_x:F2}", GUILayout.Width(120));
-                Main.Settings.RatioHUD_x = GUILayout.HorizontalSlider(Main.Settings.RatioHUD_x, -0.5f, 0.5f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.RatioHUD_y:F2}", GUILayout.Width(120));
-                Main.Settings.RatioHUD_y = GUILayout.HorizontalSlider(Main.Settings.RatioHUD_y, -0.5f, 0.5f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.RatioHUD_scale:F2}", GUILayout.Width(120));
-                Main.Settings.RatioHUD_scale = GUILayout.HorizontalSlider(Main.Settings.RatioHUD_scale, 0.2f, 3.0f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.RatioHUD_bold = GUILayout.Toggle(Main.Settings.RatioHUD_bold, LangMan.T("Toggle_Bold"));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Align"), GUILayout.Width(100));
-
-                GUIStyle ratioLeftStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.RatioHUD_align == 0) ratioLeftStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Left"), ratioLeftStyle, GUILayout.Width(60))) Main.Settings.RatioHUD_align = 0;
-
-                GUIStyle ratioCenterStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.RatioHUD_align == 1) ratioCenterStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Center"), ratioCenterStyle, GUILayout.Width(60))) Main.Settings.RatioHUD_align = 1;
-
-                GUIStyle ratioRightStyle = new GUIStyle(GUI.skin.button);
-                if (Main.Settings.RatioHUD_align == 2) ratioRightStyle.fontStyle = FontStyle.Bold;
-                if (GUILayout.Button(LangMan.T("Btn_Right"), ratioRightStyle, GUILayout.Width(60))) Main.Settings.RatioHUD_align = 2;
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Format"), GUILayout.Width(100));
-                Main.Settings.RatioHUD_Format = GUILayout.TextField(Main.Settings.RatioHUD_Format, GUILayout.Width(200));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Precision") + $"{Main.Settings.PercRatioHUD}", GUILayout.Width(120));
-                Main.Settings.PercRatioHUD = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercRatioHUD, 0, 5, GUILayout.Width(100)));
-                GUILayout.EndHorizontal();
+                DrawHUDBaseSettings(
+                    ref Main.Settings.RatioHUD_x, ref Main.Settings.RatioHUD_y, ref Main.Settings.RatioHUD_scale,
+                    ref Main.Settings.RatioHUD_bold, ref Main.Settings.RatioHUD_align, ref Main.Settings.RatioHUD_Format,
+                    ref Main.Settings.PercRatioHUD
+                );
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
@@ -269,11 +148,12 @@ namespace TimingShow
                 GUILayout.EndHorizontal();
             }
 
+            // logger
             GUILayout.BeginVertical();
             {
-                Main.Settings.EnableLogging = GUILayout.Toggle(Main.Settings.EnableLogging, LangMan.T("Toggle_Logging"));
+                DrawToggleFold(LangMan.T("Toggle_Logging"), ref Main.Settings.EnableLogging, ref foldoutLogging);
 
-                if (Main.Settings.EnableLogging)
+                if (Main.Settings.EnableLogging && foldoutLogging)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
@@ -281,20 +161,29 @@ namespace TimingShow
                     Main.Settings.PercLog = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercLog, 0, 5, GUILayout.Width(100)));
                     GUILayout.EndHorizontal();
 
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
                     Main.Settings.Logger_EnableXPerfect = GUILayout.Toggle(Main.Settings.Logger_EnableXPerfect, LangMan.T("Enable_XP"));
-                    Main.Settings.LogAutoplay = GUILayout.Toggle(Main.Settings.LogAutoplay, LangMan.T("Toggle_LogAutoplay"));
+                    GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(160));
+                    GUILayout.Space(20);
+                    Main.Settings.LogAutoplay = GUILayout.Toggle(Main.Settings.LogAutoplay, LangMan.T("Toggle_LogAutoplay"));
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(140));
 
                     string absolutePath = GetAbsoluteLogPath(Main.Settings.LogDirectory);
                     string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "未选择" : absolutePath;
-                    GUILayout.Label(displayPath, GUILayout.MinWidth(300), GUILayout.MaxWidth(500));
+                    GUILayout.Label(displayPath, GUILayout.MinWidth(280), GUILayout.MaxWidth(480));
 
                     if (GUILayout.Button(LangMan.T("Btn_Browse"), GUILayout.Width(70)))
                     {
                         string defaultDir = GetAbsoluteLogPath(Main.Settings.LogDirectory);
-                        if (string.IsNullOrWhiteSpace(defaultDir)) defaultDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
+                        if (string.IsNullOrWhiteSpace(defaultDir))
+                            defaultDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
 
                         string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], LangMan.T("Label_LogDir"));
                         if (!string.IsNullOrEmpty(selectedFolder))
@@ -302,12 +191,11 @@ namespace TimingShow
                             Main.Settings.LogDirectory = Path.GetFullPath(selectedFolder);
                         }
                     }
-
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
-                    GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(160));
+                    GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(140));
 
                     if (bufferSizeText == null) bufferSizeText = Main.Settings.LogBufferSizeKB.ToString();
                     string newBufferSizeText = GUILayout.TextField(bufferSizeText, GUILayout.Width(80));
@@ -320,7 +208,7 @@ namespace TimingShow
                     GUILayout.EndHorizontal();
                 }
 
-                GUILayout.Space(15);
+                GUILayout.Space(10);
                 if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
                     try
@@ -344,6 +232,7 @@ namespace TimingShow
                 Main.LastTiming = 0;
             }
 
+            // adv
             string foldoutArrow = showAdvancedSettings ? "▲" : "▼";
             if (GUILayout.Button($"{LangMan.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
                 showAdvancedSettings = !showAdvancedSettings;
@@ -364,15 +253,8 @@ namespace TimingShow
                     if (newHookMode != Main.Settings.UseHookMode)
                     {
                         Main.Settings.UseHookMode = newHookMode;
-
-                        if (newHookMode)
-                        {
-                            XPerfectBridge.TryInit(force: true);
-                        }
-                        else
-                        {
-                            XPerfectBridge.UnloadHook();
-                        }
+                        if (newHookMode) XPerfectBridge.TryInit(force: true);
+                        else XPerfectBridge.UnloadHook();
                     }
 
                     XPerfectBridge.HookState currentState = XPerfectBridge.CurrentState;
@@ -449,7 +331,53 @@ namespace TimingShow
                 }
                 GUILayout.EndVertical();
             }
+        }
 
+
+        // utils
+        private static void DrawToggleFold(string label, ref bool toggle, ref bool foldout)
+        {
+            GUILayout.BeginHorizontal();
+            toggle = GUILayout.Toggle(toggle, label, GUILayout.ExpandWidth(false));
+
+            if (toggle)
+            {
+                GUILayout.Space(10);
+                string arrow = foldout ? "▲" : "▼";
+                if (GUILayout.Button(arrow, GUILayout.Width(28), GUILayout.Height(18)))
+                {
+                    foldout = !foldout;
+                }
+            }
+            GUILayout.EndHorizontal();
+        }
+
+
+        private static void DrawSettingRowFold(string label, ref bool toggle, ref int precision, ref bool foldout)
+        {
+            GUILayout.BeginHorizontal();
+            toggle = GUILayout.Toggle(toggle, label, GUILayout.ExpandWidth(false));
+
+            if (toggle)
+            {
+                GUILayout.Space(10);
+                string arrow = foldout ? "▲" : "▼";
+                if (GUILayout.Button(arrow, GUILayout.Width(28), GUILayout.Height(18)))
+                {
+                    foldout = !foldout;
+                }
+            }
+            GUILayout.EndHorizontal();
+
+            if (toggle)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                string precisionLabel = LangMan.T("Label_Precision");
+                GUILayout.Label($"{precisionLabel}{precision}", GUILayout.Width(120));
+                precision = Mathf.RoundToInt(GUILayout.HorizontalSlider(precision, 0, 5, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
+            }
         }
 
         private static void DrawSettingRow(string label, ref bool toggle, ref int precision)
@@ -466,13 +394,68 @@ namespace TimingShow
             }
         }
 
+        private static void DrawHUDBaseSettings(ref float posX, ref float posY, ref float scale, ref bool isBold, ref int align, ref string format, ref int precision)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T("Label_XOffset") + $"{posX:F2}", GUILayout.Width(120));
+            posX = GUILayout.HorizontalSlider(posX, -0.5f, 0.5f, GUILayout.Width(120));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T("Label_YOffset") + $"{posY:F2}", GUILayout.Width(120));
+            posY = GUILayout.HorizontalSlider(posY, -0.5f, 0.5f, GUILayout.Width(120));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T("Label_Scale") + $"{scale:F2}", GUILayout.Width(120));
+            scale = GUILayout.HorizontalSlider(scale, 0.2f, 3.0f, GUILayout.Width(120));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            isBold = GUILayout.Toggle(isBold, LangMan.T("Toggle_Bold"));
+            GUILayout.EndHorizontal();
+
+            DrawAlignButtons(ref align);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T("Label_Format"), GUILayout.Width(100));
+            format = GUILayout.TextField(format, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T("Label_Precision") + $"{precision}", GUILayout.Width(120));
+            precision = Mathf.RoundToInt(GUILayout.HorizontalSlider(precision, 0, 5, GUILayout.Width(100)));
+            GUILayout.EndHorizontal();
+        }
+
+        private static void DrawAlignButtons(ref int alignSetting)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T("Label_Align"), GUILayout.Width(100));
+
+            string[] labels = { LangMan.T("Btn_Left"), LangMan.T("Btn_Center"), LangMan.T("Btn_Right") };
+            for (int i = 0; i < 3; i++)
+            {
+                activeButtonStyle.fontStyle = (alignSetting == i) ? FontStyle.Bold : FontStyle.Normal;
+                if (GUILayout.Button(labels[i], activeButtonStyle, GUILayout.Width(60)))
+                    alignSetting = i;
+            }
+            GUILayout.EndHorizontal();
+        }
+
         private static string GetAbsoluteLogPath(string logDir)
         {
             if (string.IsNullOrWhiteSpace(logDir))
                 return null;
             try
             {
-                string basePath = Application.dataPath;
                 if (Path.IsPathRooted(logDir)) return Path.GetFullPath(logDir);
                 string gameRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
                 string fullPath = Path.GetFullPath(Path.Combine(gameRoot, logDir));
