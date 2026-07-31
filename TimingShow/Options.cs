@@ -18,6 +18,7 @@ namespace TimingShow
         private static bool foldoutURHUD = false;
         private static bool foldoutRatioHUD = false;
         private static bool foldoutLogging = false;
+        private static bool foldoutXACCGraph = false;
 
         private static GUIStyle activeButtonStyle;
 
@@ -146,6 +147,35 @@ namespace TimingShow
                 GUILayout.Space(20);
                 Main.Settings.Ratio_UseXPerfect = GUILayout.Toggle(Main.Settings.Ratio_UseXPerfect, LangMan.T("Enable_XP"));
                 GUILayout.EndHorizontal();
+            }
+
+            // xaccgraph
+            DrawToggleFold(LangMan.T("Toggle_XACCGraph"), ref Main.Settings.ShowXACCGraph, ref foldoutXACCGraph);
+            if (Main.Settings.ShowXACCGraph && foldoutXACCGraph)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.XACCGraph_X:F2}", GUILayout.Width(120));
+                Main.Settings.XACCGraph_X = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_X, 0.0f, 1.0f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.XACCGraph_Y:F2}", GUILayout.Width(120));
+                Main.Settings.XACCGraph_Y = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Y, 0.0f, 1.0f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.XACCGraph_Scale:F2}", GUILayout.Width(120));
+                Main.Settings.XACCGraph_Scale = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Scale, 0.2f, 3.0f, GUILayout.Width(120));
+                GUILayout.EndHorizontal();
+
+                DrawColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.XACCGraph_BgColor);
+                DrawColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.XACCGraph_LineColor);
+                DrawColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.XACCGraph_GridColor);
+                DrawColorPicker(LangMan.T("Label_AxisTextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
+                DrawColorPicker(LangMan.T("Label_InfoTextColor"), ref Main.Settings.XACCGraph_ValueTextColor); 
             }
 
             // logger
@@ -447,6 +477,24 @@ namespace TimingShow
                 if (GUILayout.Button(labels[i], activeButtonStyle, GUILayout.Width(60)))
                     alignSetting = i;
             }
+            GUILayout.EndHorizontal();
+        }
+
+        private static void DrawColorPicker(string label, ref Color color)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(label, GUILayout.Width(100));
+
+            GUILayout.Label("R", GUILayout.Width(15));
+            color.r = GUILayout.HorizontalSlider(color.r, 0f, 1f, GUILayout.Width(50));
+            GUILayout.Label("G", GUILayout.Width(15));
+            color.g = GUILayout.HorizontalSlider(color.g, 0f, 1f, GUILayout.Width(50));
+            GUILayout.Label("B", GUILayout.Width(15));
+            color.b = GUILayout.HorizontalSlider(color.b, 0f, 1f, GUILayout.Width(50));
+            GUILayout.Label("A", GUILayout.Width(15));
+            color.a = GUILayout.HorizontalSlider(color.a, 0f, 1f, GUILayout.Width(50));
+
             GUILayout.EndHorizontal();
         }
 

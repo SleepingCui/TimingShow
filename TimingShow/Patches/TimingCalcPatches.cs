@@ -31,10 +31,16 @@ namespace TimingShow.Patches
 
                 if (Main.IsPlaying)
                 {
-                    bool needRecord = Main.Settings.ShowInWinPage || Main.Settings.ShowURHUD || !isAuto || Main.Settings.LogAutoplay;
+                    bool needRecord = Main.Settings.ShowInWinPage || Main.Settings.ShowURHUD || !isAuto || Main.Settings.LogAutoplay || Main.Settings.ShowXACCGraph;
                     if (needRecord && Main.SessionOffsets != null)
                     {
                         Main.SessionOffsets.Add(diff);
+                    }
+
+                    if (Main.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
+                    {
+                        float curXAcc = scrController.instance.playerOne.marginTracker.percentXAcc * 100f;
+                        Main.FullXAccHistory.Add(curXAcc);
                     }
 
                     if (isAuto && Main.Settings.EnableLogging)

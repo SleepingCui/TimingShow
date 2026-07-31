@@ -5,36 +5,46 @@ namespace TimingShow
 {
     public static class HUDMan
     {
-        public static GameObject hudObject;
+        public static GameObject hudObj;
         public static TextUI hudInstance;
 
-        public static GameObject urHudObject;
+        public static GameObject urhudObj;
         public static TextUI urHudInstance;
 
-        public static GameObject ratioHudObject;
+        public static GameObject ratiohudObj;
         public static TextUI ratioHudInstance;
+
+        public static GameObject xaccGraphObject;
+        public static XACCGraphDrawer xaccGraphInstance;
 
         public static void Destroy()
         {
-            if (hudObject != null)
+            if (hudObj != null)
             {
-                Object.Destroy(hudObject);
-                hudObject = null;
+                Object.Destroy(hudObj);
+                hudObj = null;
                 hudInstance = null;
             }
 
-            if (urHudObject != null)
+            if (urhudObj != null)
             {
-                Object.Destroy(urHudObject);
-                urHudObject = null;
+                Object.Destroy(urhudObj);
+                urhudObj = null;
                 urHudInstance = null;
             }
 
-            if (ratioHudObject != null)
+            if (ratiohudObj != null)
             {
-                Object.Destroy(ratioHudObject);
-                ratioHudObject = null;
+                Object.Destroy(ratiohudObj);
+                ratiohudObj = null;
                 ratioHudInstance = null;
+            }
+
+            if (xaccGraphObject != null)
+            {
+                Object.Destroy(xaccGraphObject);
+                xaccGraphObject = null;
+                xaccGraphInstance = null;
             }
         }
 
@@ -44,12 +54,12 @@ namespace TimingShow
 
             // timing hud
             bool isTimingPlay = isPlayBase && Main.Settings.ShowTimingHUD;
-            if (hudObject == null)
+            if (hudObj == null)
             {
-                hudObject = new GameObject("TimingShow_HUD");
-                hudInstance = hudObject.AddComponent<TextUI>();
+                hudObj = new GameObject("TimingShow_HUD");
+                hudInstance = hudObj.AddComponent<TextUI>();
             }
-            hudObject.SetActive(isTimingPlay);
+            hudObj.SetActive(isTimingPlay);
 
             if (isTimingPlay)
             {
@@ -70,12 +80,12 @@ namespace TimingShow
 
             // ur hud
             bool isURPlay = isPlayBase && Main.Settings.ShowURHUD;
-            if (urHudObject == null)
+            if (urhudObj == null)
             {
-                urHudObject = new GameObject("TimingShow_URHUD");
-                urHudInstance = urHudObject.AddComponent<TextUI>();
+                urhudObj = new GameObject("TimingShow_URHUD");
+                urHudInstance = urhudObj.AddComponent<TextUI>();
             }
-            urHudObject.SetActive(isURPlay);
+            urhudObj.SetActive(isURPlay);
 
             if (isURPlay)
             {
@@ -91,12 +101,12 @@ namespace TimingShow
 
             // ratio hud
             bool isRatioPlay = isPlayBase && Main.Settings.ShowRatioHUD;
-            if (ratioHudObject == null)
+            if (ratiohudObj == null)
             {
-                ratioHudObject = new GameObject("TimingShow_RatioHUD");
-                ratioHudInstance = ratioHudObject.AddComponent<TextUI>();
+                ratiohudObj = new GameObject("TimingShow_RatioHUD");
+                ratioHudInstance = ratiohudObj.AddComponent<TextUI>();
             }
-            ratioHudObject.SetActive(isRatioPlay);
+            ratiohudObj.SetActive(isRatioPlay);
 
             if (isRatioPlay)
             {
@@ -108,6 +118,16 @@ namespace TimingShow
                 ratioHudInstance.text.alignment = ratioHudInstance.ToAlign(Main.Settings.RatioHUD_align);
                 ratioHudInstance.text.fontStyle = Main.Settings.RatioHUD_bold ? FontStyle.Bold : FontStyle.Normal;
             }
+
+            // xacc gr
+            bool isXACCPlay = isPlayBase && Main.Settings.ShowXACCGraph;
+            if (xaccGraphObject == null)
+            {
+                xaccGraphObject = new GameObject("TimingShow_XACCGraph");
+                xaccGraphInstance = xaccGraphObject.AddComponent<XACCGraphDrawer>();
+            }
+            xaccGraphObject.SetActive(isXACCPlay);
+
         }
     }
 }

@@ -13,9 +13,11 @@ namespace TimingShow.Patches
             public static void Postfix()
             {
                 Main.IsPlaying = true;
+                Main.IsLevelFinished = false;
                 Main.LastTiming = 0;
                 Main.LastHitMargin = HitMargin.Perfect;
                 Main.SessionOffsets.Clear();
+                Main.FullXAccHistory.Clear();
                 MarginTrackerAddHitPatch.ResetCounts();
 
                 bool isAuto = RDC.auto;
@@ -75,6 +77,16 @@ namespace TimingShow.Patches
             public static void Postfix(scrMarginTracker __instance)
             {
                 MarginTrackerAddHitPatch.SyncFromTracker(__instance);
+            }
+        }
+
+        // land
+        [HarmonyPatch(typeof(scrController), "OnLandOnPortal")]
+        public static class OnLandOnPortalPatch
+        {
+            public static void Postfix()
+            {
+                Main.IsLevelFinished = true;
             }
         }
     }

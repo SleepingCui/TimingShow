@@ -14,6 +14,8 @@ namespace TimingShow
         public static bool LastIsXP;
         public static HitMargin LastHitMargin = HitMargin.Perfect;
         public static List<double> SessionOffsets = new List<double>();
+        public static List<float> FullXAccHistory = new List<float>();
+        public static bool IsLevelFinished = false;
 
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
