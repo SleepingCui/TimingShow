@@ -14,7 +14,7 @@ namespace TimingShow
         protected override float Width => Main.Settings.XACCGraph_Width;
         protected override float Height => Main.Settings.XACCGraph_Height;
         protected override float PosX => Screen.width * Main.Settings.XACCGraph_X;
-        protected override float PosY => Screen.height * Main.Settings.XACCGraph_Y;
+        protected override float PosY => Screen.height * (1.0f - Main.Settings.XACCGraph_Y);
         protected override Color BgColor => Main.Settings.XACCGraph_BgColor;
         protected override Color GridColor => Main.Settings.XACCGraph_GridColor;
         protected override Color LineColor => Main.Settings.XACCGraph_LineColor;
