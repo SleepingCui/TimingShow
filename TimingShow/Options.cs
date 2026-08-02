@@ -10,6 +10,7 @@ namespace TimingShow
     public static class Options
     {
         private static string bufferSizeText = null;
+        private static string maxPointsText = null;
         private static bool showAdvancedSettings = false;
 
         private static bool foldoutTitleSettings = false;
@@ -171,11 +172,33 @@ namespace TimingShow
                 Main.Settings.XACCGraph_Scale = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Scale, 0.2f, 3.0f, GUILayout.Width(120));
                 GUILayout.EndHorizontal();
 
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(LangMan.T("Label_MaxPoints"), GUILayout.Width(120));
+
+                if (maxPointsText == null) maxPointsText = Main.Settings.XACCGraph_MaxPoints.ToString();
+                string newMaxPointsText = GUILayout.TextField(maxPointsText, GUILayout.Width(80));
+
+                if (newMaxPointsText != maxPointsText)
+                {
+                    if (int.TryParse(newMaxPointsText, out int parsedVal) && parsedVal >= 20 && parsedVal <= 5000)
+                    {
+                        maxPointsText = newMaxPointsText;
+                        Main.Settings.XACCGraph_MaxPoints = parsedVal;
+                    }
+                    else
+                    {
+                        maxPointsText = "250";
+                        Main.Settings.XACCGraph_MaxPoints = 250;
+                    }
+                }
+                GUILayout.EndHorizontal();
+
                 DrawColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.XACCGraph_BgColor);
                 DrawColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.XACCGraph_LineColor);
                 DrawColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.XACCGraph_GridColor);
                 DrawColorPicker(LangMan.T("Label_AxisTextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
-                DrawColorPicker(LangMan.T("Label_InfoTextColor"), ref Main.Settings.XACCGraph_ValueTextColor); 
+                DrawColorPicker(LangMan.T("Label_InfoTextColor"), ref Main.Settings.XACCGraph_ValueTextColor);
             }
 
             // logger
@@ -229,11 +252,19 @@ namespace TimingShow
 
                     if (bufferSizeText == null) bufferSizeText = Main.Settings.LogBufferSizeKB.ToString();
                     string newBufferSizeText = GUILayout.TextField(bufferSizeText, GUILayout.Width(80));
+
                     if (newBufferSizeText != bufferSizeText)
                     {
-                        bufferSizeText = newBufferSizeText;
-                        if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal > 0)
+                        if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal >= 8 && parsedVal <= 102400)
+                        {
+                            bufferSizeText = newBufferSizeText;
                             Main.Settings.LogBufferSizeKB = parsedVal;
+                        }
+                        else
+                        {
+                            bufferSizeText = "64";
+                            Main.Settings.LogBufferSizeKB = 64;
+                        }
                     }
                     GUILayout.EndHorizontal();
                 }
