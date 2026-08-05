@@ -85,13 +85,34 @@ namespace TimingShow.Patches
         {
             public static void Postfix(scrController __instance)
             {
-                TimingLogger.CloseSession();
-                if (!Main.IsEnabled) return;
-                if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
+                if (!Main.IsEnabled)
+                {
+                    TimingLogger.CloseSession();
+                    if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
+                    return;
+                }
+
                 if (Main.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
                 {
-                    __instance.txtTryCalibrating.text = Main.Format(Main.LastTiming, Main.Settings.Perc3);
+                    double avgOffset = 0;
+                    float xaccPerc = 0f;
+                    int count = Main.SessionOffsets != null ? Main.SessionOffsets.Count : 0;
+
+                    if (count > 0)
+                    {
+                        for (int i = 0; i < count; i++) avgOffset += Main.SessionOffsets[i];
+                        avgOffset /= count;
+                    }
+
+                    if (__instance.playerOne != null && __instance.playerOne.marginTracker != null)
+                        xaccPerc = __instance.playerOne.marginTracker.percentXAcc * 100f;
+
+                    string info = $"<size=60%>{LangMan.T("Avg_Timing")}{Main.Format(avgOffset, Main.Settings.Perc3)}    {LangMan.T("Label_UR")}{CalcUR.calc(Main.SessionOffsets).ToString("F" + Main.Settings.Perc3)}    XACC: {xaccPerc.ToString("F" + Main.Settings.Perc3)}%</size>";
+                    __instance.txtTryCalibrating.text = info;
                 }
+
+                TimingLogger.CloseSession();
+                if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
             }
         }
 
