@@ -100,10 +100,10 @@
     <Compile Include="CalcRatio.cs" />
     <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />
-    <Compile Include="GraphDrawerBase.cs" />
     <Compile Include="HUDMan.cs" />
     <Compile Include="LangMan.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="GraphDrawerBase.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Patches\EditorReloadPatch.cs" />
     <Compile Include="Patches\PlayStatePatches.cs" />

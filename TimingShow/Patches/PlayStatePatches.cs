@@ -80,6 +80,16 @@ namespace TimingShow.Patches
             }
         }
 
+        // fail
+        [HarmonyPatch(typeof(scrController), "Fail2Action")]
+        public static class FailPatch
+        {
+            public static void Postfix()
+            {
+                Main.IsLevelFinished = true;
+            }
+        }
+
         // land
         [HarmonyPatch(typeof(scrController), "OnLandOnPortal")]
         public static class OnLandOnPortalPatch

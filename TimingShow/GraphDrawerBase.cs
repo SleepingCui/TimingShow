@@ -1,25 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.UI;
 
 namespace TimingShow
 {
-    public abstract class GraphDrawerBase : MonoBehaviour
+    [RequireComponent(typeof(CanvasRenderer))]
+    public abstract class GraphDrawerBase : Graphic
     {
-        public float RenderTimeMs { get; protected set; } = 0f;
-        public float UpdateTimeMs { get; protected set; } = 0f;
-        public int RenderedPoints { get; protected set; } = 0;
-
-        protected Stopwatch renderTimer = new Stopwatch();
-        protected Stopwatch updateTimer = new Stopwatch();
-
-        protected Texture2D bgTexture;
-        protected Texture2D lineTexture;
-
-        protected GUIStyle labelStyle;
-        protected GUIStyle infoStyle;
-
         protected abstract bool IsEnabled { get; }
         protected abstract bool ShowGraph { get; }
         protected abstract float Scale { get; }
@@ -30,8 +16,6 @@ namespace TimingShow
         protected abstract Color BgColor { get; }
         protected abstract Color GridColor { get; }
         protected abstract Color LineColor { get; }
-        protected abstract Color AxisTextColor { get; }
-        protected abstract Color ValueTextColor { get; }
         protected abstract int MaxPoints { get; }
         public abstract string GraphName { get; }
 
@@ -40,186 +24,202 @@ namespace TimingShow
         protected abstract float GetDataValue(int index);
         protected abstract float GetMinY();
         protected abstract float GetMaxY();
-        protected abstract string GetInfoText();
 
-        protected virtual void Awake()
+        protected Text titleText;
+        protected Text topLabelText;
+        protected Text midLabelText;
+        protected Text botLabelText;
+
+        protected override void Awake()
         {
-            CreateTextures();
+            base.Awake();
+            raycastTarget = false;
+            material = defaultMaterial;
+            CreateTextComponents();
         }
 
-        protected virtual void OnDestroy()
+        private void CreateTextComponents()
         {
-            DestroyTextures();
+            Font font = Font.CreateDynamicFontFromOSFont("Arial", 12);
+            if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+            titleText = CreateSingleText("TitleText", font, TextAnchor.UpperLeft);
+            topLabelText = CreateSingleText("TopLabel", font, TextAnchor.MiddleRight);
+            midLabelText = CreateSingleText("MidLabel", font, TextAnchor.MiddleRight);
+            botLabelText = CreateSingleText("BotLabel", font, TextAnchor.MiddleRight);
         }
 
-        private void CreateTextures()
+        private Text CreateSingleText(string name, Font font, TextAnchor alignment)
         {
-            bgTexture = new Texture2D(1, 1);
-            bgTexture.SetPixel(0, 0, Color.white);
-            bgTexture.Apply();
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(transform, false);
 
-            lineTexture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
-            Color[] colors = new Color[4] { Color.white, Color.white, Color.white, Color.white };
-            lineTexture.SetPixels(colors);
-            lineTexture.filterMode = FilterMode.Bilinear;
-            lineTexture.Apply();
+            Text t = go.AddComponent<Text>();
+            t.font = font;
+            t.alignment = alignment;
+            t.color = Color.white;
+            t.raycastTarget = false;
+
+            RectTransform rt = t.rectTransform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.zero;
+            rt.pivot = new Vector2(1f, 0.5f); 
+
+            return t;
         }
 
-        private void DestroyTextures()
-        {
-            if (bgTexture != null) Destroy(bgTexture);
-            if (lineTexture != null) Destroy(lineTexture);
-        }
-
-        protected virtual void InitStyles(float baseLabelSize, float baseInfoSize)
-        {
-            if (labelStyle == null)
-            {
-                labelStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleRight,
-                    fontSize = Mathf.Max(10, (int)(baseLabelSize * Scale)),
-                    fontStyle = FontStyle.Bold
-                };
-            }
-
-            if (infoStyle == null)
-            {
-                infoStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleLeft,
-                    fontSize = Mathf.Max(11, (int)(baseInfoSize * Scale)),
-                    fontStyle = FontStyle.Bold
-                };
-            }
-        }
-
-        protected virtual void OnGUI()
+        protected virtual void Update()
         {
             if (!IsEnabled || !ShowGraph)
             {
-                RenderedPoints = 0;
-                RenderTimeMs = 0f;
-                UpdateTimeMs = 0f;
+                if (!canvasRenderer.cull) canvasRenderer.cull = true;
+                ToggleTexts(false);
                 return;
             }
-            if (Event.current.type != EventType.Repaint) return;
 
-            renderTimer.Restart();
-
-            InitStyles(11f, 12f);
-
-            updateTimer.Restart();
+            canvasRenderer.cull = false;
+            ToggleTexts(true);
+            UpdateTransform();
             UpdateData();
-            updateTimer.Stop();
-            UpdateTimeMs = (float)updateTimer.Elapsed.TotalMilliseconds;
+            UpdateTextLayoutAndValues();
+            SetVerticesDirty();
+        }
 
-            int count = GetDataCount();
-            RenderedPoints = count;
-            if (count < 2)
-            {
-                renderTimer.Stop();
-                RenderTimeMs = (float)renderTimer.Elapsed.TotalMilliseconds;
-                return;
-            }
+        private void ToggleTexts(bool active)
+        {
+            if (titleText != null && titleText.gameObject.activeSelf != active) titleText.gameObject.SetActive(active);
+            if (topLabelText != null && topLabelText.gameObject.activeSelf != active) topLabelText.gameObject.SetActive(active);
+            if (midLabelText != null && midLabelText.gameObject.activeSelf != active) midLabelText.gameObject.SetActive(active);
+            if (botLabelText != null && botLabelText.gameObject.activeSelf != active) botLabelText.gameObject.SetActive(active);
+        }
 
-            float scale = Scale;
+        private void UpdateTransform()
+        {
+            RectTransform rect = rectTransform;
+            float scale = Mathf.Max(0.01f, Scale);
             float w = Width * scale;
             float h = Height * scale;
-            float posX = PosX;
-            float posY = PosY;
 
-            Rect graphRect = new Rect(posX, posY, w, h);
-            Color oldColor = GUI.color;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.pivot = Vector2.zero;
+            rect.sizeDelta = new Vector2(w, h);
 
-            GUI.color = BgColor;
-            GUI.DrawTexture(graphRect, bgTexture);
+            float posX = Screen.width * PosX;
+            float posY = Screen.height * (1.0f - PosY);
+            rect.anchoredPosition = new Vector2(posX, posY);
+        }
+
+        protected virtual void UpdateTextLayoutAndValues()
+        {
+            float scale = Mathf.Max(0.01f, Scale);
+            float w = rectTransform.rect.width;
+            float h = rectTransform.rect.height;
+            float minY = GetMinY();
+            float maxY = GetMaxY();
+            float midY = (minY + maxY) * 0.5f;
+
+            if (titleText != null)
+            {
+                int titleFontSize = Mathf.Clamp(Mathf.RoundToInt(h * 0.1f), 10, 100);
+                titleText.fontSize = titleFontSize;
+                titleText.text = GraphName;
+                titleText.color = new Color(1f, 1f, 1f, 102f / 255f);
+
+                RectTransform rt = titleText.rectTransform;
+                rt.pivot = new Vector2(0f, 1f); 
+                rt.anchoredPosition = new Vector2(6f * scale, h - 2f * scale);
+                rt.sizeDelta = new Vector2(w * 0.8f, h * 0.4f);
+            }
+
+            int scaleFontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
+            Color scaleColor = new Color(1f, 1f, 1f, 0.8f);
+            float leftMargin = -6f * scale;
+            SetupLeftScaleText(topLabelText, $"{maxY:F1}%", new Vector2(leftMargin, h), scaleFontSize, scaleColor);
+            SetupLeftScaleText(midLabelText, $"{midY:F1}%", new Vector2(leftMargin, h * 0.5f), scaleFontSize, scaleColor);
+            SetupLeftScaleText(botLabelText, $"{minY:F1}%", new Vector2(leftMargin, 0f), scaleFontSize, scaleColor);
+        }
+
+        private void SetupLeftScaleText(Text t, string content, Vector2 localPos, int fontSize, Color color)
+        {
+            if (t == null) return;
+            t.fontSize = fontSize;
+            t.text = content;
+            t.color = color;
+            t.alignment = TextAnchor.MiddleRight; 
+
+            RectTransform rt = t.rectTransform;
+            rt.pivot = new Vector2(1f, 0.5f);
+            rt.anchoredPosition = localPos;
+            rt.sizeDelta = new Vector2(120f * (fontSize / 12f), 24f * (fontSize / 12f));
+        }
+
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear();
+
+            int count = GetDataCount();
+            float w = rectTransform.rect.width;
+            float h = rectTransform.rect.height;
+
+            if (w <= 0 || h <= 0) return;
+
+            DrawQuad(vh, Vector2.zero, new Vector2(w, h), BgColor);
+            DrawGridLines(vh, w, h);
+
+            if (count < 2) return;
 
             float minY = GetMinY();
             float maxY = GetMaxY();
             float rangeY = Mathf.Max(0.01f, maxY - minY);
-
-            GUI.color = GridColor;
-            DrawGridLines(posX, posY, w, h, scale);
-
-            labelStyle.normal.textColor = AxisTextColor;
-            DrawAxisLabels(posX, posY, w, h, scale, minY, maxY, rangeY);
-
-            infoStyle.normal.textColor = ValueTextColor;
-            DrawInfoText(posX, posY, w, h, scale);
-
-            GUI.color = LineColor;
-            DrawDataCurve(posX, posY, w, h, scale, count, minY, rangeY);
-
-            GUI.color = oldColor;
-
-            renderTimer.Stop();
-            RenderTimeMs = (float)renderTimer.Elapsed.TotalMilliseconds;
-        }
-
-        protected virtual void DrawGridLines(float posX, float posY, float w, float h, float scale)
-        {
-            float lineWidth = 1.0f * scale;
-            DrawAALine(new Vector2(posX, posY), new Vector2(posX + w, posY), lineWidth);
-            DrawAALine(new Vector2(posX, posY + h * 0.5f), new Vector2(posX + w, posY + h * 0.5f), lineWidth);
-            DrawAALine(new Vector2(posX, posY + h), new Vector2(posX + w, posY + h), lineWidth);
-        }
-
-        protected virtual void DrawAxisLabels(float posX, float posY, float w, float h, float scale, float minY, float maxY, float rangeY)
-        {
-            float labelWidth = 55f * scale;
-            string fmtY = rangeY < 2.0f ? "F2" : (rangeY < 10.0f ? "F1" : "F0");
-
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY - 8f * scale, labelWidth, 16f * scale),
-                $"{maxY.ToString(fmtY)}%", labelStyle);
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h * 0.5f - 8f * scale, labelWidth, 16f * scale),
-                $"{(minY + rangeY * 0.5f).ToString(fmtY)}%", labelStyle);
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h - 8f * scale, labelWidth, 16f * scale),
-                $"{minY.ToString(fmtY)}%", labelStyle);
-        }
-
-        protected virtual void DrawInfoText(float posX, float posY, float w, float h, float scale)
-        {
-            string infoText = GetInfoText();
-            if (!string.IsNullOrEmpty(infoText))
-            {
-                GUI.Label(new Rect(posX + 5f, posY - 22f * scale, w, 20f * scale), infoText, infoStyle);
-            }
-        }
-
-        protected virtual void DrawDataCurve(float posX, float posY, float w, float h, float scale, int count, float minY, float rangeY)
-        {
             int maxCapacity = MaxPoints > 0 ? MaxPoints : 250;
-            float stepX = w / Math.Max(1, maxCapacity - 1);
-            float lineWidth = 2.0f * scale;
+            float stepX = w / Mathf.Max(1, maxCapacity - 1);
+            float lineWidth = 2.0f * Scale;
 
-            for (int i = 0; i < count - 1; i++)
+            Vector2 prevPoint = Vector2.zero;
+
+            for (int i = 0; i < count; i++)
             {
-                float norm1 = Mathf.Clamp01((GetDataValue(i) - minY) / rangeY);
-                float norm2 = Mathf.Clamp01((GetDataValue(i + 1) - minY) / rangeY);
-
-                Vector2 p1 = new Vector2(posX + i * stepX, posY + h - norm1 * h);
-                Vector2 p2 = new Vector2(posX + (i + 1) * stepX, posY + h - norm2 * h);
-
-                DrawAALine(p1, p2, lineWidth);
+                float normY = Mathf.Clamp01((GetDataValue(i) - minY) / rangeY);
+                Vector2 curPoint = new Vector2(i * stepX, normY * h);
+                if (i > 0)
+                    DrawSegment(vh, prevPoint, curPoint, lineWidth * 0.5f, LineColor);
+                prevPoint = curPoint;
             }
         }
 
-        protected void DrawAALine(Vector2 pointA, Vector2 pointB, float width)
+        protected void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
         {
-            Vector2 d = pointB - pointA;
-            float magnitude = d.magnitude;
-            if (magnitude < 0.01f) return;
+            int baseIdx = vh.currentVertCount;
+            vh.AddVert(new Vector3(min.x, min.y), color, Vector2.zero);
+            vh.AddVert(new Vector3(min.x, max.y), color, Vector2.zero);
+            vh.AddVert(new Vector3(max.x, max.y), color, Vector2.zero);
+            vh.AddVert(new Vector3(max.x, min.y), color, Vector2.zero);
+            vh.AddTriangle(baseIdx, baseIdx + 1, baseIdx + 2);
+            vh.AddTriangle(baseIdx, baseIdx + 2, baseIdx + 3);
+        }
 
-            float angle = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
+        protected void DrawSegment(VertexHelper vh, Vector2 p1, Vector2 p2, float halfWidth, Color color)
+        {
+            Vector2 dir = (p2 - p1).normalized;
+            if (dir == Vector2.zero) return;
+            Vector2 normal = new Vector2(-dir.y, dir.x) * halfWidth;
 
-            Matrix4x4 matrixBackup = GUI.matrix;
-            GUIUtility.RotateAroundPivot(angle, pointA);
+            int baseIdx = vh.currentVertCount;
+            vh.AddVert(p1 - normal, color, Vector2.zero);
+            vh.AddVert(p1 + normal, color, Vector2.zero);
+            vh.AddVert(p2 + normal, color, Vector2.zero);
+            vh.AddVert(p2 - normal, color, Vector2.zero);
+            vh.AddTriangle(baseIdx, baseIdx + 1, baseIdx + 2);
+            vh.AddTriangle(baseIdx, baseIdx + 2, baseIdx + 3);
+        }
 
-            Rect lineRect = new Rect(pointA.x, pointA.y - width * 0.5f, magnitude, width);
-            GUI.DrawTexture(lineRect, lineTexture, ScaleMode.StretchToFill, true);
-
-            GUI.matrix = matrixBackup;
+        protected virtual void DrawGridLines(VertexHelper vh, float w, float h)
+        {
+            float halfGridWidth = 1.0f * Scale * 0.5f;
+            DrawSegment(vh, new Vector2(0, 0), new Vector2(w, 0), halfGridWidth, GridColor);
+            DrawSegment(vh, new Vector2(0, h * 0.5f), new Vector2(w, h * 0.5f), halfGridWidth, GridColor);
+            DrawSegment(vh, new Vector2(0, h), new Vector2(w, h), halfGridWidth, GridColor);
         }
     }
 }

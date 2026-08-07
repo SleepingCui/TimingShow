@@ -13,13 +13,12 @@ namespace TimingShow
         protected override float Scale => Main.Settings.XACCGraph_Scale;
         protected override float Width => Main.Settings.XACCGraph_Width;
         protected override float Height => Main.Settings.XACCGraph_Height;
-        protected override float PosX => Screen.width * Main.Settings.XACCGraph_X;
-        protected override float PosY => Screen.height * (1.0f - Main.Settings.XACCGraph_Y);
+        protected override float PosX => Main.Settings.XACCGraph_X;
+        protected override float PosY => Main.Settings.XACCGraph_Y;
+
         protected override Color BgColor => Main.Settings.XACCGraph_BgColor;
         protected override Color GridColor => Main.Settings.XACCGraph_GridColor;
         protected override Color LineColor => Main.Settings.XACCGraph_LineColor;
-        protected override Color AxisTextColor => Main.Settings.XACCGraph_AxisTextColor;
-        protected override Color ValueTextColor => Main.Settings.XACCGraph_ValueTextColor;
 
         protected override int MaxPoints => Main.Settings.XACCGraph_MaxPoints > 0 ? Main.Settings.XACCGraph_MaxPoints : 250;
         public override string GraphName => "XACC";
@@ -109,43 +108,5 @@ namespace TimingShow
         protected override float GetDataValue(int index) => xaccRenderCache[index];
         protected override float GetMinY() => _cachedMinY;
         protected override float GetMaxY() => _cachedMaxY;
-
-        protected override void DrawGridLines(float posX, float posY, float w, float h, float scale)
-        {
-            GUI.color = GridColor;
-
-            float lineWidth = 1.0f * scale;
-            DrawAALine(new Vector2(posX, posY), new Vector2(posX + w, posY), lineWidth);
-            DrawAALine(new Vector2(posX, posY + h * 0.5f), new Vector2(posX + w, posY + h * 0.5f), lineWidth);
-            DrawAALine(new Vector2(posX, posY + h), new Vector2(posX + w, posY + h), lineWidth);
-        }
-
-        protected override void DrawAxisLabels(float posX, float posY, float w, float h, float scale, float minY, float maxY, float rangeY)
-        {
-            float labelWidth = 55f * scale;
-            string fmtY = rangeY < 2.0f ? "F2" : (rangeY < 10.0f ? "F1" : "F0");
-            labelStyle.normal.textColor = AxisTextColor;
-
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY - 8f * scale, labelWidth, 16f * scale), $"{maxY.ToString(fmtY)}%", labelStyle);
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h * 0.5f - 8f * scale, labelWidth, 16f * scale), $"{(minY + rangeY * 0.5f).ToString(fmtY)}%", labelStyle);
-            GUI.Label(new Rect(posX - labelWidth - 4f, posY + h - 8f * scale, labelWidth, 16f * scale), $"{minY.ToString(fmtY)}%", labelStyle);
-        }
-
-        protected override void DrawInfoText(float posX, float posY, float w, float h, float scale)
-        {
-            string infoText = GetInfoText();
-            if (!string.IsNullOrEmpty(infoText))
-            {
-                infoStyle.normal.textColor = ValueTextColor;
-                GUI.Label(new Rect(posX + 5f, posY - 22f * scale, w, 20f * scale), infoText, infoStyle);
-            }
-        }
-
-        protected override string GetInfoText()
-        {
-            if (xaccRenderCache.Count == 0) return string.Empty;
-            float curXAcc = xaccRenderCache[xaccRenderCache.Count - 1];
-            return $"XACC: {curXAcc}%";
-        }
     }
 }

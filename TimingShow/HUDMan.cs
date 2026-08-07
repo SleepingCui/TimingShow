@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using static TimingShow.Patches.TimingCalcPatches;
 
 namespace TimingShow
 {
@@ -19,33 +18,10 @@ namespace TimingShow
 
         public static void Destroy()
         {
-            if (hudObj != null)
-            {
-                Object.Destroy(hudObj);
-                hudObj = null;
-                hudInstance = null;
-            }
-
-            if (urhudObj != null)
-            {
-                Object.Destroy(urhudObj);
-                urhudObj = null;
-                urHudInstance = null;
-            }
-
-            if (ratiohudObj != null)
-            {
-                Object.Destroy(ratiohudObj);
-                ratiohudObj = null;
-                ratioHudInstance = null;
-            }
-
-            if (xaccGraphObject != null)
-            {
-                Object.Destroy(xaccGraphObject);
-                xaccGraphObject = null;
-                xaccGraphInstance = null;
-            }
+            DestroyHUD(ref hudObj, ref hudInstance);
+            DestroyHUD(ref urhudObj, ref urHudInstance);
+            DestroyHUD(ref ratiohudObj, ref ratioHudInstance);
+            DestroyHUD(ref xaccGraphObject, ref xaccGraphInstance);
         }
 
         public static void Update()
@@ -54,12 +30,7 @@ namespace TimingShow
 
             // timing hud
             bool isTimingPlay = isPlayBase && Main.Settings.ShowTimingHUD;
-            if (hudObj == null)
-            {
-                hudObj = new GameObject("TimingShow_HUD");
-                hudInstance = hudObj.AddComponent<TextUI>();
-            }
-            hudObj.SetActive(isTimingPlay);
+            EnsureUI(ref hudObj, ref hudInstance, "TimingShow_HUD", isTimingPlay);
 
             if (isTimingPlay)
             {
@@ -71,63 +42,77 @@ namespace TimingShow
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
 
-                hudInstance.SetText(string.Format(Main.Settings.HUD_Format, timing));
-                hudInstance.SetPosition(Main.Settings.HUD_x, Main.Settings.HUD_y);
-                hudInstance.SetSize((int)(24 * Main.Settings.HUD_scale));
-                hudInstance.text.alignment = hudInstance.ToAlign(Main.Settings.HUD_align);
-                hudInstance.text.fontStyle = Main.Settings.HUD_bold ? FontStyle.Bold : FontStyle.Normal;
+                UpdateTextHUD(hudInstance, Main.Settings.HUD_Format, timing, Main.Settings.HUD_x, Main.Settings.HUD_y, Main.Settings.HUD_scale, Main.Settings.HUD_align, Main.Settings.HUD_bold);
             }
 
             // ur hud
             bool isURPlay = isPlayBase && Main.Settings.ShowURHUD;
-            if (urhudObj == null)
-            {
-                urhudObj = new GameObject("TimingShow_URHUD");
-                urHudInstance = urhudObj.AddComponent<TextUI>();
-            }
-            urhudObj.SetActive(isURPlay);
+            EnsureUI(ref urhudObj, ref urHudInstance, "TimingShow_URHUD", isURPlay);
 
             if (isURPlay)
             {
                 double currentUR = CalcUR.calc(Main.SessionOffsets);
                 string urStr = currentUR.ToString("F" + Main.Settings.PercURHUD);
 
-                urHudInstance.SetText(string.Format(Main.Settings.URHUD_Format, urStr));
-                urHudInstance.SetPosition(Main.Settings.URHUD_x, Main.Settings.URHUD_y);
-                urHudInstance.SetSize((int)(24 * Main.Settings.URHUD_scale));
-                urHudInstance.text.alignment = urHudInstance.ToAlign(Main.Settings.URHUD_align);
-                urHudInstance.text.fontStyle = Main.Settings.URHUD_bold ? FontStyle.Bold : FontStyle.Normal;
+                UpdateTextHUD(urHudInstance, Main.Settings.URHUD_Format, urStr, Main.Settings.URHUD_x, Main.Settings.URHUD_y, Main.Settings.URHUD_scale, Main.Settings.URHUD_align, Main.Settings.URHUD_bold);
             }
 
             // ratio hud
             bool isRatioPlay = isPlayBase && Main.Settings.ShowRatioHUD;
-            if (ratiohudObj == null)
-            {
-                ratiohudObj = new GameObject("TimingShow_RatioHUD");
-                ratioHudInstance = ratiohudObj.AddComponent<TextUI>();
-            }
-            ratiohudObj.SetActive(isRatioPlay);
+            EnsureUI(ref ratiohudObj, ref ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
 
             if (isRatioPlay)
             {
                 string ratioStr = CalcRatio.GetRatioString();
 
-                ratioHudInstance.SetText(string.Format(Main.Settings.RatioHUD_Format, ratioStr));
-                ratioHudInstance.SetPosition(Main.Settings.RatioHUD_x, Main.Settings.RatioHUD_y);
-                ratioHudInstance.SetSize((int)(24 * Main.Settings.RatioHUD_scale));
-                ratioHudInstance.text.alignment = ratioHudInstance.ToAlign(Main.Settings.RatioHUD_align);
-                ratioHudInstance.text.fontStyle = Main.Settings.RatioHUD_bold ? FontStyle.Bold : FontStyle.Normal;
+                UpdateTextHUD(ratioHudInstance, Main.Settings.RatioHUD_Format, ratioStr, Main.Settings.RatioHUD_x, Main.Settings.RatioHUD_y, Main.Settings.RatioHUD_scale, Main.Settings.RatioHUD_align, Main.Settings.RatioHUD_bold);
             }
 
             // xacc gr
             bool isXACCPlay = isPlayBase && Main.Settings.ShowXACCGraph;
             if (xaccGraphObject == null)
             {
-                xaccGraphObject = new GameObject("TimingShow_XACCGraph");
-                xaccGraphInstance = xaccGraphObject.AddComponent<XACCGraphDrawer>();
+                xaccGraphObject = new GameObject("TimingShow_XACCCanvas");
+                Canvas canvas = xaccGraphObject.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 100;
+
+                GameObject drawerObj = new GameObject("XACCGraphDrawer");
+                drawerObj.transform.SetParent(xaccGraphObject.transform, false);
+
+                xaccGraphInstance = drawerObj.AddComponent<XACCGraphDrawer>();
             }
             xaccGraphObject.SetActive(isXACCPlay);
+        }
 
+
+        private static void EnsureUI<T>(ref GameObject obj, ref T instance, string name, bool active) where T : Component
+        {
+            if (obj == null)
+            {
+                obj = new GameObject(name);
+                instance = obj.AddComponent<T>();
+            }
+            obj.SetActive(active);
+        }
+
+        private static void UpdateTextHUD(TextUI instance, string format, string value, float x, float y, float scale, int align, bool bold)
+        {
+            instance.SetText(string.Format(format, value));
+            instance.SetPosition(x, y);
+            instance.SetSize((int)(24 * scale));
+            instance.text.alignment = instance.ToAlign(align);
+            instance.text.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+        }
+
+        private static void DestroyHUD<T>(ref GameObject obj, ref T instance) where T : class
+        {
+            if (obj != null)
+            {
+                Object.Destroy(obj);
+                obj = null;
+                instance = null;
+            }
         }
     }
 }
