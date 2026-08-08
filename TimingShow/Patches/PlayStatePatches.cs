@@ -46,7 +46,7 @@ namespace TimingShow.Patches
 
         // quit (editor)
         [HarmonyPatch(typeof(scnEditor), "SwitchToEditMode")]
-        public static class scnEditor_SwitchToEditMode_Patch
+        public static class scnEditor_SwitchToEditModePatch
         {
             public static void Prefix()
             {

@@ -16,7 +16,7 @@ namespace TimingShow
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
         private const byte FormatVersion = 1;
 
-        public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSizeKB)
+        public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSize)
         {
             CloseSession();
 
@@ -36,7 +36,7 @@ namespace TimingShow
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 _currentFilePath = Path.Combine(dir, $"{timestamp}_{safeSongName}.tlog.gz");
 
-                int bufferSizeBytes = Math.Max(4, bufferSizeKB) * 1024;
+                int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read, bufferSizeBytes);
                 _gzStream = new GZipStream(_fs, System.IO.Compression.CompressionLevel.Fastest, leaveOpen: false);
                 _writer = new BinaryWriter(_gzStream, new UTF8Encoding(false));
@@ -44,7 +44,7 @@ namespace TimingShow
                 _writer.Write(MagicBytes);                 
                 _writer.Write(FormatVersion);      
                 _writer.Write(timestamp);                 
-                _writer.Write(safeSongName ?? "");          
+                _writer.Write(safeSongName);          
                 _writer.Write(levelPath ?? "");       
 
                 _writer.Flush();

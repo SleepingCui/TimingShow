@@ -16,7 +16,7 @@ namespace TimingShow.Patches
             {
                 if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying) return;
 
-                bool replace = false;
+                bool replace;
                 switch (__instance.hitMargin)
                 {
                     case HitMargin.TooEarly: replace = Main.Settings.ReplaceTooEarly; break;
@@ -46,9 +46,9 @@ namespace TimingShow.Patches
 
                         if (controller != null && conductor != null && conductor.song != null)
                         {
-                            double bpm = (double)conductor.bpm;
-                            double speed = controller.planetarySystem != null ? (double)controller.planetarySystem.speed : 1.0;
-                            double pitch = (double)conductor.song.pitch;
+                            double bpm = conductor.bpm;
+                            double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
+                            double pitch = conductor.song.pitch;
 
                             targetColor = CalcXP.XPc(controller.chosenPlanet, Main.LastTiming, bpm, speed, pitch, Main.Settings.Planet_EnableXPerfect, __instance.hitMargin);
                         }
@@ -74,7 +74,7 @@ namespace TimingShow.Patches
 
                     __instance.text.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
                     __instance.text.color = targetColor;
-                    __instance.text.ForceMeshUpdate(false, false);
+                    __instance.text.ForceMeshUpdate();
                 }
             }
         }

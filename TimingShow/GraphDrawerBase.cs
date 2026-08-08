@@ -25,10 +25,10 @@ namespace TimingShow
         protected abstract float GetMinY();
         protected abstract float GetMaxY();
 
-        protected Text titleText;
-        protected Text topLabelText;
-        protected Text midLabelText;
-        protected Text botLabelText;
+        private Text _titleText;
+        private Text _topLabelText;
+        private Text _tidLabelText;
+        private Text _botLabelText;
 
         protected override void Awake()
         {
@@ -43,10 +43,10 @@ namespace TimingShow
             Font font = Font.CreateDynamicFontFromOSFont("Arial", 12);
             if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 
-            titleText = CreateSingleText("TitleText", font, TextAnchor.UpperLeft);
-            topLabelText = CreateSingleText("TopLabel", font, TextAnchor.MiddleRight);
-            midLabelText = CreateSingleText("MidLabel", font, TextAnchor.MiddleRight);
-            botLabelText = CreateSingleText("BotLabel", font, TextAnchor.MiddleRight);
+            _titleText = CreateSingleText("TitleText", font, TextAnchor.UpperLeft);
+            _topLabelText = CreateSingleText("TopLabel", font, TextAnchor.MiddleRight);
+            _tidLabelText = CreateSingleText("MidLabel", font, TextAnchor.MiddleRight);
+            _botLabelText = CreateSingleText("BotLabel", font, TextAnchor.MiddleRight);
         }
 
         private Text CreateSingleText(string name, Font font, TextAnchor alignment)
@@ -87,10 +87,10 @@ namespace TimingShow
 
         private void ToggleTexts(bool active)
         {
-            if (titleText != null && titleText.gameObject.activeSelf != active) titleText.gameObject.SetActive(active);
-            if (topLabelText != null && topLabelText.gameObject.activeSelf != active) topLabelText.gameObject.SetActive(active);
-            if (midLabelText != null && midLabelText.gameObject.activeSelf != active) midLabelText.gameObject.SetActive(active);
-            if (botLabelText != null && botLabelText.gameObject.activeSelf != active) botLabelText.gameObject.SetActive(active);
+            if (_titleText != null && _titleText.gameObject.activeSelf != active) _titleText.gameObject.SetActive(active);
+            if (_topLabelText != null && _topLabelText.gameObject.activeSelf != active) _topLabelText.gameObject.SetActive(active);
+            if (_tidLabelText != null && _tidLabelText.gameObject.activeSelf != active) _tidLabelText.gameObject.SetActive(active);
+            if (_botLabelText != null && _botLabelText.gameObject.activeSelf != active) _botLabelText.gameObject.SetActive(active);
         }
 
         private void UpdateTransform()
@@ -119,14 +119,14 @@ namespace TimingShow
             float maxY = GetMaxY();
             float midY = (minY + maxY) * 0.5f;
 
-            if (titleText != null)
+            if (_titleText != null)
             {
                 int titleFontSize = Mathf.Clamp(Mathf.RoundToInt(h * 0.1f), 10, 100);
-                titleText.fontSize = titleFontSize;
-                titleText.text = GraphName;
-                titleText.color = new Color(1f, 1f, 1f, 102f / 255f);
+                _titleText.fontSize = titleFontSize;
+                _titleText.text = GraphName;
+                _titleText.color = new Color(1f, 1f, 1f, 102f / 255f);
 
-                RectTransform rt = titleText.rectTransform;
+                RectTransform rt = _titleText.rectTransform;
                 rt.pivot = new Vector2(0f, 1f); 
                 rt.anchoredPosition = new Vector2(6f * scale, h - 2f * scale);
                 rt.sizeDelta = new Vector2(w * 0.8f, h * 0.4f);
@@ -135,9 +135,9 @@ namespace TimingShow
             int scaleFontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
             Color scaleColor = new Color(1f, 1f, 1f, 0.8f);
             float leftMargin = -6f * scale;
-            SetupLeftScaleText(topLabelText, $"{maxY:F1}%", new Vector2(leftMargin, h), scaleFontSize, scaleColor);
-            SetupLeftScaleText(midLabelText, $"{midY:F1}%", new Vector2(leftMargin, h * 0.5f), scaleFontSize, scaleColor);
-            SetupLeftScaleText(botLabelText, $"{minY:F1}%", new Vector2(leftMargin, 0f), scaleFontSize, scaleColor);
+            SetupLeftScaleText(_topLabelText, $"{maxY:F1}%", new Vector2(leftMargin, h), scaleFontSize, scaleColor);
+            SetupLeftScaleText(_tidLabelText, $"{midY:F1}%", new Vector2(leftMargin, h * 0.5f), scaleFontSize, scaleColor);
+            SetupLeftScaleText(_botLabelText, $"{minY:F1}%", new Vector2(leftMargin, 0f), scaleFontSize, scaleColor);
         }
 
         private void SetupLeftScaleText(Text t, string content, Vector2 localPos, int fontSize, Color color)
@@ -188,7 +188,7 @@ namespace TimingShow
             }
         }
 
-        protected void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
+        private void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
         {
             int baseIdx = vh.currentVertCount;
             vh.AddVert(new Vector3(min.x, min.y), color, Vector2.zero);
@@ -199,7 +199,7 @@ namespace TimingShow
             vh.AddTriangle(baseIdx, baseIdx + 2, baseIdx + 3);
         }
 
-        protected void DrawSegment(VertexHelper vh, Vector2 p1, Vector2 p2, float halfWidth, Color color)
+        private void DrawSegment(VertexHelper vh, Vector2 p1, Vector2 p2, float halfWidth, Color color)
         {
             Vector2 dir = (p2 - p1).normalized;
             if (dir == Vector2.zero) return;

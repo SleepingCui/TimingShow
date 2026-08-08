@@ -6,9 +6,9 @@ namespace TimingShow
 {
     public static class XPerfectBridge
     {
-        private const int XPERFECT_ENUM_VALUE = 1;
-        private static bool isInitialized;
-        private static Func<int> getLastJudgeDelegate;
+        private const int XpEnum = 1;
+        private static bool _isInitialized;
+        private static Func<int> _getLastJudgeDelegate;
 
 
         public enum HookState { Disabled, Success, Failed }
@@ -16,16 +16,16 @@ namespace TimingShow
         public static HookState CurrentState { get; private set; } = HookState.Disabled;
         public static string LastErrorMessage { get; private set; } = string.Empty;
 
-        public static bool IsAvailable => ProtInitialize() && CurrentState == HookState.Success && getLastJudgeDelegate != null;
+        public static bool IsAvailable => ProtInitialize() && CurrentState == HookState.Success && _getLastJudgeDelegate != null;
         private static bool ProtInitialize()
         {
             if (!Main.Settings.UseHookMode)
             {
-                if (isInitialized) UnloadHook();
+                if (_isInitialized) UnloadHook();
                 return false;
             }
 
-            if (!isInitialized) TryInit();
+            if (!_isInitialized) TryInit();
             return true;
         }
 
@@ -37,8 +37,8 @@ namespace TimingShow
                 return;
             }
 
-            if (isInitialized && !force) return;
-            isInitialized = true;
+            if (_isInitialized && !force) return;
+            _isInitialized = true;
 
             try
             {
@@ -58,8 +58,8 @@ namespace TimingShow
                     return;
                 }
 
-                getLastJudgeDelegate = (Func<int>)Delegate.CreateDelegate(typeof(Func<int>), getter);
-                if (getLastJudgeDelegate != null)
+                _getLastJudgeDelegate = (Func<int>)Delegate.CreateDelegate(typeof(Func<int>), getter);
+                if (_getLastJudgeDelegate != null)
                 {
                     SetState(HookState.Success);
                     Main.Logger.Log("Successfully hooked into XPerfect mod");
@@ -76,8 +76,8 @@ namespace TimingShow
 
         public static void UnloadHook()
         {
-            isInitialized = false;
-            getLastJudgeDelegate = null;
+            _isInitialized = false;
+            _getLastJudgeDelegate = null;
             SetState(HookState.Disabled);
         }
 
@@ -85,7 +85,7 @@ namespace TimingShow
         {
             CurrentState = state;
             LastErrorMessage = errorMsg;
-            if (state != HookState.Success) getLastJudgeDelegate = null;
+            if (state != HookState.Success) _getLastJudgeDelegate = null;
         }
 
         public static bool IsXPerfect()
@@ -93,7 +93,7 @@ namespace TimingShow
             if (!IsAvailable) return false;
             try
             {
-                return getLastJudgeDelegate() == XPERFECT_ENUM_VALUE;
+                return _getLastJudgeDelegate() == XpEnum;
             }
             catch
             {

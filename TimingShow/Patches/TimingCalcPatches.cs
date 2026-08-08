@@ -14,9 +14,9 @@ namespace TimingShow.Patches
                 if (!Main.IsEnabled || scrController.instance == null) return;
                 if (__instance.conductor == null || __instance.conductor.song == null) return;
 
-                double bpm = (double)__instance.conductor.bpm;
-                double speed = (double)scrController.instance.planetarySystem.speed;
-                double pitch = (double)__instance.conductor.song.pitch;
+                double bpm = __instance.conductor.bpm;
+                double speed = scrController.instance.planetarySystem.speed;
+                double pitch = __instance.conductor.song.pitch;
                 bool isCW = scrController.instance.planetarySystem.isCW;
 
                 if (bpm * speed * pitch == 0) return;
@@ -56,9 +56,9 @@ namespace TimingShow.Patches
         [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
         public static class MarginTrackerAddHitPatch
         {
-            public static int PerfectCount = 0;
-            public static int XPerfectCount = 0;
-            public static int TotalHitsCount = 0;
+            public static int PerfectCount;
+            public static int XPerfectCount;
+            public static int TotalHitsCount;
 
             public static void Prefix(HitMargin hit)
             {
@@ -74,9 +74,9 @@ namespace TimingShow.Patches
 
                 if (controller != null && conductor != null && conductor.song != null)
                 {
-                    double bpm = (double)conductor.bpm;
-                    double speed = controller.planetarySystem != null ? (double)controller.planetarySystem.speed : 1.0;
-                    double pitch = (double)conductor.song.pitch;
+                    double bpm = conductor.bpm;
+                    double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
+                    double pitch = conductor.song.pitch;
 
                     if (CalcXP.IsXPerfect(Main.LastTiming, bpm, speed, pitch)) XPerfectCount++;
                 }

@@ -35,7 +35,7 @@ namespace TimingShow
                 if (!enableXP) return hitMarginColours.colourPerfect;
 
                 if (XPerfectBridge.IsAvailable && Main.Settings.DisplayCurrMode)
-                    return (Color)HkModeColor;
+                    return HkModeColor;
 
                 return IsXPerfect(diff, bpm, speed, pitch) ? (Color)XPColor : hitMarginColours.colourPerfect;
             }

@@ -2,7 +2,9 @@
 using UnityEngine;
 using System.IO;
 
-public class Settings : UnityModManager.ModSettings
+namespace TimingShow
+{
+    public class Settings : UnityModManager.ModSettings
 {
     public bool ShowInSongTitle = false;
     public bool ShowOnPlanet = false;
@@ -89,4 +91,6 @@ public class Settings : UnityModManager.ModSettings
     public bool AutoReloadInEditor = false;
 
     public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
+}
+    
 }

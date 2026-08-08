@@ -6,7 +6,7 @@ namespace TimingShow
 {
     public class XACCGraphDrawer : GraphDrawerBase
     {
-        private readonly List<float> xaccRenderCache = new List<float>();
+        private readonly List<float> _xaccRenderCache = new List<float>();
 
         protected override bool IsEnabled => Main.IsEnabled && Main.IsPlaying;
         protected override bool ShowGraph => Main.Settings.ShowXACCGraph;
@@ -30,11 +30,11 @@ namespace TimingShow
         {
             if (Main.FullXAccHistory == null || Main.FullXAccHistory.Count == 0)
             {
-                xaccRenderCache.Clear();
+                _xaccRenderCache.Clear();
                 return;
             }
 
-            xaccRenderCache.Clear();
+            _xaccRenderCache.Clear();
             int total = Main.FullXAccHistory.Count;
             int targetPoints = MaxPoints;
 
@@ -42,7 +42,7 @@ namespace TimingShow
             {
                 if (total <= targetPoints)
                 {
-                    xaccRenderCache.AddRange(Main.FullXAccHistory);
+                    _xaccRenderCache.AddRange(Main.FullXAccHistory);
                 }
                 else
                 {
@@ -50,7 +50,7 @@ namespace TimingShow
                     for (int i = 0; i < targetPoints; i++)
                     {
                         int idx = Mathf.Clamp((int)(i * step), 0, total - 1);
-                        xaccRenderCache.Add(Main.FullXAccHistory[idx]);
+                        _xaccRenderCache.Add(Main.FullXAccHistory[idx]);
                     }
                 }
             }
@@ -59,11 +59,11 @@ namespace TimingShow
                 int startIdx = Math.Max(0, total - targetPoints);
                 for (int i = startIdx; i < total; i++)
                 {
-                    xaccRenderCache.Add(Main.FullXAccHistory[i]);
+                    _xaccRenderCache.Add(Main.FullXAccHistory[i]);
                 }
             }
 
-            int count = xaccRenderCache.Count;
+            int count = _xaccRenderCache.Count;
             if (count == 0) return;
 
             if (Main.IsLevelFinished)
@@ -72,7 +72,7 @@ namespace TimingShow
                 float minVal = 100f;
                 for (int i = 0; i < count; i++)
                 {
-                    if (xaccRenderCache[i] < minVal) minVal = xaccRenderCache[i];
+                    if (_xaccRenderCache[i] < minVal) minVal = _xaccRenderCache[i];
                 }
                 _cachedMinY = Mathf.Max(0f, Mathf.Floor(minVal - 1f));
                 if (100f - minVal < 1.0f)
@@ -86,7 +86,7 @@ namespace TimingShow
                 float maxVal = 0f;
                 for (int i = 0; i < count; i++)
                 {
-                    float val = xaccRenderCache[i];
+                    float val = _xaccRenderCache[i];
                     if (val < minVal) minVal = val;
                     if (val > maxVal) maxVal = val;
                 }
@@ -104,8 +104,8 @@ namespace TimingShow
             }
         }
 
-        protected override int GetDataCount() => xaccRenderCache.Count;
-        protected override float GetDataValue(int index) => xaccRenderCache[index];
+        protected override int GetDataCount() => _xaccRenderCache.Count;
+        protected override float GetDataValue(int index) => _xaccRenderCache[index];
         protected override float GetMinY() => _cachedMinY;
         protected override float GetMaxY() => _cachedMaxY;
     }

@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
-using System.Threading;
 using UnityModManagerNet;
 
 namespace TimingShow
@@ -10,7 +9,7 @@ namespace TimingShow
         public static UnityModManager.ModEntry.ModLogger Logger;
         public static bool IsEnabled;
         public static Settings Settings;
-        public static double LastTiming = 0;
+        public static double LastTiming;
         public static bool LastIsXP;
         public static HitMargin LastHitMargin = HitMargin.Perfect;
         public static List<double> SessionOffsets = new List<double>();

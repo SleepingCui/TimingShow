@@ -10,17 +10,17 @@ namespace TimingShow
         private static StreamWriter _writer;
         private static string _currentFilePath;
         private static bool _isFirstEntry = true;
-        private static int _hitIndex = 0;
-        private static bool _isCurrentSessionBinary = false;
+        private static int _hitIndex;
+        private static bool _isCurrentSessionBinary;
 
-        public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSizeKB)
+        public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSize)
         {
             CloseSession();
 
             _isCurrentSessionBinary = Main.Settings.UseBinaryWriter;
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.StartNewSession(levelPath, songName, customDir, bufferSizeKB);
+                TimingLoggerBinary.StartNewSession(levelPath, songName, customDir, bufferSize);
                 return;
             }
 
@@ -45,7 +45,7 @@ namespace TimingShow
                 FileStream fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
                 Main.Logger.Log($"created {_currentFilePath}");
 
-                int bufferSizeBytes = Math.Max(4, bufferSizeKB) * 1024;
+                int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
 
                 _writer.WriteLine("{");

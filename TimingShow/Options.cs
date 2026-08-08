@@ -9,30 +9,30 @@ namespace TimingShow
 {
     public static class Options
     {
-        private static string bufferSizeText = null;
-        private static string maxPointsText = null;
-        private static bool showAdvancedSettings = false;
+        private static string _bufferSizeText;
+        private static string _maxPointsText;
+        private static bool _showAdvancedSettings;
 
-        private static bool foldoutTitleSettings = false;
-        private static bool foldoutPlanetSettings = false;
-        private static bool foldoutTimingHUD = false;
-        private static bool foldoutURHUD = false;
-        private static bool foldoutRatioHUD = false;
-        private static bool foldoutLogging = false;
-        private static bool foldoutXACCGraph = false;
+        private static bool _foldoutTitleSettings;
+        private static bool _foldoutPlanetSettings;
+        private static bool _foldoutTimingHUD;
+        private static bool _foldoutURHUD;
+        private static bool _foldoutRatioHUD;
+        private static bool _foldoutLogging;
+        private static bool _foldoutXACCGraph;
 
-        private static GUIStyle activeButtonStyle;
+        private static GUIStyle _activeButtonStyle;
 
         public static void OnGUI(UnityModManager.ModEntry modEntry)
         {
-            if (activeButtonStyle == null) activeButtonStyle = new GUIStyle(GUI.skin.button);
+            if (_activeButtonStyle == null) _activeButtonStyle = new GUIStyle(GUI.skin.button);
 
             GUILayout.BeginHorizontal();
             foreach (string langCode in LangMan.AvailableLanguages)
             {
-                activeButtonStyle.fontStyle = (Main.Settings.Language == langCode) ? FontStyle.Bold : FontStyle.Normal;
+                _activeButtonStyle.fontStyle = (Main.Settings.Language == langCode) ? FontStyle.Bold : FontStyle.Normal;
 
-                if (GUILayout.Button(langCode, activeButtonStyle, GUILayout.Width(100)))
+                if (GUILayout.Button(langCode, _activeButtonStyle, GUILayout.Width(100)))
                 {
                     Main.Settings.Language = langCode;
                 }
@@ -41,8 +41,8 @@ namespace TimingShow
             GUILayout.Space(10);
 
             // title
-            DrawSettingRowFold(LangMan.T("Toggle_Title"), ref Main.Settings.ShowInSongTitle, ref Main.Settings.Perc1, ref foldoutTitleSettings);
-            if (Main.Settings.ShowInSongTitle && foldoutTitleSettings)
+            DrawSettingRowFold(LangMan.T("Toggle_Title"), ref Main.Settings.ShowInSongTitle, ref Main.Settings.Perc1, ref _foldoutTitleSettings);
+            if (Main.Settings.ShowInSongTitle && _foldoutTitleSettings)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
@@ -60,13 +60,13 @@ namespace TimingShow
 
             // planet 
             bool oldShowOnPlanet = Main.Settings.ShowOnPlanet;
-            DrawSettingRowFold(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2, ref foldoutPlanetSettings);
+            DrawSettingRowFold(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2, ref _foldoutPlanetSettings);
             if (oldShowOnPlanet != Main.Settings.ShowOnPlanet && Main.Settings.AutoReloadInEditor)
             {
                 Patches.EditorReloadPatch.TriggerEditorReload();
             }
 
-            if (Main.Settings.ShowOnPlanet && foldoutPlanetSettings)
+            if (Main.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
@@ -100,8 +100,8 @@ namespace TimingShow
             DrawSettingRow(LangMan.T("Toggle_Win"), ref Main.Settings.ShowInWinPage, ref Main.Settings.Perc4);
 
             // timinghud
-            DrawToggleFold(LangMan.T("Toggle_TimingHUD"), ref Main.Settings.ShowTimingHUD, ref foldoutTimingHUD);
-            if (Main.Settings.ShowTimingHUD && foldoutTimingHUD)
+            DrawToggleFold(LangMan.T("Toggle_TimingHUD"), ref Main.Settings.ShowTimingHUD, ref _foldoutTimingHUD);
+            if (Main.Settings.ShowTimingHUD && _foldoutTimingHUD)
             {
                 DrawHUDBaseSettings(
                     ref Main.Settings.HUD_x, ref Main.Settings.HUD_y, ref Main.Settings.HUD_scale,
@@ -124,8 +124,8 @@ namespace TimingShow
             }
 
             // urhud
-            DrawToggleFold(LangMan.T("Toggle_URHUD"), ref Main.Settings.ShowURHUD, ref foldoutURHUD);
-            if (Main.Settings.ShowURHUD && foldoutURHUD)
+            DrawToggleFold(LangMan.T("Toggle_URHUD"), ref Main.Settings.ShowURHUD, ref _foldoutURHUD);
+            if (Main.Settings.ShowURHUD && _foldoutURHUD)
             {
                 DrawHUDBaseSettings(
                     ref Main.Settings.URHUD_x, ref Main.Settings.URHUD_y, ref Main.Settings.URHUD_scale,
@@ -135,8 +135,8 @@ namespace TimingShow
             }
 
             // ratiohud
-            DrawToggleFold(LangMan.T("Toggle_RatioHUD"), ref Main.Settings.ShowRatioHUD, ref foldoutRatioHUD);
-            if (Main.Settings.ShowRatioHUD && foldoutRatioHUD)
+            DrawToggleFold(LangMan.T("Toggle_RatioHUD"), ref Main.Settings.ShowRatioHUD, ref _foldoutRatioHUD);
+            if (Main.Settings.ShowRatioHUD && _foldoutRatioHUD)
             {
                 DrawHUDBaseSettings(
                     ref Main.Settings.RatioHUD_x, ref Main.Settings.RatioHUD_y, ref Main.Settings.RatioHUD_scale,
@@ -151,8 +151,8 @@ namespace TimingShow
             }
 
             // xaccgraph
-            DrawToggleFold(LangMan.T("Toggle_XACCGraph"), ref Main.Settings.ShowXACCGraph, ref foldoutXACCGraph);
-            if (Main.Settings.ShowXACCGraph && foldoutXACCGraph)
+            DrawToggleFold(LangMan.T("Toggle_XACCGraph"), ref Main.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
+            if (Main.Settings.ShowXACCGraph && _foldoutXACCGraph)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
@@ -176,19 +176,19 @@ namespace TimingShow
                 GUILayout.Space(20);
                 GUILayout.Label(LangMan.T("Label_MaxPoints"), GUILayout.Width(120));
 
-                if (maxPointsText == null) maxPointsText = Main.Settings.XACCGraph_MaxPoints.ToString();
-                string newMaxPointsText = GUILayout.TextField(maxPointsText, GUILayout.Width(80));
+                if (_maxPointsText == null) _maxPointsText = Main.Settings.XACCGraph_MaxPoints.ToString();
+                string newMaxPointsText = GUILayout.TextField(_maxPointsText, GUILayout.Width(80));
 
-                if (newMaxPointsText != maxPointsText)
+                if (newMaxPointsText != _maxPointsText)
                 {
                     if (int.TryParse(newMaxPointsText, out int parsedVal) && parsedVal >= 20 && parsedVal <= 5000)
                     {
-                        maxPointsText = newMaxPointsText;
+                        _maxPointsText = newMaxPointsText;
                         Main.Settings.XACCGraph_MaxPoints = parsedVal;
                     }
                     else
                     {
-                        maxPointsText = "250";
+                        _maxPointsText = "250";
                         Main.Settings.XACCGraph_MaxPoints = 250;
                     }
                 }
@@ -204,9 +204,9 @@ namespace TimingShow
             // logger
             GUILayout.BeginVertical();
             {
-                DrawToggleFold(LangMan.T("Toggle_Logging"), ref Main.Settings.EnableLogging, ref foldoutLogging);
+                DrawToggleFold(LangMan.T("Toggle_Logging"), ref Main.Settings.EnableLogging, ref _foldoutLogging);
 
-                if (Main.Settings.EnableLogging && foldoutLogging)
+                if (Main.Settings.EnableLogging && _foldoutLogging)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
@@ -250,19 +250,19 @@ namespace TimingShow
                     GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(140));
 
-                    if (bufferSizeText == null) bufferSizeText = Main.Settings.LogBufferSizeKB.ToString();
-                    string newBufferSizeText = GUILayout.TextField(bufferSizeText, GUILayout.Width(80));
+                    if (_bufferSizeText == null) _bufferSizeText = Main.Settings.LogBufferSizeKB.ToString();
+                    string newBufferSizeText = GUILayout.TextField(_bufferSizeText, GUILayout.Width(80));
 
-                    if (newBufferSizeText != bufferSizeText)
+                    if (newBufferSizeText != _bufferSizeText)
                     {
                         if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal >= 8 && parsedVal <= 102400)
                         {
-                            bufferSizeText = newBufferSizeText;
+                            _bufferSizeText = newBufferSizeText;
                             Main.Settings.LogBufferSizeKB = parsedVal;
                         }
                         else
                         {
-                            bufferSizeText = "64";
+                            _bufferSizeText = "64";
                             Main.Settings.LogBufferSizeKB = 64;
                         }
                     }
@@ -294,11 +294,11 @@ namespace TimingShow
             }
 
             // adv
-            string foldoutArrow = showAdvancedSettings ? "▲" : "▼";
+            string foldoutArrow = _showAdvancedSettings ? "▲" : "▼";
             if (GUILayout.Button($"{LangMan.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
-                showAdvancedSettings = !showAdvancedSettings;
+                _showAdvancedSettings = !_showAdvancedSettings;
 
-            if (showAdvancedSettings)
+            if (_showAdvancedSettings)
             {
                 GUILayout.BeginVertical();
                 {
@@ -504,8 +504,8 @@ namespace TimingShow
             string[] labels = { LangMan.T("Btn_Left"), LangMan.T("Btn_Center"), LangMan.T("Btn_Right") };
             for (int i = 0; i < 3; i++)
             {
-                activeButtonStyle.fontStyle = (alignSetting == i) ? FontStyle.Bold : FontStyle.Normal;
-                if (GUILayout.Button(labels[i], activeButtonStyle, GUILayout.Width(60)))
+                _activeButtonStyle.fontStyle = (alignSetting == i) ? FontStyle.Bold : FontStyle.Normal;
+                if (GUILayout.Button(labels[i], _activeButtonStyle, GUILayout.Width(60)))
                     alignSetting = i;
             }
             GUILayout.EndHorizontal();

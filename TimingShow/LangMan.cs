@@ -7,8 +7,8 @@ namespace TimingShow
 {
     public static class LangMan
     {
-        private static Dictionary<string, Dictionary<string, string>> LangData = new Dictionary<string, Dictionary<string, string>>();
-        public static IEnumerable<string> AvailableLanguages => LangData.Keys;
+        private static Dictionary<string, Dictionary<string, string>> _langData = new Dictionary<string, Dictionary<string, string>>();
+        public static IEnumerable<string> AvailableLanguages => _langData.Keys;
         public static void LoadLanguages(string modPath)
         {
             string jsonPath = Path.Combine(modPath, "lang.json");
@@ -16,13 +16,13 @@ namespace TimingShow
             {
                 if (File.Exists(jsonPath))
                 {
-                    LangData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(jsonPath, System.Text.Encoding.UTF8));
+                    _langData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(jsonPath, System.Text.Encoding.UTF8));
                     Main.Logger.Log("Languages loaded successfully");
                 }
                 else
                 {
                     Main.Logger.Error("lang.json missing!");
-                    LangData = new Dictionary<string, Dictionary<string, string>>();
+                    _langData = new Dictionary<string, Dictionary<string, string>>();
                 }
             }
             catch (Exception e)
@@ -35,11 +35,11 @@ namespace TimingShow
         {
             string curLang = Main.Settings?.Language ?? "English";
 
-            if (LangData.TryGetValue(curLang, out var langDict) && langDict.TryGetValue(key, out string text))
+            if (_langData.TryGetValue(curLang, out var langDict) && langDict.TryGetValue(key, out string text))
             {
                 return text;
             }
-            if (LangData.TryGetValue("English", out var enDict) && enDict.TryGetValue(key, out string enText))
+            if (_langData.TryGetValue("English", out var enDict) && enDict.TryGetValue(key, out string enText))
             {
                 return enText;
             }
