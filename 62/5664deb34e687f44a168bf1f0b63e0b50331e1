@@ -1,0 +1,25 @@
+TimingShow/CalcXP.cs
+  s_8f32a7e73d3e17::t_30d746394ebcb0 28,40-41
+TimingShow/HUDMan.cs
+  s_8f32a7e73d3e17::t_98c9152db4a8f8 41
+TimingShow/Patches/TimingCalcPatches.cs
+  s_8f32a7e73d3e17::t_4485cb0eb5248f 71
+TimingShow/Patches/UIPatches.cs
+  s_8f32a7e73d3e17::t_6b2af0081cee43 53,172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "625664deb34e687f44a168bf1f0b63e0b50331e1",
+  "prompts": {},
+  "sessions": {
+    "s_8f32a7e73d3e17": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37ecd524-5496-4381-a891-fb475be358cc",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
