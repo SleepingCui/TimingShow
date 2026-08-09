@@ -1,0 +1,31 @@
+TimingShow/Options.cs
+  s_62b74e1980226d::t_a0eef2846552e4 30,77,124,140-144,147,156,168,360,378,396-397,401,407-409,412-413,415,417-418,421-422,424,426-427,429-430,432-437,439-440,443-449,451-452,455-456
+  s_62b74e1980226d::t_1bbe34c3afab9f 78,393
+  s_62b74e1980226d::t_c963bd53e6a98c 74-76
+  s_62b74e1980226d::t_7a51ba32d067c8 79-81
+  s_62b74e1980226d::t_4c0ced853144b0 145-146
+  s_62b74e1980226d::t_a367023d1366c6 148-150
+  s_62b74e1980226d::t_ff503f1401b972 166-167
+  s_62b74e1980226d::t_be2652f9d4ef54 394-395
+  s_62b74e1980226d::t_e4ac2f123be84a 402
+  s_62b74e1980226d::t_40c084ba4ce754 405-406
+  s_62b74e1980226d::t_90bc969e12cd7c 450
+  s_62b74e1980226d::t_9233f5c82ba7b5 453-454
+  s_62b74e1980226d::t_775e535485698c 457-458
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "0798bcbbec3d2de6bf21f239a9ae65723a72e352",
+  "prompts": {},
+  "sessions": {
+    "s_62b74e1980226d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fe5f0-08b8-73d0-b2d2-0c3968bc17fb",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
