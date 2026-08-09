@@ -25,7 +25,7 @@ namespace TimingShow
             return absDiff <= fBoundary;
         }
 
-        public static Color XPc(scrPlanet planet, double diff, double bpm, double speed, double pitch, bool enableXP, HitMargin margin)
+        public static Color XPc(scrPlanet planet, double diff, double bpm, double speed, double pitch, bool enableXP, HitMargin margin, bool? isXP = null)
         {
             ColourSchemeHitMargin hitMarginColours = RDConstants.data.hitMarginColours;
             bool isPS = margin == HitMargin.Perfect || margin == HitMargin.EarlyPerfect || margin == HitMargin.LatePerfect;
@@ -37,7 +37,8 @@ namespace TimingShow
                 if (XPerfectBridge.IsAvailable && Main.Settings.DisplayCurrMode)
                     return HkModeColor;
 
-                return IsXPerfect(diff, bpm, speed, pitch) ? (Color)XPColor : hitMarginColours.colourPerfect;
+                bool xp = isXP ?? IsXPerfect(diff, bpm, speed, pitch);
+                return xp ? (Color)XPColor : hitMarginColours.colourPerfect;
             }
 
             switch (margin)

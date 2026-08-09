@@ -38,10 +38,9 @@ namespace TimingShow
                 if (Main.Settings.HUD_UseJudgeColor)
                 {
                     var cond = scrController.instance.chosenPlanet.conductor;
-                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.HUD_EnableXPerfect, Main.LastHitMargin);
+                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.HUD_EnableXPerfect, Main.LastHitMargin, Main.LastIsXP);
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
-
                 UpdateTextHUD(_hudInstance, Main.Settings.HUD_Format, timing, Main.Settings.HUD_x, Main.Settings.HUD_y, Main.Settings.HUD_scale, Main.Settings.HUD_align, Main.Settings.HUD_bold);
             }
 
@@ -53,7 +52,6 @@ namespace TimingShow
             {
                 double currentUR = CalcUR.calc(Main.SessionOffsets);
                 string urStr = currentUR.ToString("F" + Main.Settings.PercURHUD);
-
                 UpdateTextHUD(_urHudInstance, Main.Settings.URHUD_Format, urStr, Main.Settings.URHUD_x, Main.Settings.URHUD_y, Main.Settings.URHUD_scale, Main.Settings.URHUD_align, Main.Settings.URHUD_bold);
             }
 
@@ -64,7 +62,6 @@ namespace TimingShow
             if (isRatioPlay)
             {
                 string ratioStr = CalcRatio.GetRatioString();
-
                 UpdateTextHUD(_ratioHudInstance, Main.Settings.RatioHUD_Format, ratioStr, Main.Settings.RatioHUD_x, Main.Settings.RatioHUD_y, Main.Settings.RatioHUD_scale, Main.Settings.RatioHUD_align, Main.Settings.RatioHUD_bold);
             }
 

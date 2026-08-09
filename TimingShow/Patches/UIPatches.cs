@@ -50,7 +50,7 @@ namespace TimingShow.Patches
                             double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
                             double pitch = conductor.song.pitch;
 
-                            targetColor = CalcXP.XPc(controller.chosenPlanet, Main.LastTiming, bpm, speed, pitch, Main.Settings.Planet_EnableXPerfect, __instance.hitMargin);
+                            targetColor = CalcXP.XPc(controller.chosenPlanet, Main.LastTiming, bpm, speed, pitch, Main.Settings.Planet_EnableXPerfect, __instance.hitMargin, Main.LastIsXP);
                         }
                         else
                         {
@@ -169,7 +169,7 @@ namespace TimingShow.Patches
                         if (Main.Settings.Title_UseJudgeColor)
                         {
                             var cond = scrController.instance.chosenPlanet.conductor;
-                            Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Title_EnableXPerfect, Main.LastHitMargin);
+                            Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Title_EnableXPerfect, Main.LastHitMargin, Main.LastIsXP);
                             timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
                         }
                         __instance.txtLevelName.supportRichText = true;

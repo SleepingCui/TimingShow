@@ -68,18 +68,7 @@ namespace TimingShow.Patches
                 TimingLogger.LogHit(Main.LastTiming, hit);
                 TotalHitsCount++;
                 if (hit == HitMargin.Perfect) PerfectCount++;
-
-                var controller = scrController.instance;
-                var conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
-
-                if (controller != null && conductor != null && conductor.song != null)
-                {
-                    double bpm = conductor.bpm;
-                    double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
-                    double pitch = conductor.song.pitch;
-
-                    if (CalcXP.IsXPerfect(Main.LastTiming, bpm, speed, pitch)) XPerfectCount++;
-                }
+                if (Main.LastIsXP) XPerfectCount++;
             }
 
             public static void ResetCounts()
