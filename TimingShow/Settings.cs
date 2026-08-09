@@ -58,14 +58,14 @@ namespace TimingShow
     public bool Ratio_UseXPerfect = false;
 
     public bool ShowXACCGraph = false;
+    public bool XACCGraph_ShowEnd = false;
     public float XACCGraph_X = 0.05f;
     public float XACCGraph_Y = 0.50f;
     public float XACCGraph_Width = 260f;
     public float XACCGraph_Height = 100f;
     public float XACCGraph_Scale = 1.0f;
     public int XACCGraph_MaxPoints = 250;
-
-    public Color XACCGraph_TextColor = new Color(1f, 1f, 1f, 0.8f);
+    
     public Color XACCGraph_BgColor = new Color(0f, 0f, 0f, 0.6f);
     public Color XACCGraph_LineColor = new Color(0.2f, 0.9f, 0.3f, 1f); 
     public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 1f);

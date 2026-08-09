@@ -46,7 +46,7 @@
     "Label_BufferSize": "缓冲区大小 (KB): ",
     "Btn_Advanced": "高级功能",
     "Toggle_HookMode": "开启 XPerfect Hook 模式",
-    "Desc_HookMode": "开启后优先通过反射获取 XPerfect 模组的判定数据,否则使用mod内部 XPerfect 算法",
+    "Desc_HookMode": "开启后优先获取 XPerfect 模组的判定数据,否则使用mod内部 XPerfect 算法",
     "Label_CurrentStatus": "当前状态: ",
     "Status_HookSuccess": "Hook成功",
     "Status_HookFailed": "Hook失败: ",
@@ -64,7 +64,8 @@
     "Desc_UseBinaryWriter": "不推荐使用",
     "Toggle_AutoReloadInEditor": "自动重载编辑器",
     "Desc_AutoReloadInEditor": "(不推荐使用) 切换Toggle_Planet时将自动重载scnEditor",
-    "Label_MaxPoints": "最大采样点数: "
+    "Label_MaxPoints": "最大采样点数: ",
+    "Toggle_ShowEnd": "仅在死亡/通关时显示"
   },
   "English": {
     "Toggle_Title": "Show in Song Title",
@@ -132,7 +133,8 @@
     "Desc_UseBinaryWriter": "Not recommended",
     "Toggle_AutoReloadInEditor": "Auto-reload Editor",
     "Desc_AutoReloadInEditor": "(Not recommended) Automatically reloads scnEditor when Toggle_Planet is toggled.",
-    "Label_MaxPoints": "Max Sample Points: "
+    "Label_MaxPoints": "Max Sample Points: ",
+    "Toggle_ShowEnd": "Only on death/clear"
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",
@@ -199,6 +201,7 @@
     "Desc_UseBinaryWriter": "권장하지 않음",
     "Toggle_AutoReloadInEditor": "에디터 자동 리로드",
     "Desc_AutoReloadInEditor": "(권장하지 않음) Toggle_Planet을 전환할 때 scnEditor를 자동으로 리로드합니다.",
-    "Label_MaxPoints": "최대 샘플링 지점: "
+    "Label_MaxPoints": "최대 샘플링 지점: ",
+    "Toggle_ShowEnd": "사망/클리어 시만 표시"
   }
 }

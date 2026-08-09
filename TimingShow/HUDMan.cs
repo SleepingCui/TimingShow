@@ -4,24 +4,24 @@ namespace TimingShow
 {
     public static class HUDMan
     {
-        public static GameObject hudObj;
-        public static TextUI hudInstance;
+        private static GameObject _hudObj;
+        private static TextUI _hudInstance;
 
-        public static GameObject urhudObj;
-        public static TextUI urHudInstance;
+        private static GameObject _urhudObj;
+        private static TextUI _urHudInstance;
 
-        public static GameObject ratiohudObj;
-        public static TextUI ratioHudInstance;
+        private static GameObject _ratiohudObj;
+        private static TextUI _ratioHudInstance;
 
-        public static GameObject xaccGraphObject;
-        public static XACCGraphDrawer xaccGraphInstance;
+        private static GameObject _xaccGraphObject;
+        private static XACCGraphDrawer _xaccGraphInstance;
 
         public static void Destroy()
         {
-            DestroyHUD(ref hudObj, ref hudInstance);
-            DestroyHUD(ref urhudObj, ref urHudInstance);
-            DestroyHUD(ref ratiohudObj, ref ratioHudInstance);
-            DestroyHUD(ref xaccGraphObject, ref xaccGraphInstance);
+            DestroyHUD(ref _hudObj, ref _hudInstance);
+            DestroyHUD(ref _urhudObj, ref _urHudInstance);
+            DestroyHUD(ref _ratiohudObj, ref _ratioHudInstance);
+            DestroyHUD(ref _xaccGraphObject, ref _xaccGraphInstance);
         }
 
         public static void Update()
@@ -30,7 +30,7 @@ namespace TimingShow
 
             // timing hud
             bool isTimingPlay = isPlayBase && Main.Settings.ShowTimingHUD;
-            EnsureUI(ref hudObj, ref hudInstance, "TimingShow_HUD", isTimingPlay);
+            EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
 
             if (isTimingPlay)
             {
@@ -42,47 +42,48 @@ namespace TimingShow
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
 
-                UpdateTextHUD(hudInstance, Main.Settings.HUD_Format, timing, Main.Settings.HUD_x, Main.Settings.HUD_y, Main.Settings.HUD_scale, Main.Settings.HUD_align, Main.Settings.HUD_bold);
+                UpdateTextHUD(_hudInstance, Main.Settings.HUD_Format, timing, Main.Settings.HUD_x, Main.Settings.HUD_y, Main.Settings.HUD_scale, Main.Settings.HUD_align, Main.Settings.HUD_bold);
             }
 
             // ur hud
             bool isURPlay = isPlayBase && Main.Settings.ShowURHUD;
-            EnsureUI(ref urhudObj, ref urHudInstance, "TimingShow_URHUD", isURPlay);
+            EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
 
             if (isURPlay)
             {
                 double currentUR = CalcUR.calc(Main.SessionOffsets);
                 string urStr = currentUR.ToString("F" + Main.Settings.PercURHUD);
 
-                UpdateTextHUD(urHudInstance, Main.Settings.URHUD_Format, urStr, Main.Settings.URHUD_x, Main.Settings.URHUD_y, Main.Settings.URHUD_scale, Main.Settings.URHUD_align, Main.Settings.URHUD_bold);
+                UpdateTextHUD(_urHudInstance, Main.Settings.URHUD_Format, urStr, Main.Settings.URHUD_x, Main.Settings.URHUD_y, Main.Settings.URHUD_scale, Main.Settings.URHUD_align, Main.Settings.URHUD_bold);
             }
 
             // ratio hud
             bool isRatioPlay = isPlayBase && Main.Settings.ShowRatioHUD;
-            EnsureUI(ref ratiohudObj, ref ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
+            EnsureUI(ref _ratiohudObj, ref _ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
 
             if (isRatioPlay)
             {
                 string ratioStr = CalcRatio.GetRatioString();
 
-                UpdateTextHUD(ratioHudInstance, Main.Settings.RatioHUD_Format, ratioStr, Main.Settings.RatioHUD_x, Main.Settings.RatioHUD_y, Main.Settings.RatioHUD_scale, Main.Settings.RatioHUD_align, Main.Settings.RatioHUD_bold);
+                UpdateTextHUD(_ratioHudInstance, Main.Settings.RatioHUD_Format, ratioStr, Main.Settings.RatioHUD_x, Main.Settings.RatioHUD_y, Main.Settings.RatioHUD_scale, Main.Settings.RatioHUD_align, Main.Settings.RatioHUD_bold);
             }
 
             // xacc gr
             bool isXACCPlay = isPlayBase && Main.Settings.ShowXACCGraph;
-            if (xaccGraphObject == null)
+            if (Main.Settings.XACCGraph_ShowEnd) isXACCPlay = isXACCPlay && Main.IsLevelFinished;
+            if (_xaccGraphObject == null)
             {
-                xaccGraphObject = new GameObject("TimingShow_XACCCanvas");
-                Canvas canvas = xaccGraphObject.AddComponent<Canvas>();
+                _xaccGraphObject = new GameObject("TimingShow_XACCCanvas");
+                Canvas canvas = _xaccGraphObject.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 canvas.sortingOrder = 100;
 
                 GameObject drawerObj = new GameObject("XACCGraphDrawer");
-                drawerObj.transform.SetParent(xaccGraphObject.transform, false);
+                drawerObj.transform.SetParent(_xaccGraphObject.transform, false);
 
-                xaccGraphInstance = drawerObj.AddComponent<XACCGraphDrawer>();
+                _xaccGraphInstance = drawerObj.AddComponent<XACCGraphDrawer>();
             }
-            xaccGraphObject.SetActive(isXACCPlay);
+            _xaccGraphObject.SetActive(isXACCPlay);
         }
 
 

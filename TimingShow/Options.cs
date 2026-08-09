@@ -154,6 +154,13 @@ namespace TimingShow
             DrawToggleFold(LangMan.T("Toggle_XACCGraph"), ref Main.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
             if (Main.Settings.ShowXACCGraph && _foldoutXACCGraph)
             {
+                // 添加通关页面显示的 Toggle 选项
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                Main.Settings.XACCGraph_ShowEnd = GUILayout.Toggle(Main.Settings.XACCGraph_ShowEnd,LangMan.T("Toggle_ShowEnd"));
+                GUILayout.EndHorizontal();
+                
+                
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
                 GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.XACCGraph_X:F2}", GUILayout.Width(120));
