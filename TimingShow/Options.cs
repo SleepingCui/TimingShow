@@ -27,6 +27,7 @@ namespace TimingShow
         {
             if (_activeButtonStyle == null) _activeButtonStyle = new GUIStyle(GUI.skin.button);
 
+            // lang
             GUILayout.BeginHorizontal();
             foreach (string langCode in LangMan.AvailableLanguages)
             {
@@ -41,26 +42,20 @@ namespace TimingShow
             GUILayout.Space(10);
 
             // title
-            DrawSettingRowFold(LangMan.T("Toggle_Title"), ref Main.Settings.ShowInSongTitle, ref Main.Settings.Perc1, ref _foldoutTitleSettings);
+            SettingFold(LangMan.T("Toggle_Title"), ref Main.Settings.ShowInSongTitle, ref Main.Settings.Perc1, ref _foldoutTitleSettings);
             if (Main.Settings.ShowInSongTitle && _foldoutTitleSettings)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.Title_UseJudgeColor = GUILayout.Toggle(Main.Settings.Title_UseJudgeColor, LangMan.T("HUD_UseJudgeColor"));
-                GUILayout.EndHorizontal();
+                Toggle(ref Main.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
 
                 if (Main.Settings.Title_UseJudgeColor)
                 {
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Space(40);
-                    Main.Settings.Title_EnableXPerfect = GUILayout.Toggle(Main.Settings.Title_EnableXPerfect, LangMan.T("Enable_XP"));
-                    GUILayout.EndHorizontal();
+                    Toggle(ref Main.Settings.Title_EnableXPerfect, "Enable_XP", 40);
                 }
             }
 
             // planet 
             bool oldShowOnPlanet = Main.Settings.ShowOnPlanet;
-            DrawSettingRowFold(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2, ref _foldoutPlanetSettings);
+            SettingFold(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2, ref _foldoutPlanetSettings);
             if (oldShowOnPlanet != Main.Settings.ShowOnPlanet && Main.Settings.AutoReloadInEditor)
             {
                 Patches.EditorReloadPatch.TriggerEditorReload();
@@ -68,10 +63,7 @@ namespace TimingShow
 
             if (Main.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.Planet_EnableXPerfect = GUILayout.Toggle(Main.Settings.Planet_EnableXPerfect, LangMan.T("Enable_XP"));
-                GUILayout.EndHorizontal();
+                Toggle(ref Main.Settings.Planet_EnableXPerfect, "Enable_XP");
 
                 GUILayout.Label(LangMan.T("Setting_Title"));
                 GUILayout.BeginHorizontal();
@@ -79,16 +71,16 @@ namespace TimingShow
                     GUILayout.Space(20);
                     GUILayout.BeginVertical();
                     {
-                        Main.Settings.ReplaceFailOverload = GUILayout.Toggle(Main.Settings.ReplaceFailOverload, LangMan.T("Toggle_FailOverload"));
-                        Main.Settings.ReplaceTooEarly = GUILayout.Toggle(Main.Settings.ReplaceTooEarly, LangMan.T("Toggle_TooEarly"));
-                        Main.Settings.ReplaceVeryEarly = GUILayout.Toggle(Main.Settings.ReplaceVeryEarly, LangMan.T("Toggle_VeryEarly"));
-                        Main.Settings.ReplaceEarlyPerfect = GUILayout.Toggle(Main.Settings.ReplaceEarlyPerfect, LangMan.T("Toggle_EarlyPerfect"));
-                        Main.Settings.ReplacePerfect = GUILayout.Toggle(Main.Settings.ReplacePerfect, LangMan.T("Toggle_Perfect"));
-                        Main.Settings.ReplaceLatePerfect = GUILayout.Toggle(Main.Settings.ReplaceLatePerfect, LangMan.T("Toggle_LatePerfect"));
-                        Main.Settings.ReplaceVeryLate = GUILayout.Toggle(Main.Settings.ReplaceVeryLate, LangMan.T("Toggle_VeryLate"));
-                        Main.Settings.ReplaceTooLate = GUILayout.Toggle(Main.Settings.ReplaceTooLate, LangMan.T("Toggle_TooLate"));
-                        Main.Settings.ReplaceFailMiss = GUILayout.Toggle(Main.Settings.ReplaceFailMiss, LangMan.T("Toggle_FailMiss"));
-                        Main.Settings.ReplaceMultipress = GUILayout.Toggle(Main.Settings.ReplaceMultipress, LangMan.T("Toggle_Multipress"));
+                        ToggleNoIndent(ref Main.Settings.ReplaceFailOverload, "Toggle_FailOverload");
+                        ToggleNoIndent(ref Main.Settings.ReplaceTooEarly, "Toggle_TooEarly");
+                        ToggleNoIndent(ref Main.Settings.ReplaceVeryEarly, "Toggle_VeryEarly");
+                        ToggleNoIndent(ref Main.Settings.ReplaceEarlyPerfect, "Toggle_EarlyPerfect");
+                        ToggleNoIndent(ref Main.Settings.ReplacePerfect, "Toggle_Perfect");
+                        ToggleNoIndent(ref Main.Settings.ReplaceLatePerfect, "Toggle_LatePerfect");
+                        ToggleNoIndent(ref Main.Settings.ReplaceVeryLate, "Toggle_VeryLate");
+                        ToggleNoIndent(ref Main.Settings.ReplaceTooLate, "Toggle_TooLate");
+                        ToggleNoIndent(ref Main.Settings.ReplaceFailMiss, "Toggle_FailMiss");
+                        ToggleNoIndent(ref Main.Settings.ReplaceMultipress, "Toggle_Multipress");
                     }
                     GUILayout.EndVertical();
                 }
@@ -96,38 +88,32 @@ namespace TimingShow
             }
 
             // death,win
-            DrawSettingRow(LangMan.T("Toggle_Death"), ref Main.Settings.ShowOnDeath, ref Main.Settings.Perc3);
-            DrawSettingRow(LangMan.T("Toggle_Win"), ref Main.Settings.ShowInWinPage, ref Main.Settings.Perc4);
+            SettingRow(LangMan.T("Toggle_Death"), ref Main.Settings.ShowOnDeath, ref Main.Settings.Perc3);
+            SettingRow(LangMan.T("Toggle_Win"), ref Main.Settings.ShowInWinPage, ref Main.Settings.Perc4);
 
             // timinghud
-            DrawToggleFold(LangMan.T("Toggle_TimingHUD"), ref Main.Settings.ShowTimingHUD, ref _foldoutTimingHUD);
+            ToggleFold(LangMan.T("Toggle_TimingHUD"), ref Main.Settings.ShowTimingHUD, ref _foldoutTimingHUD);
             if (Main.Settings.ShowTimingHUD && _foldoutTimingHUD)
             {
-                DrawHUDBaseSettings(
+                HUDBase(
                     ref Main.Settings.HUD_x, ref Main.Settings.HUD_y, ref Main.Settings.HUD_scale,
                     ref Main.Settings.HUD_bold, ref Main.Settings.HUD_align, ref Main.Settings.HUD_Format,
                     ref Main.Settings.PercHUD
                 );
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.HUD_UseJudgeColor = GUILayout.Toggle(Main.Settings.HUD_UseJudgeColor, LangMan.T("HUD_UseJudgeColor"));
-                GUILayout.EndHorizontal();
+                Toggle(ref Main.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
 
                 if (Main.Settings.HUD_UseJudgeColor)
                 {
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Space(40);
-                    Main.Settings.HUD_EnableXPerfect = GUILayout.Toggle(Main.Settings.HUD_EnableXPerfect, LangMan.T("Enable_XP"));
-                    GUILayout.EndHorizontal();
+                    Toggle(ref Main.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
                 }
             }
 
             // urhud
-            DrawToggleFold(LangMan.T("Toggle_URHUD"), ref Main.Settings.ShowURHUD, ref _foldoutURHUD);
+            ToggleFold(LangMan.T("Toggle_URHUD"), ref Main.Settings.ShowURHUD, ref _foldoutURHUD);
             if (Main.Settings.ShowURHUD && _foldoutURHUD)
             {
-                DrawHUDBaseSettings(
+                HUDBase(
                     ref Main.Settings.URHUD_x, ref Main.Settings.URHUD_y, ref Main.Settings.URHUD_scale,
                     ref Main.Settings.URHUD_bold, ref Main.Settings.URHUD_align, ref Main.Settings.URHUD_Format,
                     ref Main.Settings.PercURHUD
@@ -135,83 +121,39 @@ namespace TimingShow
             }
 
             // ratiohud
-            DrawToggleFold(LangMan.T("Toggle_RatioHUD"), ref Main.Settings.ShowRatioHUD, ref _foldoutRatioHUD);
+            ToggleFold(LangMan.T("Toggle_RatioHUD"), ref Main.Settings.ShowRatioHUD, ref _foldoutRatioHUD);
             if (Main.Settings.ShowRatioHUD && _foldoutRatioHUD)
             {
-                DrawHUDBaseSettings(
+                HUDBase(
                     ref Main.Settings.RatioHUD_x, ref Main.Settings.RatioHUD_y, ref Main.Settings.RatioHUD_scale,
                     ref Main.Settings.RatioHUD_bold, ref Main.Settings.RatioHUD_align, ref Main.Settings.RatioHUD_Format,
                     ref Main.Settings.PercRatioHUD
                 );
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.Ratio_UseXPerfect = GUILayout.Toggle(Main.Settings.Ratio_UseXPerfect, LangMan.T("Enable_XP"));
-                GUILayout.EndHorizontal();
+                Toggle(ref Main.Settings.Ratio_UseXPerfect, "Enable_XP");
             }
 
             // xaccgraph
-            DrawToggleFold(LangMan.T("Toggle_XACCGraph"), ref Main.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
+            ToggleFold(LangMan.T("Toggle_XACCGraph"), ref Main.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
             if (Main.Settings.ShowXACCGraph && _foldoutXACCGraph)
             {
-                // 添加通关页面显示的 Toggle 选项
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                Main.Settings.XACCGraph_ShowEnd = GUILayout.Toggle(Main.Settings.XACCGraph_ShowEnd,LangMan.T("Toggle_ShowEnd"));
-                GUILayout.EndHorizontal();
-                
-                
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_XOffset") + $"{Main.Settings.XACCGraph_X:F2}", GUILayout.Width(120));
-                Main.Settings.XACCGraph_X = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_X, 0.0f, 1.0f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
+                Toggle(ref Main.Settings.XACCGraph_ShowEnd, "Toggle_ShowEnd");
+                SliderFloat("Label_XOffset", ref Main.Settings.XACCGraph_X, 0.0f, 1.0f);
+                SliderFloat("Label_YOffset", ref Main.Settings.XACCGraph_Y, 0.0f, 1.0f);
+                SliderFloat("Label_Scale", ref Main.Settings.XACCGraph_Scale, 0.2f, 3.0f);
+                IntField("Label_MaxPoints", ref _maxPointsText, ref Main.Settings.XACCGraph_MaxPoints, 20, 5000, 250);
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_YOffset") + $"{Main.Settings.XACCGraph_Y:F2}", GUILayout.Width(120));
-                Main.Settings.XACCGraph_Y = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Y, 0.0f, 1.0f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_Scale") + $"{Main.Settings.XACCGraph_Scale:F2}", GUILayout.Width(120));
-                Main.Settings.XACCGraph_Scale = GUILayout.HorizontalSlider(Main.Settings.XACCGraph_Scale, 0.2f, 3.0f, GUILayout.Width(120));
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.Label(LangMan.T("Label_MaxPoints"), GUILayout.Width(120));
-
-                if (_maxPointsText == null) _maxPointsText = Main.Settings.XACCGraph_MaxPoints.ToString();
-                string newMaxPointsText = GUILayout.TextField(_maxPointsText, GUILayout.Width(80));
-
-                if (newMaxPointsText != _maxPointsText)
-                {
-                    if (int.TryParse(newMaxPointsText, out int parsedVal) && parsedVal >= 20 && parsedVal <= 5000)
-                    {
-                        _maxPointsText = newMaxPointsText;
-                        Main.Settings.XACCGraph_MaxPoints = parsedVal;
-                    }
-                    else
-                    {
-                        _maxPointsText = "250";
-                        Main.Settings.XACCGraph_MaxPoints = 250;
-                    }
-                }
-                GUILayout.EndHorizontal();
-
-                DrawColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.XACCGraph_BgColor);
-                DrawColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.XACCGraph_LineColor);
-                DrawColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.XACCGraph_GridColor);
-                DrawColorPicker(LangMan.T("Label_AxisTextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
-                DrawColorPicker(LangMan.T("Label_InfoTextColor"), ref Main.Settings.XACCGraph_ValueTextColor);
+                ColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.XACCGraph_BgColor);
+                ColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.XACCGraph_LineColor);
+                ColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.XACCGraph_GridColor);
+                ColorPicker(LangMan.T("Label_AxisTextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
+                ColorPicker(LangMan.T("Label_InfoTextColor"), ref Main.Settings.XACCGraph_ValueTextColor);
             }
 
             // logger
             GUILayout.BeginVertical();
             {
-                DrawToggleFold(LangMan.T("Toggle_Logging"), ref Main.Settings.EnableLogging, ref _foldoutLogging);
+                ToggleFold(LangMan.T("Toggle_Logging"), ref Main.Settings.EnableLogging, ref _foldoutLogging);
 
                 if (Main.Settings.EnableLogging && _foldoutLogging)
                 {
@@ -221,27 +163,20 @@ namespace TimingShow
                     Main.Settings.PercLog = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercLog, 0, 5, GUILayout.Width(100)));
                     GUILayout.EndHorizontal();
 
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Space(20);
-                    Main.Settings.Logger_EnableXPerfect = GUILayout.Toggle(Main.Settings.Logger_EnableXPerfect, LangMan.T("Enable_XP"));
-                    GUILayout.EndHorizontal();
-
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Space(20);
-                    Main.Settings.LogAutoplay = GUILayout.Toggle(Main.Settings.LogAutoplay, LangMan.T("Toggle_LogAutoplay"));
-                    GUILayout.EndHorizontal();
-
+                    Toggle(ref Main.Settings.Logger_EnableXPerfect, "Enable_XP");
+                    Toggle(ref Main.Settings.LogAutoplay, "Toggle_LogAutoplay");
+                    
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(140));
 
-                    string absolutePath = GetAbsoluteLogPath(Main.Settings.LogDirectory);
+                    string absolutePath = AbsLogPath(Main.Settings.LogDirectory);
                     string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "未选择" : absolutePath;
                     GUILayout.Label(displayPath, GUILayout.MinWidth(280), GUILayout.MaxWidth(480));
 
                     if (GUILayout.Button(LangMan.T("Btn_Browse"), GUILayout.Width(70)))
                     {
-                        string defaultDir = GetAbsoluteLogPath(Main.Settings.LogDirectory);
+                        string defaultDir = AbsLogPath(Main.Settings.LogDirectory);
                         if (string.IsNullOrWhiteSpace(defaultDir))
                             defaultDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
 
@@ -252,7 +187,7 @@ namespace TimingShow
                         }
                     }
                     GUILayout.EndHorizontal();
-
+                    
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(140));
@@ -275,7 +210,7 @@ namespace TimingShow
                     }
                     GUILayout.EndHorizontal();
                 }
-
+                
                 GUILayout.Space(10);
                 if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
@@ -300,7 +235,7 @@ namespace TimingShow
                 Main.LastTiming = 0;
             }
 
-            // adv
+            // adv settings
             string foldoutArrow = _showAdvancedSettings ? "▲" : "▼";
             if (GUILayout.Button($"{LangMan.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
                 _showAdvancedSettings = !_showAdvancedSettings;
@@ -402,8 +337,10 @@ namespace TimingShow
         }
 
 
-        // utils
-        private static void DrawToggleFold(string label, ref bool toggle, ref bool foldout)
+        
+        #region utils
+
+        private static void ToggleFold(string label, ref bool toggle, ref bool foldout)
         {
             GUILayout.BeginHorizontal();
             toggle = GUILayout.Toggle(toggle, label, GUILayout.ExpandWidth(false));
@@ -420,8 +357,7 @@ namespace TimingShow
             GUILayout.EndHorizontal();
         }
 
-
-        private static void DrawSettingRowFold(string label, ref bool toggle, ref int precision, ref bool foldout)
+        private static void SettingFold(string label, ref bool toggle, ref int precision, ref bool foldout)
         {
             GUILayout.BeginHorizontal();
             toggle = GUILayout.Toggle(toggle, label, GUILayout.ExpandWidth(false));
@@ -439,55 +375,26 @@ namespace TimingShow
 
             if (toggle)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                string precisionLabel = LangMan.T("Label_Precision");
-                GUILayout.Label($"{precisionLabel}{precision}", GUILayout.Width(120));
-                precision = Mathf.RoundToInt(GUILayout.HorizontalSlider(precision, 0, 5, GUILayout.Width(100)));
-                GUILayout.EndHorizontal();
+                SliderInt("Label_Precision", ref precision, 0, 5);
             }
         }
 
-        private static void DrawSettingRow(string label, ref bool toggle, ref int precision)
+        private static void SettingRow(string label, ref bool toggle, ref int precision)
         {
             toggle = GUILayout.Toggle(toggle, label);
             if (toggle)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                string precisionLabel = LangMan.T("Label_Precision");
-                GUILayout.Label($"{precisionLabel}{precision}", GUILayout.Width(120));
-                precision = Mathf.RoundToInt(GUILayout.HorizontalSlider(precision, 0, 5, GUILayout.Width(100)));
-                GUILayout.EndHorizontal();
+                SliderInt("Label_Precision", ref precision, 0, 5);
             }
         }
 
-        private static void DrawHUDBaseSettings(ref float posX, ref float posY, ref float scale, ref bool isBold, ref int align, ref string format, ref int precision)
+        private static void HUDBase(ref float x, ref float y, ref float scale, ref bool bold, ref int align, ref string format, ref int prec)
         {
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
-            GUILayout.Label(LangMan.T("Label_XOffset") + $"{posX:F2}", GUILayout.Width(120));
-            posX = GUILayout.HorizontalSlider(posX, -0.5f, 0.5f, GUILayout.Width(120));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
-            GUILayout.Label(LangMan.T("Label_YOffset") + $"{posY:F2}", GUILayout.Width(120));
-            posY = GUILayout.HorizontalSlider(posY, -0.5f, 0.5f, GUILayout.Width(120));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
-            GUILayout.Label(LangMan.T("Label_Scale") + $"{scale:F2}", GUILayout.Width(120));
-            scale = GUILayout.HorizontalSlider(scale, 0.2f, 3.0f, GUILayout.Width(120));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
-            isBold = GUILayout.Toggle(isBold, LangMan.T("Toggle_Bold"));
-            GUILayout.EndHorizontal();
-
-            DrawAlignButtons(ref align);
+            SliderFloat("Label_XOffset", ref x, -0.5f, 0.5f);
+            SliderFloat("Label_YOffset", ref y, -0.5f, 0.5f);
+            SliderFloat("Label_Scale", ref scale, 0.2f, 3.0f);
+            Toggle(ref bold, "Toggle_Bold");
+            AlignButtons(ref align);
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
@@ -495,14 +402,64 @@ namespace TimingShow
             format = GUILayout.TextField(format, GUILayout.Width(200));
             GUILayout.EndHorizontal();
 
+            SliderInt("Label_Precision", ref prec, 0, 5);
+        }
+
+        private static void SliderFloat(string labelKey, ref float value, float min, float max)
+        {
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
-            GUILayout.Label(LangMan.T("Label_Precision") + $"{precision}", GUILayout.Width(120));
-            precision = Mathf.RoundToInt(GUILayout.HorizontalSlider(precision, 0, 5, GUILayout.Width(100)));
+            GUILayout.Label(LangMan.T(labelKey) + $"{value:F2}", GUILayout.Width(120));
+            value = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(120));
             GUILayout.EndHorizontal();
         }
 
-        private static void DrawAlignButtons(ref int alignSetting)
+        private static void SliderInt(string labelKey, ref int value, int min, int max)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T(labelKey) + $"{value}", GUILayout.Width(120));
+            value = Mathf.RoundToInt(GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(100)));
+            GUILayout.EndHorizontal();
+        }
+
+        private static void Toggle(ref bool value, string labelKey, float indent = 20)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(indent);
+            value = GUILayout.Toggle(value, LangMan.T(labelKey));
+            GUILayout.EndHorizontal();
+        }
+
+        private static void ToggleNoIndent(ref bool value, string labelKey)
+        {
+            value = GUILayout.Toggle(value, LangMan.T(labelKey));
+        }
+
+        private static void IntField(string labelKey, ref string text, ref int value, int min, int max, int fallback, float labelWidth = 120)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(LangMan.T(labelKey), GUILayout.Width(labelWidth));
+            if (text == null) text = value.ToString();
+            string newText = GUILayout.TextField(text, GUILayout.Width(80));
+            if (newText != text)
+            {
+                if (int.TryParse(newText, out int parsed) && parsed >= min && parsed <= max)
+                {
+                    text = newText;
+                    value = parsed;
+                }
+                else
+                {
+                    text = fallback.ToString();
+                    value = fallback;
+                }
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        private static void AlignButtons(ref int align)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
@@ -511,14 +468,14 @@ namespace TimingShow
             string[] labels = { LangMan.T("Btn_Left"), LangMan.T("Btn_Center"), LangMan.T("Btn_Right") };
             for (int i = 0; i < 3; i++)
             {
-                _activeButtonStyle.fontStyle = (alignSetting == i) ? FontStyle.Bold : FontStyle.Normal;
+                _activeButtonStyle.fontStyle = (align == i) ? FontStyle.Bold : FontStyle.Normal;
                 if (GUILayout.Button(labels[i], _activeButtonStyle, GUILayout.Width(60)))
-                    alignSetting = i;
+                    align = i;
             }
             GUILayout.EndHorizontal();
         }
 
-        private static void DrawColorPicker(string label, ref Color color)
+        private static void ColorPicker(string label, ref Color color)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
@@ -536,7 +493,7 @@ namespace TimingShow
             GUILayout.EndHorizontal();
         }
 
-        private static string GetAbsoluteLogPath(string logDir)
+        private static string AbsLogPath(string logDir)
         {
             if (string.IsNullOrWhiteSpace(logDir))
                 return null;
@@ -553,5 +510,7 @@ namespace TimingShow
                 return logDir;
             }
         }
+
+        #endregion
     }
 }
