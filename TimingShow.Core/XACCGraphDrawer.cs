@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,19 +8,19 @@ namespace TimingShow
     {
         private readonly List<float> _xaccRenderCache = new List<float>();
 
-        protected override bool IsEnabled => Main.IsEnabled && Main.IsPlaying;
-        protected override bool ShowGraph => Main.Settings.ShowXACCGraph;
-        protected override float Scale => Main.Settings.XACCGraph_Scale;
-        protected override float Width => Main.Settings.XACCGraph_Width;
-        protected override float Height => Main.Settings.XACCGraph_Height;
-        protected override float PosX => Main.Settings.XACCGraph_X;
-        protected override float PosY => Main.Settings.XACCGraph_Y;
+        protected override bool IsEnabled => ModContext.IsEnabled && ModContext.IsPlaying;
+        protected override bool ShowGraph => ModContext.Settings.ShowXACCGraph;
+        protected override float Scale => ModContext.Settings.XACCGraph_Scale;
+        protected override float Width => ModContext.Settings.XACCGraph_Width;
+        protected override float Height => ModContext.Settings.XACCGraph_Height;
+        protected override float PosX => ModContext.Settings.XACCGraph_X;
+        protected override float PosY => ModContext.Settings.XACCGraph_Y;
 
-        protected override Color BgColor => Main.Settings.XACCGraph_BgColor;
-        protected override Color GridColor => Main.Settings.XACCGraph_GridColor;
-        protected override Color LineColor => Main.Settings.XACCGraph_LineColor;
+        protected override Color BgColor => ModContext.Settings.XACCGraph_BgColor;
+        protected override Color GridColor => ModContext.Settings.XACCGraph_GridColor;
+        protected override Color LineColor => ModContext.Settings.XACCGraph_LineColor;
 
-        protected override int MaxPoints => Main.Settings.XACCGraph_MaxPoints > 0 ? Main.Settings.XACCGraph_MaxPoints : 250;
+        protected override int MaxPoints => ModContext.Settings.XACCGraph_MaxPoints > 0 ? ModContext.Settings.XACCGraph_MaxPoints : 250;
         public override string GraphName => "XACC";
 
         private float _cachedMinY;
@@ -28,21 +28,21 @@ namespace TimingShow
 
         protected override void UpdateData()
         {
-            if (Main.FullXAccHistory == null || Main.FullXAccHistory.Count == 0)
+            if (ModContext.FullXAccHistory == null || ModContext.FullXAccHistory.Count == 0)
             {
                 _xaccRenderCache.Clear();
                 return;
             }
 
             _xaccRenderCache.Clear();
-            int total = Main.FullXAccHistory.Count;
+            int total = ModContext.FullXAccHistory.Count;
             int targetPoints = MaxPoints;
 
-            if (Main.IsLevelFinished)
+            if (ModContext.IsLevelFinished)
             {
                 if (total <= targetPoints)
                 {
-                    _xaccRenderCache.AddRange(Main.FullXAccHistory);
+                    _xaccRenderCache.AddRange(ModContext.FullXAccHistory);
                 }
                 else
                 {
@@ -50,7 +50,7 @@ namespace TimingShow
                     for (int i = 0; i < targetPoints; i++)
                     {
                         int idx = Mathf.Clamp((int)(i * step), 0, total - 1);
-                        _xaccRenderCache.Add(Main.FullXAccHistory[idx]);
+                        _xaccRenderCache.Add(ModContext.FullXAccHistory[idx]);
                     }
                 }
             }
@@ -59,14 +59,14 @@ namespace TimingShow
                 int startIdx = Math.Max(0, total - targetPoints);
                 for (int i = startIdx; i < total; i++)
                 {
-                    _xaccRenderCache.Add(Main.FullXAccHistory[i]);
+                    _xaccRenderCache.Add(ModContext.FullXAccHistory[i]);
                 }
             }
 
             int count = _xaccRenderCache.Count;
             if (count == 0) return;
 
-            if (Main.IsLevelFinished)
+            if (ModContext.IsLevelFinished)
             {
                 _cachedMaxY = 100f;
                 float minVal = 100f;

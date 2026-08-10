@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Diagnostics;
 using UnityEngine;
-using UnityModManagerNet;
 using UnityFileDialog;
 
 namespace TimingShow
@@ -23,7 +22,7 @@ namespace TimingShow
 
         private static GUIStyle _activeButtonStyle;
 
-        public static void OnGUI(UnityModManager.ModEntry modEntry)
+        public static void OnGUI()
         {
             if (_activeButtonStyle == null) _activeButtonStyle = new GUIStyle(GUI.skin.button);
 
@@ -31,39 +30,39 @@ namespace TimingShow
             GUILayout.BeginHorizontal();
             foreach (string langCode in LangMan.AvailableLanguages)
             {
-                _activeButtonStyle.fontStyle = (Main.Settings.Language == langCode) ? FontStyle.Bold : FontStyle.Normal;
+                _activeButtonStyle.fontStyle = (ModContext.Settings.Language == langCode) ? FontStyle.Bold : FontStyle.Normal;
 
                 if (GUILayout.Button(langCode, _activeButtonStyle, GUILayout.Width(100)))
                 {
-                    Main.Settings.Language = langCode;
+                    ModContext.Settings.Language = langCode;
                 }
             }
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
 
             // title
-            SettingFold(LangMan.T("Toggle_Title"), ref Main.Settings.ShowInSongTitle, ref Main.Settings.Perc1, ref _foldoutTitleSettings);
-            if (Main.Settings.ShowInSongTitle && _foldoutTitleSettings)
+            SettingFold(LangMan.T("Toggle_Title"), ref ModContext.Settings.ShowInSongTitle, ref ModContext.Settings.Perc1, ref _foldoutTitleSettings);
+            if (ModContext.Settings.ShowInSongTitle && _foldoutTitleSettings)
             {
-                Toggle(ref Main.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
+                Toggle(ref ModContext.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
 
-                if (Main.Settings.Title_UseJudgeColor)
+                if (ModContext.Settings.Title_UseJudgeColor)
                 {
-                    Toggle(ref Main.Settings.Title_EnableXPerfect, "Enable_XP", 40);
+                    Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
                 }
             }
 
-            // planet 
-            bool oldShowOnPlanet = Main.Settings.ShowOnPlanet;
-            SettingFold(LangMan.T("Toggle_Planet"), ref Main.Settings.ShowOnPlanet, ref Main.Settings.Perc2, ref _foldoutPlanetSettings);
-            if (oldShowOnPlanet != Main.Settings.ShowOnPlanet && Main.Settings.AutoReloadInEditor)
+            // planet
+            bool oldShowOnPlanet = ModContext.Settings.ShowOnPlanet;
+            SettingFold(LangMan.T("Toggle_Planet"), ref ModContext.Settings.ShowOnPlanet, ref ModContext.Settings.Perc2, ref _foldoutPlanetSettings);
+            if (oldShowOnPlanet != ModContext.Settings.ShowOnPlanet && ModContext.Settings.AutoReloadInEditor)
             {
                 Patches.EditorReloadPatch.TriggerEditorReload();
             }
 
-            if (Main.Settings.ShowOnPlanet && _foldoutPlanetSettings)
+            if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
-                Toggle(ref Main.Settings.Planet_EnableXPerfect, "Enable_XP");
+                Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
                 GUILayout.Label(LangMan.T("Setting_Title"));
                 GUILayout.BeginHorizontal();
@@ -71,16 +70,16 @@ namespace TimingShow
                     GUILayout.Space(20);
                     GUILayout.BeginVertical();
                     {
-                        ToggleNoIndent(ref Main.Settings.ReplaceFailOverload, "Toggle_FailOverload");
-                        ToggleNoIndent(ref Main.Settings.ReplaceTooEarly, "Toggle_TooEarly");
-                        ToggleNoIndent(ref Main.Settings.ReplaceVeryEarly, "Toggle_VeryEarly");
-                        ToggleNoIndent(ref Main.Settings.ReplaceEarlyPerfect, "Toggle_EarlyPerfect");
-                        ToggleNoIndent(ref Main.Settings.ReplacePerfect, "Toggle_Perfect");
-                        ToggleNoIndent(ref Main.Settings.ReplaceLatePerfect, "Toggle_LatePerfect");
-                        ToggleNoIndent(ref Main.Settings.ReplaceVeryLate, "Toggle_VeryLate");
-                        ToggleNoIndent(ref Main.Settings.ReplaceTooLate, "Toggle_TooLate");
-                        ToggleNoIndent(ref Main.Settings.ReplaceFailMiss, "Toggle_FailMiss");
-                        ToggleNoIndent(ref Main.Settings.ReplaceMultipress, "Toggle_Multipress");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceFailOverload, "Toggle_FailOverload");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceTooEarly, "Toggle_TooEarly");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceVeryEarly, "Toggle_VeryEarly");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceEarlyPerfect, "Toggle_EarlyPerfect");
+                        ToggleNoIndent(ref ModContext.Settings.ReplacePerfect, "Toggle_Perfect");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceLatePerfect, "Toggle_LatePerfect");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceVeryLate, "Toggle_VeryLate");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceTooLate, "Toggle_TooLate");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceFailMiss, "Toggle_FailMiss");
+                        ToggleNoIndent(ref ModContext.Settings.ReplaceMultipress, "Toggle_Multipress");
                     }
                     GUILayout.EndVertical();
                 }
@@ -88,111 +87,111 @@ namespace TimingShow
             }
 
             // death,win
-            SettingRow(LangMan.T("Toggle_Death"), ref Main.Settings.ShowOnDeath, ref Main.Settings.Perc3);
-            SettingRow(LangMan.T("Toggle_Win"), ref Main.Settings.ShowInWinPage, ref Main.Settings.Perc4);
+            SettingRow(LangMan.T("Toggle_Death"), ref ModContext.Settings.ShowOnDeath, ref ModContext.Settings.Perc3);
+            SettingRow(LangMan.T("Toggle_Win"), ref ModContext.Settings.ShowInWinPage, ref ModContext.Settings.Perc4);
 
             // timinghud
-            ToggleFold(LangMan.T("Toggle_TimingHUD"), ref Main.Settings.ShowTimingHUD, ref _foldoutTimingHUD);
-            if (Main.Settings.ShowTimingHUD && _foldoutTimingHUD)
+            ToggleFold(LangMan.T("Toggle_TimingHUD"), ref ModContext.Settings.ShowTimingHUD, ref _foldoutTimingHUD);
+            if (ModContext.Settings.ShowTimingHUD && _foldoutTimingHUD)
             {
                 HUDBase(
-                    ref Main.Settings.HUD_x, ref Main.Settings.HUD_y, ref Main.Settings.HUD_scale,
-                    ref Main.Settings.HUD_bold, ref Main.Settings.HUD_align, ref Main.Settings.HUD_Format,
-                    ref Main.Settings.PercHUD
+                    ref ModContext.Settings.HUD_x, ref ModContext.Settings.HUD_y, ref ModContext.Settings.HUD_scale,
+                    ref ModContext.Settings.HUD_bold, ref ModContext.Settings.HUD_align, ref ModContext.Settings.HUD_Format,
+                    ref ModContext.Settings.PercHUD
                 );
 
-                Toggle(ref Main.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
+                Toggle(ref ModContext.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
 
-                if (Main.Settings.HUD_UseJudgeColor)
+                if (ModContext.Settings.HUD_UseJudgeColor)
                 {
-                    Toggle(ref Main.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
+                    Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
                 }
             }
 
             // urhud
-            ToggleFold(LangMan.T("Toggle_URHUD"), ref Main.Settings.ShowURHUD, ref _foldoutURHUD);
-            if (Main.Settings.ShowURHUD && _foldoutURHUD)
+            ToggleFold(LangMan.T("Toggle_URHUD"), ref ModContext.Settings.ShowURHUD, ref _foldoutURHUD);
+            if (ModContext.Settings.ShowURHUD && _foldoutURHUD)
             {
                 HUDBase(
-                    ref Main.Settings.URHUD_x, ref Main.Settings.URHUD_y, ref Main.Settings.URHUD_scale,
-                    ref Main.Settings.URHUD_bold, ref Main.Settings.URHUD_align, ref Main.Settings.URHUD_Format,
-                    ref Main.Settings.PercURHUD
+                    ref ModContext.Settings.URHUD_x, ref ModContext.Settings.URHUD_y, ref ModContext.Settings.URHUD_scale,
+                    ref ModContext.Settings.URHUD_bold, ref ModContext.Settings.URHUD_align, ref ModContext.Settings.URHUD_Format,
+                    ref ModContext.Settings.PercURHUD
                 );
             }
 
             // ratiohud
-            ToggleFold(LangMan.T("Toggle_RatioHUD"), ref Main.Settings.ShowRatioHUD, ref _foldoutRatioHUD);
-            if (Main.Settings.ShowRatioHUD && _foldoutRatioHUD)
+            ToggleFold(LangMan.T("Toggle_RatioHUD"), ref ModContext.Settings.ShowRatioHUD, ref _foldoutRatioHUD);
+            if (ModContext.Settings.ShowRatioHUD && _foldoutRatioHUD)
             {
                 HUDBase(
-                    ref Main.Settings.RatioHUD_x, ref Main.Settings.RatioHUD_y, ref Main.Settings.RatioHUD_scale,
-                    ref Main.Settings.RatioHUD_bold, ref Main.Settings.RatioHUD_align, ref Main.Settings.RatioHUD_Format,
-                    ref Main.Settings.PercRatioHUD
+                    ref ModContext.Settings.RatioHUD_x, ref ModContext.Settings.RatioHUD_y, ref ModContext.Settings.RatioHUD_scale,
+                    ref ModContext.Settings.RatioHUD_bold, ref ModContext.Settings.RatioHUD_align, ref ModContext.Settings.RatioHUD_Format,
+                    ref ModContext.Settings.PercRatioHUD
                 );
 
-                Toggle(ref Main.Settings.Ratio_UseXPerfect, "Enable_XP");
+                Toggle(ref ModContext.Settings.Ratio_UseXPerfect, "Enable_XP");
             }
 
             // xaccgraph
-            ToggleFold(LangMan.T("Toggle_XACCGraph"), ref Main.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
-            if (Main.Settings.ShowXACCGraph && _foldoutXACCGraph)
+            ToggleFold(LangMan.T("Toggle_XACCGraph"), ref ModContext.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
+            if (ModContext.Settings.ShowXACCGraph && _foldoutXACCGraph)
             {
-                Toggle(ref Main.Settings.XACCGraph_ShowEnd, "Toggle_ShowEnd");
-                SliderFloat("Label_XOffset", ref Main.Settings.XACCGraph_X, 0.0f, 1.0f);
-                SliderFloat("Label_YOffset", ref Main.Settings.XACCGraph_Y, 0.0f, 1.0f);
-                SliderFloat("Label_Scale", ref Main.Settings.XACCGraph_Scale, 0.2f, 3.0f);
-                IntField("Label_MaxPoints", ref _maxPointsText, ref Main.Settings.XACCGraph_MaxPoints, 20, 5000, 250);
+                Toggle(ref ModContext.Settings.XACCGraph_ShowEnd, "Toggle_ShowEnd");
+                SliderFloat("Label_XOffset", ref ModContext.Settings.XACCGraph_X, 0.0f, 1.0f);
+                SliderFloat("Label_YOffset", ref ModContext.Settings.XACCGraph_Y, 0.0f, 1.0f);
+                SliderFloat("Label_Scale", ref ModContext.Settings.XACCGraph_Scale, 0.2f, 3.0f);
+                IntField("Label_MaxPoints", ref _maxPointsText, ref ModContext.Settings.XACCGraph_MaxPoints, 20, 5000, 250);
 
-                ColorPicker(LangMan.T("Label_BgColor"), ref Main.Settings.XACCGraph_BgColor);
-                ColorPicker(LangMan.T("Label_LineColor"), ref Main.Settings.XACCGraph_LineColor);
-                ColorPicker(LangMan.T("Label_GridColor"), ref Main.Settings.XACCGraph_GridColor);
-                ColorPicker(LangMan.T("Label_AxisTextColor"), ref Main.Settings.XACCGraph_AxisTextColor);
-                ColorPicker(LangMan.T("Label_InfoTextColor"), ref Main.Settings.XACCGraph_ValueTextColor);
+                ColorPicker(LangMan.T("Label_BgColor"), ref ModContext.Settings.XACCGraph_BgColor);
+                ColorPicker(LangMan.T("Label_LineColor"), ref ModContext.Settings.XACCGraph_LineColor);
+                ColorPicker(LangMan.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor);
+                ColorPicker(LangMan.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor);
+                ColorPicker(LangMan.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor);
             }
 
             // logger
             GUILayout.BeginVertical();
             {
-                ToggleFold(LangMan.T("Toggle_Logging"), ref Main.Settings.EnableLogging, ref _foldoutLogging);
+                ToggleFold(LangMan.T("Toggle_Logging"), ref ModContext.Settings.EnableLogging, ref _foldoutLogging);
 
-                if (Main.Settings.EnableLogging && _foldoutLogging)
+                if (ModContext.Settings.EnableLogging && _foldoutLogging)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
-                    GUILayout.Label(LangMan.T("Label_Precision") + $"{Main.Settings.PercLog}", GUILayout.Width(120));
-                    Main.Settings.PercLog = Mathf.RoundToInt(GUILayout.HorizontalSlider(Main.Settings.PercLog, 0, 5, GUILayout.Width(100)));
+                    GUILayout.Label(LangMan.T("Label_Precision") + $"{ModContext.Settings.PercLog}", GUILayout.Width(120));
+                    ModContext.Settings.PercLog = Mathf.RoundToInt(GUILayout.HorizontalSlider(ModContext.Settings.PercLog, 0, 5, GUILayout.Width(100)));
                     GUILayout.EndHorizontal();
 
-                    Toggle(ref Main.Settings.Logger_EnableXPerfect, "Enable_XP");
-                    Toggle(ref Main.Settings.LogAutoplay, "Toggle_LogAutoplay");
-                    
+                    Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
+                    Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
+
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(140));
 
-                    string absolutePath = AbsLogPath(Main.Settings.LogDirectory);
+                    string absolutePath = AbsLogPath(ModContext.Settings.LogDirectory);
                     string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "未选择" : absolutePath;
                     GUILayout.Label(displayPath, GUILayout.MinWidth(280), GUILayout.MaxWidth(480));
 
                     if (GUILayout.Button(LangMan.T("Btn_Browse"), GUILayout.Width(70)))
                     {
-                        string defaultDir = AbsLogPath(Main.Settings.LogDirectory);
+                        string defaultDir = AbsLogPath(ModContext.Settings.LogDirectory);
                         if (string.IsNullOrWhiteSpace(defaultDir))
                             defaultDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
 
                         string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], LangMan.T("Label_LogDir"));
                         if (!string.IsNullOrEmpty(selectedFolder))
                         {
-                            Main.Settings.LogDirectory = Path.GetFullPath(selectedFolder);
+                            ModContext.Settings.LogDirectory = Path.GetFullPath(selectedFolder);
                         }
                     }
                     GUILayout.EndHorizontal();
-                    
+
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
                     GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(140));
 
-                    if (_bufferSizeText == null) _bufferSizeText = Main.Settings.LogBufferSizeKB.ToString();
+                    if (_bufferSizeText == null) _bufferSizeText = ModContext.Settings.LogBufferSizeKB.ToString();
                     string newBufferSizeText = GUILayout.TextField(_bufferSizeText, GUILayout.Width(80));
 
                     if (newBufferSizeText != _bufferSizeText)
@@ -200,29 +199,29 @@ namespace TimingShow
                         if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal >= 8 && parsedVal <= 102400)
                         {
                             _bufferSizeText = newBufferSizeText;
-                            Main.Settings.LogBufferSizeKB = parsedVal;
+                            ModContext.Settings.LogBufferSizeKB = parsedVal;
                         }
                         else
                         {
                             _bufferSizeText = "64";
-                            Main.Settings.LogBufferSizeKB = 64;
+                            ModContext.Settings.LogBufferSizeKB = 64;
                         }
                     }
                     GUILayout.EndHorizontal();
                 }
-                
+
                 GUILayout.Space(10);
                 if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
                     try
                     {
-                        string logDir = string.IsNullOrWhiteSpace(Main.Settings.LogDirectory) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Main.Settings.LogDirectory;
+                        string logDir = string.IsNullOrWhiteSpace(ModContext.Settings.LogDirectory) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : ModContext.Settings.LogDirectory;
                         if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
                         Process.Start(new ProcessStartInfo() { FileName = logDir, UseShellExecute = true, Verb = "open" });
                     }
                     catch (Exception e)
                     {
-                        Main.Logger.Error(e.Message);
+                        ModContext.Logger.Error(e.Message);
                     }
                 }
             }
@@ -230,9 +229,9 @@ namespace TimingShow
 
             if (GUILayout.Button(LangMan.T("Btn_Reset"), GUILayout.Width(150)))
             {
-                Main.SessionOffsets.Clear();
-                Main.LastHitMargin = HitMargin.Perfect;
-                Main.LastTiming = 0;
+                ModContext.SessionOffsets.Clear();
+                ModContext.LastHitMargin = HitMargin.Perfect;
+                ModContext.LastTiming = 0;
             }
 
             // adv settings
@@ -245,7 +244,7 @@ namespace TimingShow
                 GUILayout.BeginVertical();
                 {
                     GUILayout.Space(5);
-                    bool newHookMode = GUILayout.Toggle(Main.Settings.UseHookMode, LangMan.T("Toggle_HookMode"));
+                    bool newHookMode = GUILayout.Toggle(ModContext.Settings.UseHookMode, LangMan.T("Toggle_HookMode"));
                     GUILayout.BeginHorizontal();
                     {
                         GUILayout.Space(20);
@@ -253,9 +252,9 @@ namespace TimingShow
                     }
                     GUILayout.EndHorizontal();
 
-                    if (newHookMode != Main.Settings.UseHookMode)
+                    if (newHookMode != ModContext.Settings.UseHookMode)
                     {
-                        Main.Settings.UseHookMode = newHookMode;
+                        ModContext.Settings.UseHookMode = newHookMode;
                         if (newHookMode) XPerfectBridge.TryInit(force: true);
                         else XPerfectBridge.UnloadHook();
                     }
@@ -286,7 +285,7 @@ namespace TimingShow
 
                     GUILayout.Space(5);
 
-                    Main.Settings.DisplayCurrMode = GUILayout.Toggle(Main.Settings.DisplayCurrMode, LangMan.T("Toggle_DisplayCurrMode"));
+                    ModContext.Settings.DisplayCurrMode = GUILayout.Toggle(ModContext.Settings.DisplayCurrMode, LangMan.T("Toggle_DisplayCurrMode"));
                     GUILayout.BeginHorizontal();
                     {
                         GUILayout.Space(20);
@@ -296,7 +295,7 @@ namespace TimingShow
 
                     GUILayout.Space(5);
 
-                    Main.Settings.UseBinaryWriter = GUILayout.Toggle(Main.Settings.UseBinaryWriter, LangMan.T("Toggle_UseBinaryWriter"));
+                    ModContext.Settings.UseBinaryWriter = GUILayout.Toggle(ModContext.Settings.UseBinaryWriter, LangMan.T("Toggle_UseBinaryWriter"));
                     GUILayout.BeginHorizontal();
                     {
                         GUILayout.Space(20);
@@ -307,12 +306,12 @@ namespace TimingShow
                     GUILayout.Space(5);
 
                     bool previousGuiState = GUI.enabled;
-                    if (Main.Settings.UseBinaryWriter)
+                    if (ModContext.Settings.UseBinaryWriter)
                     {
                         GUI.enabled = false;
                     }
 
-                    Main.Settings.UseOldJsonFormat = GUILayout.Toggle(Main.Settings.UseOldJsonFormat, LangMan.T("Toggle_UseOldJsonFormat"));
+                    ModContext.Settings.UseOldJsonFormat = GUILayout.Toggle(ModContext.Settings.UseOldJsonFormat, LangMan.T("Toggle_UseOldJsonFormat"));
                     GUILayout.BeginHorizontal();
                     {
                         GUILayout.Space(20);
@@ -324,7 +323,7 @@ namespace TimingShow
 
                     GUILayout.Space(5);
 
-                    Main.Settings.AutoReloadInEditor = GUILayout.Toggle(Main.Settings.AutoReloadInEditor, LangMan.T("Toggle_AutoReloadInEditor"));
+                    ModContext.Settings.AutoReloadInEditor = GUILayout.Toggle(ModContext.Settings.AutoReloadInEditor, LangMan.T("Toggle_AutoReloadInEditor"));
                     GUILayout.BeginHorizontal();
                     {
                         GUILayout.Space(20);
@@ -337,7 +336,7 @@ namespace TimingShow
         }
 
 
-        
+
         #region utils
 
         private static void ToggleFold(string label, ref bool toggle, ref bool foldout)
@@ -506,7 +505,7 @@ namespace TimingShow
             }
             catch (Exception e)
             {
-                Main.Logger.Log($"Err parsing path: {e.Message}");
+                ModContext.Logger.Log($"Err parsing path: {e.Message}");
                 return logDir;
             }
         }

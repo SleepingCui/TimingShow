@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using System;
 
 namespace TimingShow.Patches
@@ -11,7 +11,7 @@ namespace TimingShow.Patches
         {
             public static void Prefix(scrPlanet __instance)
             {
-                if (!Main.IsEnabled || scrController.instance == null) return;
+                if (!ModContext.IsEnabled || scrController.instance == null) return;
                 if (__instance.conductor == null || __instance.conductor.song == null) return;
 
                 double bpm = __instance.conductor.bpm;
@@ -22,30 +22,30 @@ namespace TimingShow.Patches
                 if (bpm * speed * pitch == 0) return;
                 double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
 
-                Main.LastTiming = diff;
+                ModContext.LastTiming = diff;
                 UIPatches.UIReplacePatch.dirty = true;
 
-                Main.LastIsXP = CalcXP.IsXPerfect(diff, bpm, speed, pitch);
+                ModContext.LastIsXP = CalcXP.IsXPerfect(diff, bpm, speed, pitch);
 
                 bool isAuto = RDC.auto;
 
-                if (Main.IsPlaying)
+                if (ModContext.IsPlaying)
                 {
-                    bool needRecord = Main.Settings.ShowInWinPage || Main.Settings.ShowURHUD || !isAuto || Main.Settings.LogAutoplay || Main.Settings.ShowXACCGraph;
-                    if (needRecord && Main.SessionOffsets != null)
+                    bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;
+                    if (needRecord && ModContext.SessionOffsets != null)
                     {
-                        Main.SessionOffsets.Add(diff);
+                        ModContext.SessionOffsets.Add(diff);
                     }
 
-                    if (Main.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
+                    if (ModContext.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
                     {
                         float curXAcc = scrController.instance.playerOne.marginTracker.percentXAcc * 100f;
-                        Main.FullXAccHistory.Add(curXAcc);
+                        ModContext.FullXAccHistory.Add(curXAcc);
                     }
 
-                    if (isAuto && Main.Settings.EnableLogging)
+                    if (isAuto && ModContext.Settings.EnableLogging)
                     {
-                        Main.LastHitMargin = HitMargin.Perfect;
+                        ModContext.LastHitMargin = HitMargin.Perfect;
                         TimingLogger.LogHit(diff, HitMargin.Perfect);
                     }
                 }
@@ -62,13 +62,13 @@ namespace TimingShow.Patches
 
             public static void Prefix(HitMargin hit)
             {
-                if (!Main.IsEnabled || !Main.IsPlaying) return;
+                if (!ModContext.IsEnabled || !ModContext.IsPlaying) return;
 
-                Main.LastHitMargin = hit;
-                TimingLogger.LogHit(Main.LastTiming, hit);
+                ModContext.LastHitMargin = hit;
+                TimingLogger.LogHit(ModContext.LastTiming, hit);
                 TotalHitsCount++;
                 if (hit == HitMargin.Perfect) PerfectCount++;
-                if (Main.LastIsXP) XPerfectCount++;
+                if (ModContext.LastIsXP) XPerfectCount++;
             }
 
             public static void ResetCounts()

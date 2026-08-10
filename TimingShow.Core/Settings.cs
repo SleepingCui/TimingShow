@@ -1,10 +1,10 @@
-﻿using UnityModManagerNet;
+using Newtonsoft.Json;
 using UnityEngine;
 using System.IO;
 
 namespace TimingShow
 {
-    public class Settings : UnityModManager.ModSettings
+    public class Settings
     {
         public bool ShowInSongTitle;
         public bool ShowOnPlanet;
@@ -65,9 +65,9 @@ namespace TimingShow
         public float XACCGraph_Height = 100f;
         public float XACCGraph_Scale = 1.0f;
         public int XACCGraph_MaxPoints = 250;
-        
+
         public Color XACCGraph_BgColor = new Color(0f, 0f, 0f, 0.6f);
-        public Color XACCGraph_LineColor = new Color(0.2f, 0.9f, 0.3f, 1f); 
+        public Color XACCGraph_LineColor = new Color(0.2f, 0.9f, 0.3f, 1f);
         public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 1f);
         public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
@@ -89,6 +89,38 @@ namespace TimingShow
         public bool UseBinaryWriter;
         public bool AutoReloadInEditor;
 
-        public override void Save(UnityModManager.ModEntry modEntry) => Save(this, modEntry);
+        public KeyCode ConfigKey = KeyCode.F9;
+
+        public static Settings Load(string modPath)
+        {
+            string filePath = Path.Combine(modPath, "Settings.json");
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    string json = File.ReadAllText(filePath);
+                    return JsonConvert.DeserializeObject<Settings>(json) ?? new Settings();
+                }
+            }
+            catch
+            {
+                // corrupted settings, fall through to default
+            }
+            return new Settings();
+        }
+
+        public void Save(string modPath)
+        {
+            try
+            {
+                string filePath = Path.Combine(modPath, "Settings.json");
+                string json = JsonConvert.SerializeObject(this, Formatting.Indented);
+                File.WriteAllText(filePath, json);
+            }
+            catch
+            {
+                // silently fail - settings will try again next save
+            }
+        }
     }
 }

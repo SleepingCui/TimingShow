@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 
@@ -19,7 +19,7 @@ namespace TimingShow
         public static bool IsAvailable => ProtInitialize() && CurrentState == HookState.Success && _getLastJudgeDelegate != null;
         private static bool ProtInitialize()
         {
-            if (!Main.Settings.UseHookMode)
+            if (!ModContext.Settings.UseHookMode)
             {
                 if (_isInitialized) UnloadHook();
                 return false;
@@ -31,7 +31,7 @@ namespace TimingShow
 
         public static void TryInit(bool force = false)
         {
-            if (!Main.Settings.UseHookMode)
+            if (!ModContext.Settings.UseHookMode)
             {
                 UnloadHook();
                 return;
@@ -45,7 +45,7 @@ namespace TimingShow
                 var type = AppDomain.CurrentDomain.GetAssemblies().Select(asm => asm.GetType("XPerfect.AccuracyState")).FirstOrDefault(t => t != null);
                 if (type == null)
                 {
-                    Main.Logger.Log("XPerfect not installed or not loaded");
+                    ModContext.Logger.Log("XPerfect not installed or not loaded");
                     SetState(HookState.Failed, LangMan.T("Err_AssemblyNotFound"));
                     return;
                 }
@@ -62,7 +62,7 @@ namespace TimingShow
                 if (_getLastJudgeDelegate != null)
                 {
                     SetState(HookState.Success);
-                    Main.Logger.Log("Successfully hooked into XPerfect mod");
+                    ModContext.Logger.Log("Successfully hooked into XPerfect mod");
                 }
                 else
                     SetState(HookState.Failed, LangMan.T("Err_DelegateFailed"));
@@ -70,7 +70,7 @@ namespace TimingShow
             catch (Exception e)
             {
                 SetState(HookState.Failed, $"{LangMan.T("Err_UnhandledException")}{e.Message}");
-                Main.Logger.Error($"Failed to hook XPerfect: {e.Message}");
+                ModContext.Logger.Error($"Failed to hook XPerfect: {e.Message}");
             }
         }
 

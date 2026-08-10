@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using System;
 using static TimingShow.Patches.TimingCalcPatches;
 
@@ -12,19 +12,19 @@ namespace TimingShow.Patches
         {
             public static void Postfix()
             {
-                Main.IsPlaying = true;
-                Main.IsLevelFinished = false;
-                Main.LastTiming = 0;
-                Main.LastHitMargin = HitMargin.Perfect;
-                Main.SessionOffsets.Clear();
-                Main.FullXAccHistory.Clear();
+                ModContext.IsPlaying = true;
+                ModContext.IsLevelFinished = false;
+                ModContext.LastTiming = 0;
+                ModContext.LastHitMargin = HitMargin.Perfect;
+                ModContext.SessionOffsets.Clear();
+                ModContext.FullXAccHistory.Clear();
                 MarginTrackerAddHitPatch.ResetCounts();
 
                 bool isAuto = RDC.auto;
-                bool shouldLogAuto = isAuto && Main.Settings.LogAutoplay;
+                bool shouldLogAuto = isAuto && ModContext.Settings.LogAutoplay;
                 bool shouldLogPlayer = !isAuto;
 
-                if (!Main.IsEnabled || scrController.instance == null || !Main.Settings.EnableLogging || (!shouldLogAuto && !shouldLogPlayer))
+                if (!ModContext.IsEnabled || scrController.instance == null || !ModContext.Settings.EnableLogging || (!shouldLogAuto && !shouldLogPlayer))
                 {
                     TimingLogger.CloseSession();
                     return;
@@ -33,13 +33,13 @@ namespace TimingShow.Patches
                 try
                 {
                     if (scnGame.instance == null || scnGame.instance.levelData == null) return;
-                    if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
+                    if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
 
-                    TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename, Main.Settings.LogDirectory, Main.Settings.LogBufferSizeKB);
+                    TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename, ModContext.Settings.LogDirectory, ModContext.Settings.LogBufferSizeKB);
                 }
                 catch (Exception e)
                 {
-                    Main.Logger.Error($"Failed to start timing session: {e.Message}");
+                    ModContext.Logger.Error($"Failed to start timing session: {e.Message}");
                 }
             }
         }
@@ -50,8 +50,8 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
-                Main.IsPlaying = false;
-                MarginTrackerAddHitPatch.ResetCounts(); 
+                ModContext.IsPlaying = false;
+                MarginTrackerAddHitPatch.ResetCounts();
                 HUDMan.Destroy();
                 TimingLogger.CloseSession();
             }
@@ -63,8 +63,8 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
-                Main.IsPlaying = false;
-                MarginTrackerAddHitPatch.ResetCounts(); 
+                ModContext.IsPlaying = false;
+                MarginTrackerAddHitPatch.ResetCounts();
                 TimingLogger.CloseSession();
                 HUDMan.Destroy();
             }
@@ -86,7 +86,7 @@ namespace TimingShow.Patches
         {
             public static void Postfix()
             {
-                Main.IsLevelFinished = true;
+                ModContext.IsLevelFinished = true;
             }
         }
 
@@ -96,7 +96,7 @@ namespace TimingShow.Patches
         {
             public static void Postfix()
             {
-                Main.IsLevelFinished = true;
+                ModContext.IsLevelFinished = true;
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace TimingShow
@@ -63,7 +63,7 @@ namespace TimingShow
             RectTransform rt = t.rectTransform;
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.zero;
-            rt.pivot = new Vector2(1f, 0.5f); 
+            rt.pivot = new Vector2(1f, 0.5f);
 
             return t;
         }
@@ -127,7 +127,7 @@ namespace TimingShow
                 _titleText.color = new Color(1f, 1f, 1f, 102f / 255f);
 
                 RectTransform rt = _titleText.rectTransform;
-                rt.pivot = new Vector2(0f, 1f); 
+                rt.pivot = new Vector2(0f, 1f);
                 rt.anchoredPosition = new Vector2(6f * scale, h - 2f * scale);
                 rt.sizeDelta = new Vector2(w * 0.8f, h * 0.4f);
             }
@@ -146,7 +146,7 @@ namespace TimingShow
             t.fontSize = fontSize;
             t.text = content;
             t.color = color;
-            t.alignment = TextAnchor.MiddleRight; 
+            t.alignment = TextAnchor.MiddleRight;
 
             RectTransform rt = t.rectTransform;
             rt.pivot = new Vector2(1f, 0.5f);

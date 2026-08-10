@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -41,18 +41,18 @@ namespace TimingShow
                 _gzStream = new GZipStream(_fs, System.IO.Compression.CompressionLevel.Fastest, leaveOpen: false);
                 _writer = new BinaryWriter(_gzStream, new UTF8Encoding(false));
 
-                _writer.Write(MagicBytes);                 
-                _writer.Write(FormatVersion);      
-                _writer.Write(timestamp);                 
-                _writer.Write(safeSongName);          
-                _writer.Write(levelPath ?? "");       
+                _writer.Write(MagicBytes);
+                _writer.Write(FormatVersion);
+                _writer.Write(timestamp);
+                _writer.Write(safeSongName);
+                _writer.Write(levelPath ?? "");
 
                 _writer.Flush();
-                Main.Logger.Log($"created: {_currentFilePath} (binary)");
+                ModContext.Logger.Log($"created: {_currentFilePath} (binary)");
             }
             catch (Exception ex)
             {
-                Main.Logger.Error($"Unable to create log file: {ex.Message} (binary)");
+                ModContext.Logger.Error($"Unable to create log file: {ex.Message} (binary)");
                 CloseSession();
             }
         }
@@ -68,7 +68,7 @@ namespace TimingShow
             }
             catch (Exception ex)
             {
-                Main.Logger.Error($"Failed to write log: {ex.Message}");
+                ModContext.Logger.Error($"Failed to write log: {ex.Message}");
             }
         }
 
@@ -80,11 +80,11 @@ namespace TimingShow
             {
                 _writer.Flush();
                 _gzStream?.Flush();
-                Main.Logger.Log($"Successfully closed session: {_currentFilePath} (binary)");
+                ModContext.Logger.Log($"Successfully closed session: {_currentFilePath} (binary)");
             }
             catch (Exception e)
             {
-                Main.Logger.Error($"Err closing log session: {e.Message} (binary)");
+                ModContext.Logger.Error($"Err closing log session: {e.Message} (binary)");
             }
             finally
             {

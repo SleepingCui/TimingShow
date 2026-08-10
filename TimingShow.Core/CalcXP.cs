@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace TimingShow
@@ -34,7 +34,7 @@ namespace TimingShow
             {
                 if (!enableXP) return hitMarginColours.colourPerfect;
 
-                if (XPerfectBridge.IsAvailable && Main.Settings.DisplayCurrMode)
+                if (XPerfectBridge.IsAvailable && ModContext.Settings.DisplayCurrMode)
                     return HkModeColor;
 
                 bool xp = isXP ?? IsXPerfect(diff, bpm, speed, pitch);

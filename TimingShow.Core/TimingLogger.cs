@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -17,7 +17,7 @@ namespace TimingShow
         {
             CloseSession();
 
-            _isCurrentSessionBinary = Main.Settings.UseBinaryWriter;
+            _isCurrentSessionBinary = ModContext.Settings.UseBinaryWriter;
             if (_isCurrentSessionBinary)
             {
                 TimingLoggerBinary.StartNewSession(levelPath, songName, customDir, bufferSize);
@@ -43,7 +43,7 @@ namespace TimingShow
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 _currentFilePath = Path.Combine(dir, $"{timestamp}_{safeSongName}.json");
                 FileStream fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-                Main.Logger.Log($"created {_currentFilePath}");
+                ModContext.Logger.Log($"created {_currentFilePath}");
 
                 int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
@@ -53,7 +53,7 @@ namespace TimingShow
                 _writer.WriteLine($"  \"levelPath\": \"{JsonEscape(levelPath ?? "")}\",");
                 _writer.WriteLine($"  \"timestamp\": {timestamp},");
 
-                if (Main.Settings.UseOldJsonFormat)
+                if (ModContext.Settings.UseOldJsonFormat)
                     _writer.Write("  \"offsets\": {");
                 else
                     _writer.Write("  \"offsets\": [");
@@ -62,14 +62,14 @@ namespace TimingShow
             }
             catch (Exception ex)
             {
-                Main.Logger.Error($"unable to create log file: {ex.Message}");
+                ModContext.Logger.Error($"unable to create log file: {ex.Message}");
                 _writer = null;
             }
         }
 
         public static void LogHit(double timing, HitMargin margin)
         {
-            int marginCode = RDC.auto ? 10 : (Main.Settings.Logger_EnableXPerfect && Main.LastIsXP ? 12 : (int)margin);
+            int marginCode = RDC.auto ? 10 : (ModContext.Settings.Logger_EnableXPerfect && ModContext.LastIsXP ? 12 : (int)margin);
 
             if (_isCurrentSessionBinary)
             {
@@ -83,10 +83,10 @@ namespace TimingShow
             {
                 _hitIndex++;
 
-                string fmt = "F" + Math.Max(0, Main.Settings.PercLog);
+                string fmt = "F" + Math.Max(0, ModContext.Settings.PercLog);
                 string formattedTiming = timing.ToString(fmt);
 
-                if (Main.Settings.UseOldJsonFormat)
+                if (ModContext.Settings.UseOldJsonFormat)
                 {
                     if (!_isFirstEntry)
                         _writer.WriteLine(",");
@@ -110,7 +110,7 @@ namespace TimingShow
             }
             catch (Exception ex)
             {
-                Main.Logger.Error($"Failed to write log: {ex.Message}");
+                ModContext.Logger.Error($"Failed to write log: {ex.Message}");
             }
         }
 
@@ -127,7 +127,7 @@ namespace TimingShow
 
             try
             {
-                if (Main.Settings.UseOldJsonFormat)
+                if (ModContext.Settings.UseOldJsonFormat)
                 {
                     _writer.WriteLine();
                     _writer.WriteLine("  }");
@@ -139,11 +139,11 @@ namespace TimingShow
 
                 _writer.Write("}");
                 _writer.Flush();
-                Main.Logger.Log($"Successfully closed session: {_currentFilePath}");
+                ModContext.Logger.Log($"Successfully closed session: {_currentFilePath}");
             }
             catch (Exception e)
             {
-                Main.Logger.Log($"Err closing log session: {e.Message}");
+                ModContext.Logger.Log($"Err closing log session: {e.Message}");
             }
             finally
             {

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace TimingShow
 {
@@ -26,48 +26,48 @@ namespace TimingShow
 
         public static void Update()
         {
-            bool isPlayBase = Main.IsPlaying && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused;
+            bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused;
 
             // timing hud
-            bool isTimingPlay = isPlayBase && Main.Settings.ShowTimingHUD;
+            bool isTimingPlay = isPlayBase && ModContext.Settings.ShowTimingHUD;
             EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
 
             if (isTimingPlay)
             {
-                string timing = Main.LastTiming.ToString("F" + Main.Settings.PercHUD);
-                if (Main.Settings.HUD_UseJudgeColor)
+                string timing = ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
+                if (ModContext.Settings.HUD_UseJudgeColor)
                 {
                     var cond = scrController.instance.chosenPlanet.conductor;
-                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.HUD_EnableXPerfect, Main.LastHitMargin, Main.LastIsXP);
+                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
-                UpdateTextHUD(_hudInstance, Main.Settings.HUD_Format, timing, Main.Settings.HUD_x, Main.Settings.HUD_y, Main.Settings.HUD_scale, Main.Settings.HUD_align, Main.Settings.HUD_bold);
+                UpdateTextHUD(_hudInstance, ModContext.Settings.HUD_Format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
             }
 
             // ur hud
-            bool isURPlay = isPlayBase && Main.Settings.ShowURHUD;
+            bool isURPlay = isPlayBase && ModContext.Settings.ShowURHUD;
             EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
 
             if (isURPlay)
             {
-                double currentUR = CalcUR.calc(Main.SessionOffsets);
-                string urStr = currentUR.ToString("F" + Main.Settings.PercURHUD);
-                UpdateTextHUD(_urHudInstance, Main.Settings.URHUD_Format, urStr, Main.Settings.URHUD_x, Main.Settings.URHUD_y, Main.Settings.URHUD_scale, Main.Settings.URHUD_align, Main.Settings.URHUD_bold);
+                double currentUR = CalcUR.calc(ModContext.SessionOffsets);
+                string urStr = currentUR.ToString("F" + ModContext.Settings.PercURHUD);
+                UpdateTextHUD(_urHudInstance, ModContext.Settings.URHUD_Format, urStr, ModContext.Settings.URHUD_x, ModContext.Settings.URHUD_y, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_align, ModContext.Settings.URHUD_bold);
             }
 
             // ratio hud
-            bool isRatioPlay = isPlayBase && Main.Settings.ShowRatioHUD;
+            bool isRatioPlay = isPlayBase && ModContext.Settings.ShowRatioHUD;
             EnsureUI(ref _ratiohudObj, ref _ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
 
             if (isRatioPlay)
             {
                 string ratioStr = CalcRatio.GetRatioString();
-                UpdateTextHUD(_ratioHudInstance, Main.Settings.RatioHUD_Format, ratioStr, Main.Settings.RatioHUD_x, Main.Settings.RatioHUD_y, Main.Settings.RatioHUD_scale, Main.Settings.RatioHUD_align, Main.Settings.RatioHUD_bold);
+                UpdateTextHUD(_ratioHudInstance, ModContext.Settings.RatioHUD_Format, ratioStr, ModContext.Settings.RatioHUD_x, ModContext.Settings.RatioHUD_y, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_align, ModContext.Settings.RatioHUD_bold);
             }
 
             // xacc gr
-            bool isXACCPlay = isPlayBase && Main.Settings.ShowXACCGraph;
-            if (Main.Settings.XACCGraph_ShowEnd) isXACCPlay = isXACCPlay && Main.IsLevelFinished;
+            bool isXACCPlay = isPlayBase && ModContext.Settings.ShowXACCGraph;
+            if (ModContext.Settings.XACCGraph_ShowEnd) isXACCPlay = isXACCPlay && ModContext.IsLevelFinished;
             if (_xaccGraphObject == null)
             {
                 _xaccGraphObject = new GameObject("TimingShow_XACCCanvas");

@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using System;
 using System.Reflection;
 using UnityEngine;
@@ -14,21 +14,21 @@ namespace TimingShow.Patches
         {
             public static void Postfix(scrHitTextMesh __instance)
             {
-                if (!Main.IsEnabled || !Main.Settings.ShowOnPlanet || !Main.IsPlaying) return;
+                if (!ModContext.IsEnabled || !ModContext.Settings.ShowOnPlanet || !ModContext.IsPlaying) return;
 
                 bool replace;
                 switch (__instance.hitMargin)
                 {
-                    case HitMargin.TooEarly: replace = Main.Settings.ReplaceTooEarly; break;
-                    case HitMargin.VeryEarly: replace = Main.Settings.ReplaceVeryEarly; break;
-                    case HitMargin.EarlyPerfect: replace = Main.Settings.ReplaceEarlyPerfect; break;
-                    case HitMargin.Perfect: replace = Main.Settings.ReplacePerfect; break;
-                    case HitMargin.LatePerfect: replace = Main.Settings.ReplaceLatePerfect; break;
-                    case HitMargin.VeryLate: replace = Main.Settings.ReplaceVeryLate; break;
-                    case HitMargin.TooLate: replace = Main.Settings.ReplaceTooLate; break;
-                    case HitMargin.Multipress: replace = Main.Settings.ReplaceMultipress; break;
-                    case HitMargin.FailMiss: replace = Main.Settings.ReplaceFailMiss; break;
-                    case HitMargin.FailOverload: replace = Main.Settings.ReplaceFailOverload; break;
+                    case HitMargin.TooEarly: replace = ModContext.Settings.ReplaceTooEarly; break;
+                    case HitMargin.VeryEarly: replace = ModContext.Settings.ReplaceVeryEarly; break;
+                    case HitMargin.EarlyPerfect: replace = ModContext.Settings.ReplaceEarlyPerfect; break;
+                    case HitMargin.Perfect: replace = ModContext.Settings.ReplacePerfect; break;
+                    case HitMargin.LatePerfect: replace = ModContext.Settings.ReplaceLatePerfect; break;
+                    case HitMargin.VeryLate: replace = ModContext.Settings.ReplaceVeryLate; break;
+                    case HitMargin.TooLate: replace = ModContext.Settings.ReplaceTooLate; break;
+                    case HitMargin.Multipress: replace = ModContext.Settings.ReplaceMultipress; break;
+                    case HitMargin.FailMiss: replace = ModContext.Settings.ReplaceFailMiss; break;
+                    case HitMargin.FailOverload: replace = ModContext.Settings.ReplaceFailOverload; break;
                     default: replace = false; break;
                 }
 
@@ -50,7 +50,7 @@ namespace TimingShow.Patches
                             double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
                             double pitch = conductor.song.pitch;
 
-                            targetColor = CalcXP.XPc(controller.chosenPlanet, Main.LastTiming, bpm, speed, pitch, Main.Settings.Planet_EnableXPerfect, __instance.hitMargin, Main.LastIsXP);
+                            targetColor = CalcXP.XPc(controller.chosenPlanet, ModContext.LastTiming, bpm, speed, pitch, ModContext.Settings.Planet_EnableXPerfect, __instance.hitMargin, ModContext.LastIsXP);
                         }
                         else
                         {
@@ -72,7 +72,7 @@ namespace TimingShow.Patches
                         }
                     }
 
-                    __instance.text.text = Main.Format(Main.LastTiming, Main.Settings.Perc2);
+                    __instance.text.text = ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
                     __instance.text.color = targetColor;
                     __instance.text.ForceMeshUpdate();
                 }
@@ -85,34 +85,34 @@ namespace TimingShow.Patches
         {
             public static void Postfix(scrController __instance)
             {
-                if (!Main.IsEnabled)
+                if (!ModContext.IsEnabled)
                 {
                     TimingLogger.CloseSession();
-                    if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
+                    if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
                     return;
                 }
 
-                if (Main.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
+                if (ModContext.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
                 {
                     double avgOffset = 0;
                     float xaccPerc = 0f;
-                    int count = Main.SessionOffsets != null ? Main.SessionOffsets.Count : 0;
+                    int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
 
                     if (count > 0)
                     {
-                        for (int i = 0; i < count; i++) avgOffset += Main.SessionOffsets[i];
+                        for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
                         avgOffset /= count;
                     }
 
                     if (__instance.playerOne != null && __instance.playerOne.marginTracker != null)
                         xaccPerc = __instance.playerOne.marginTracker.percentXAcc * 100f;
 
-                    string info = $"<size=60%>{LangMan.T("Avg_Timing")}{Main.Format(avgOffset, Main.Settings.Perc3)}    {LangMan.T("Label_UR")}{CalcUR.calc(Main.SessionOffsets).ToString("F" + Main.Settings.Perc3)}    XACC: {xaccPerc.ToString("F" + Main.Settings.Perc3)}%</size>";
+                    string info = $"<size=60%>{LangMan.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}    {LangMan.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}    XACC: {xaccPerc.ToString("F" + ModContext.Settings.Perc3)}%</size>";
                     __instance.txtTryCalibrating.text = info;
                 }
 
                 TimingLogger.CloseSession();
-                if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
+                if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
             }
         }
 
@@ -123,21 +123,21 @@ namespace TimingShow.Patches
             public static void Postfix(scrController __instance)
             {
                 TimingLogger.CloseSession();
-                if (!Main.IsEnabled) return;
-                if (!Main.Settings.ShowInWinPage) return;
+                if (!ModContext.IsEnabled) return;
+                if (!ModContext.Settings.ShowInWinPage) return;
 
                 if (__instance.detailedResults != null && __instance.detailedResults.textComponent != null && __instance.detailedResults.gameObject.activeSelf)
                 {
                     double avgOffset = 0;
-                    int count = Main.SessionOffsets != null ? Main.SessionOffsets.Count : 0;
+                    int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
 
                     if (count > 0)
                     {
-                        for (int i = 0; i < count; i++) avgOffset += Main.SessionOffsets[i];
+                        for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
                         avgOffset /= count;
                     }
 
-                    string info = LangMan.T("Avg_Timing") + Main.Format(avgOffset, Main.Settings.Perc4) + "    " + LangMan.T("Label_UR") + CalcUR.calc(Main.SessionOffsets).ToString("F" + Math.Max(0, Main.Settings.Perc4));
+                    string info = LangMan.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4) + "    " + LangMan.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4));
                     var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (resultsField != null)
                     {
@@ -149,7 +149,7 @@ namespace TimingShow.Patches
                     }
                     __instance.detailedResults.textComponent.text += info;
                 }
-                if (Main.SessionOffsets != null) Main.SessionOffsets.Clear();
+                if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
             }
         }
 
@@ -160,16 +160,16 @@ namespace TimingShow.Patches
             public static bool dirty = true;
             public static void Postfix(scrUIController __instance)
             {
-                if (!Main.IsEnabled) return;
-                if (Main.IsPlaying && Main.Settings.ShowInSongTitle && __instance.txtLevelName != null)
+                if (!ModContext.IsEnabled) return;
+                if (ModContext.IsPlaying && ModContext.Settings.ShowInSongTitle && __instance.txtLevelName != null)
                 {
                     if (dirty)
                     {
-                        string timing = Main.Format(Main.LastTiming, Main.Settings.Perc1);
-                        if (Main.Settings.Title_UseJudgeColor)
+                        string timing = ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
+                        if (ModContext.Settings.Title_UseJudgeColor)
                         {
                             var cond = scrController.instance.chosenPlanet.conductor;
-                            Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, Main.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, Main.Settings.Title_EnableXPerfect, Main.LastHitMargin, Main.LastIsXP);
+                            Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.Title_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
                             timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
                         }
                         __instance.txtLevelName.supportRichText = true;
@@ -178,7 +178,7 @@ namespace TimingShow.Patches
                     }
                 }
 
-                if (Main.IsPlaying && (Main.Settings.ShowTimingHUD || Main.Settings.ShowURHUD || Main.Settings.ShowRatioHUD || Main.Settings.ShowXACCGraph))
+                if (ModContext.IsPlaying && (ModContext.Settings.ShowTimingHUD || ModContext.Settings.ShowURHUD || ModContext.Settings.ShowRatioHUD || ModContext.Settings.ShowXACCGraph))
                 {
                     HUDMan.Update();
                 }

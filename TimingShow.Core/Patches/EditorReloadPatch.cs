@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace TimingShow.Patches
 {
@@ -13,7 +13,7 @@ namespace TimingShow.Patches
             }
             catch (Exception e)
             {
-                Main.Logger.Error($"[TimingShow] Failed to reload editor level: {e.Message}");
+                ModContext.Logger.Error($"[TimingShow] Failed to reload editor level: {e.Message}");
             }
         }
     }
