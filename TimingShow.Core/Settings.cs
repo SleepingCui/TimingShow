@@ -102,9 +102,8 @@ namespace TimingShow
                     return JsonConvert.DeserializeObject<Settings>(json) ?? new Settings();
                 }
             }
-            catch
-            {
-                // corrupted settings, fall through to default
+            catch {
+                //back2default
             }
             return new Settings();
         }
@@ -117,9 +116,8 @@ namespace TimingShow
                 string json = JsonConvert.SerializeObject(this, Formatting.Indented);
                 File.WriteAllText(filePath, json);
             }
-            catch
-            {
-                // silently fail - settings will try again next save
+            catch {
+                //lol
             }
         }
     }

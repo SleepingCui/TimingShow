@@ -46,10 +46,7 @@ namespace TimingShow
         {
             if (!_showSettings) return;
 
-            _settingsWindowRect = GUILayout.Window(
-                GetHashCode(),
-                _settingsWindowRect,
-                (id) =>
+            _settingsWindowRect = GUILayout.Window(GetHashCode(), _settingsWindowRect, (id) =>
                 {
                     _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUILayout.Width(520), GUILayout.Height(540));
                     Options.OnGUI();
@@ -77,7 +74,7 @@ namespace TimingShow
                             // var oldColor = GUI.color;
                             // GUI.color = Color.yellow;
                             GUILayout.Button("Press a key...", GUILayout.Width(140));
-                           // GUI.color = oldColor;
+                            // GUI.color = oldColor;
                         }
                         else
                         {
