@@ -1,0 +1,28 @@
+TimingShow.Core/ColorConverter.cs
+  s_ce5a1752655609::t_d543d626e1e011 1-45
+TimingShow.Core/TimingShow.Core.csproj
+  s_ce5a1752655609::t_3eb3afe767c6e5 98
+TimingShow.Core/ModContext.cs
+  s_ce5a1752655609::t_1034aed658fa9a 49-54
+TimingShow.Core/Settings.cs
+  s_ce5a1752655609::t_3eb970f9201cef 1
+  s_ce5a1752655609::t_c93879b9bd4bfb 112,133
+  s_ce5a1752655609::t_d40bcb734ec632 113-118,121-123,136-138
+  s_ce5a1752655609::t_82655b129311f6 92-94,97-103,141-142,145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f441cb28b4d28cb783c013a97458bc368096444b",
+  "prompts": {},
+  "sessions": {
+    "s_ce5a1752655609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbdc7e74-fab7-4c17-ab96-7be501306dc1",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
