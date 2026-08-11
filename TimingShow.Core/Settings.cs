@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json;
 using UnityEngine;
 using System.IO;
@@ -88,8 +89,17 @@ namespace TimingShow
         public bool UseOldJsonFormat;
         public bool UseBinaryWriter;
         public bool AutoReloadInEditor;
-
+        
+        
+        //ml only
         public KeyCode ConfigKey = KeyCode.F9;
+
+        #region cfgsettings
+        
+        private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
+        {
+            Converters = { new ColorConverter() }
+        };
 
         public static Settings Load(string modPath)
         {
@@ -99,11 +109,18 @@ namespace TimingShow
                 if (File.Exists(filePath))
                 {
                     string json = File.ReadAllText(filePath);
-                    return JsonConvert.DeserializeObject<Settings>(json) ?? new Settings();
+                    var settings = JsonConvert.DeserializeObject<Settings>(json, JsonSettings);
+                    if (settings != null)
+                    {
+                        if (settings.ConfigKey == KeyCode.None)
+                            settings.ConfigKey = KeyCode.F9;
+                        return settings;
+                    }
                 }
             }
-            catch {
-                //back2default
+            catch (Exception e)
+            {
+                ModContext.Logger?.Error($"Failed to load settings: {e.Message}");
             }
             return new Settings();
         }
@@ -113,12 +130,16 @@ namespace TimingShow
             try
             {
                 string filePath = Path.Combine(modPath, "Settings.json");
-                string json = JsonConvert.SerializeObject(this, Formatting.Indented);
+                string json = JsonConvert.SerializeObject(this, Formatting.Indented, JsonSettings);
                 File.WriteAllText(filePath, json);
             }
-            catch {
-                //lol
+            catch (Exception e)
+            {
+                ModContext.Logger?.Error($"Failed to save settings: {e.Message}");
             }
         }
+            
+        #endregion
     }
 }
+

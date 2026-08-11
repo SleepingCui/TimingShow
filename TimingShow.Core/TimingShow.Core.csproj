@@ -95,6 +95,7 @@
   <ItemGroup>
     <Compile Include="IModLogger.cs" />
     <Compile Include="ModContext.cs" />
+    <Compile Include="ColorConverter.cs" />
     <Compile Include="CalcRatio.cs" />
     <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />

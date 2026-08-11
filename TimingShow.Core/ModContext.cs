@@ -46,7 +46,12 @@ namespace TimingShow
 
         public static void SaveSettings()
         {
-            Settings?.Save(ModPath);
+            if (Settings == null)
+            {
+                Logger?.Error("SaveSettings: Settings is NULL!!!");
+                return;
+            }
+            Settings.Save(ModPath);
         }
 
         public static string Format(double val, int precision)
