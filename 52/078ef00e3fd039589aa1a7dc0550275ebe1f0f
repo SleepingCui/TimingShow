@@ -1,0 +1,26 @@
+TimingShow.Core/TimingShow.Core.csproj
+  s_a8188317cf2cf2::t_c5ba2e092a1dcc 114
+TimingShow.Core/TimingLoggerBinary.cs
+  s_a8188317cf2cf2::t_49f1896d50a954 42
+  s_a8188317cf2cf2::t_dc3a9a19785a64 17-18
+  s_a8188317cf2cf2::t_b7a0ccc1d51abb 45-46
+  s_a8188317cf2cf2::t_fb4a1e1964a3f7 69
+TimingShow.Core/HitCodec.cs
+  s_a8188317cf2cf2::t_3f42b4146c096e 1-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "52078ef00e3fd039589aa1a7dc0550275ebe1f0f",
+  "prompts": {},
+  "sessions": {
+    "s_a8188317cf2cf2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "51561de3-dde6-4e8a-9a2a-d80b79cb8159",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
