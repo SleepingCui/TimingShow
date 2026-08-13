@@ -14,7 +14,8 @@ namespace TimingShow
         private static FileStream _fs;
         private static string _currentFilePath;
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
-        private const byte FormatVersion = 1;
+        private const byte FormatVersion = 2;
+        private static long _prevTimingBits;
 
         public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSize)
         {
@@ -38,8 +39,10 @@ namespace TimingShow
 
                 int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read, bufferSizeBytes);
-                _gzStream = new GZipStream(_fs, System.IO.Compression.CompressionLevel.Fastest, leaveOpen: false);
+                _gzStream = new GZipStream(_fs, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: false);
                 _writer = new BinaryWriter(_gzStream, new UTF8Encoding(false));
+
+                _prevTimingBits = 0;
 
                 _writer.Write(MagicBytes);
                 _writer.Write(FormatVersion);
@@ -63,8 +66,7 @@ namespace TimingShow
 
             try
             {
-                _writer.Write(timing);
-                _writer.Write(marginCode);
+                HitCodec.WriteHit(_writer, timing, marginCode, ref _prevTimingBits);
             }
             catch (Exception ex)
             {

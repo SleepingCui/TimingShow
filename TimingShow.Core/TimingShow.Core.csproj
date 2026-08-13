@@ -111,6 +111,7 @@
     <Compile Include="TextUI.cs" />
     <Compile Include="TimingLogger.cs" />
     <Compile Include="TimingLoggerBinary.cs" />
+    <Compile Include="HitCodec.cs" />
     <Compile Include="XACCGraphDrawer.cs" />
     <Compile Include="XPerfectBridge.cs" />
     <Compile Include="GraphDrawerBase.cs" />
