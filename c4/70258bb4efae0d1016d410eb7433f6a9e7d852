@@ -1,0 +1,21 @@
+TimingShow.Melon/Properties/AssemblyInfo.cs
+  s_c468ff2435744b::t_3dd8f47f0c4e51 2-3,25-29
+TimingShow.UMM/Info.json
+  s_c468ff2435744b::t_d213c5a2a73c24 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c470258bb4efae0d1016d410eb7433f6a9e7d852",
+  "prompts": {},
+  "sessions": {
+    "s_c468ff2435744b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3661c6f0-3237-4910-b005-9147bc9f3b1c",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
