@@ -1,0 +1,19 @@
+TimingShow.Core/Options.cs
+  s_ce5a1752655609::t_8ce5f75f155f63 27-42,44-45,55,57-58,68,70-71,74,91-100,106,108-109,112,114-115,130,132-133,143,145-146,157,159-160,176,178-179,186,190,195,197,200,208-209,232,238,249,251-252,259,261-262,267-269,271-275,277-280,282-307,309-316,318-338,340,342,344,346,363,365-366,368-370,387-401,440,500-514,523,534
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ab3ac9f3b94c27fd119d7c858edd3f0b19ab7f0b",
+  "prompts": {},
+  "sessions": {
+    "s_ce5a1752655609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbdc7e74-fab7-4c17-ab96-7be501306dc1",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
