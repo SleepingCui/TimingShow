@@ -57,7 +57,8 @@ namespace TimingShow
             SettingFold(LangMan.T("Toggle_Planet"), ref ModContext.Settings.ShowOnPlanet, ref ModContext.Settings.Perc2, ref _foldoutPlanetSettings);
             if (oldShowOnPlanet != ModContext.Settings.ShowOnPlanet && ModContext.Settings.AutoReloadInEditor)
             {
-                Patches.EditorReloadPatch.TriggerEditorReload();
+                if (!ADOBase.isLevelEditor) return;
+                ADOBase.RestartScene();
             }
 
             if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)

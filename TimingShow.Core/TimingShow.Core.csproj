@@ -102,7 +102,6 @@
     <Compile Include="HUDMan.cs" />
     <Compile Include="LangMan.cs" />
     <Compile Include="Options.cs" />
-    <Compile Include="Patches\EditorReloadPatch.cs" />
     <Compile Include="Patches\PlayStatePatches.cs" />
     <Compile Include="Patches\TimingCalcPatches.cs" />
     <Compile Include="Patches\UIPatches.cs" />
