@@ -15,4 +15,3 @@ echo === Packaging ===
 powershell -NoProfile -Command "Compress-Archive -Path 'TimingShow.Core\bin\Release\TimingShow.Core.dll','TimingShow.UMM\bin\Release\TimingShow.UMM.dll','TimingShow.Melon\bin\Release\TimingShow.Melon.dll','TimingShow.UMM\bin\Release\Info.json','TimingShow.Core\bin\Release\lang.json' -DestinationPath 'TimingShow.zip' -Force"
 
 echo OK
-pause
