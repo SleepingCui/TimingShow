@@ -1,0 +1,19 @@
+build.bat
+  s_c468ff2435744b::t_6e54fd05db0554 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8f6120b1fbd8805305a672141bcdd68a2ab873d6",
+  "prompts": {},
+  "sessions": {
+    "s_c468ff2435744b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3661c6f0-3237-4910-b005-9147bc9f3b1c",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
