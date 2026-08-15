@@ -1,0 +1,19 @@
+TimingShow.Core/Options.cs
+  s_ce5a1752655609::t_f3c8759dac2310 60-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "36a3596b071660c9bbca4be57ea8952112cfcdce",
+  "prompts": {},
+  "sessions": {
+    "s_ce5a1752655609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbdc7e74-fab7-4c17-ab96-7be501306dc1",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
