@@ -38,6 +38,7 @@ namespace TimingShow
                 {
                     safeSongName = Path.GetFileNameWithoutExtension(songName);
                     foreach (char c in Path.GetInvalidFileNameChars()) safeSongName = safeSongName.Replace(c, '_');
+                    safeSongName = safeSongName.Replace(' ', '_');
                 }
 
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -127,6 +128,17 @@ namespace TimingShow
 
             try
             {
+                if (_hitIndex == 0)
+                {
+                    _writer.Dispose();
+                    _writer = null;
+                    if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+                        File.Delete(_currentFilePath);
+                    ModContext.Logger.Log($"Discarded empty session: {_currentFilePath}");
+                    _currentFilePath = null;
+                    return;
+                }
+
                 if (ModContext.Settings.UseOldJsonFormat)
                 {
                     _writer.WriteLine();
@@ -147,7 +159,7 @@ namespace TimingShow
             }
             finally
             {
-                _writer.Dispose();
+                _writer?.Dispose();
                 _writer = null;
                 _currentFilePath = null;
             }
