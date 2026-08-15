@@ -91,7 +91,7 @@ namespace TimingShow
 
                     GUI.DragWindow(new Rect(0, 0, 540, 20));
                 },
-                $"TimingShow (Melon)",
+                $"TimingShow v{Info.Version}",
                 GUILayout.Width(540),
                 GUILayout.Height(600)
             );
