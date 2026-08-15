@@ -1,0 +1,19 @@
+TimingShow.Melon/MelonMain.cs
+  s_7e93260bd93c9b::t_7c55216e13e0a0 94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "904e014d65c9ce8f2eafd4a646e1c181fc5cac48",
+  "prompts": {},
+  "sessions": {
+    "s_7e93260bd93c9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "95eaa7e2-a7b0-4f65-af31-4a4dd8e01d1e",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
