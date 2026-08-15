@@ -1,0 +1,39 @@
+TimingShow.Core/TimingLogger.cs
+  s_1aaa6ac708865b::t_39a9e3a7747775 41
+  s_1aaa6ac708865b::t_208a3afa8b209e 131-141,162
+TimingShow.Core/TimingLoggerBinary.cs
+  s_1aaa6ac708865b::t_81a094c36a1595 72
+  s_1aaa6ac708865b::t_4d3ef5c6f8644d 19
+  s_1aaa6ac708865b::t_d3a8d3017ff871 78,81,96-108
+  s_1aaa6ac708865b::t_3d440c942fb61f 48
+  s_1aaa6ac708865b::t_6468b94f2f9df2 36
+  s_1aaa6ac708865b::t_6498bd33dec28c 73-77
+  s_1aaa6ac708865b::t_1dd14f5281ca21 79-80
+  s_1aaa6ac708865b::t_bfed0cac0a9424 82
+TimingShow.Core/lang.json
+  s_c468ff2435744b::t_3c1262d876429a 64,133,201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "dc83df1fec9486ae0f3a53fe69f0a434b6ddba64",
+  "prompts": {},
+  "sessions": {
+    "s_1aaa6ac708865b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8745f669-c39e-433b-9d7a-19ed2195d168",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    },
+    "s_c468ff2435744b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3661c6f0-3237-4910-b005-9147bc9f3b1c",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
