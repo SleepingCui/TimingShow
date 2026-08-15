@@ -3,9 +3,6 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(TimingShow.MelonMain), "TimingShow", "1.8.1", "SleepingCui")]
-[assembly: MelonGame("7th Beat Games", "A Dance of Fire and Ice")]
-
 namespace TimingShow
 {
     public class MelonMain : MelonMod
