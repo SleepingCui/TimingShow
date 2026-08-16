@@ -1,0 +1,19 @@
+TimingShow.Core/CalcXP.cs
+  s_c468ff2435744b::t_b25d030371dc12 11-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "91cd4abb373fb17e11c62341e5fe85302e3c3903",
+  "prompts": {},
+  "sessions": {
+    "s_c468ff2435744b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3661c6f0-3237-4910-b005-9147bc9f3b1c",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
