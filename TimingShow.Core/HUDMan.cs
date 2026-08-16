@@ -27,45 +27,16 @@ namespace TimingShow
         public static void Update()
         {
             bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused;
-
-            // timing hud
+            
             bool isTimingPlay = isPlayBase && ModContext.Settings.ShowTimingHUD;
             EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
 
-            if (isTimingPlay)
-            {
-                string timing = ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
-                if (ModContext.Settings.HUD_UseJudgeColor)
-                {
-                    var cond = scrController.instance.chosenPlanet.conductor;
-                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
-                    timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
-                }
-                UpdateTextHUD(_hudInstance, ModContext.Settings.HUD_Format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
-            }
-
-            // ur hud
             bool isURPlay = isPlayBase && ModContext.Settings.ShowURHUD;
             EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
 
-            if (isURPlay)
-            {
-                double currentUR = CalcUR.calc(ModContext.SessionOffsets);
-                string urStr = currentUR.ToString("F" + ModContext.Settings.PercURHUD);
-                UpdateTextHUD(_urHudInstance, ModContext.Settings.URHUD_Format, urStr, ModContext.Settings.URHUD_x, ModContext.Settings.URHUD_y, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_align, ModContext.Settings.URHUD_bold);
-            }
-
-            // ratio hud
             bool isRatioPlay = isPlayBase && ModContext.Settings.ShowRatioHUD;
             EnsureUI(ref _ratiohudObj, ref _ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
 
-            if (isRatioPlay)
-            {
-                string ratioStr = CalcRatio.GetRatioString();
-                UpdateTextHUD(_ratioHudInstance, ModContext.Settings.RatioHUD_Format, ratioStr, ModContext.Settings.RatioHUD_x, ModContext.Settings.RatioHUD_y, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_align, ModContext.Settings.RatioHUD_bold);
-            }
-
-            // xacc gr
             bool isXACCPlay = isPlayBase && ModContext.Settings.ShowXACCGraph;
             if (ModContext.Settings.XACCGraph_ShowEnd) isXACCPlay = isXACCPlay && ModContext.IsLevelFinished;
             if (_xaccGraphObject == null)
@@ -81,6 +52,37 @@ namespace TimingShow
                 _xaccGraphInstance = drawerObj.AddComponent<XACCGraphDrawer>();
             }
             _xaccGraphObject.SetActive(isXACCPlay);
+
+            if (!ModContext.UIDirty) return; 
+
+            // timing hud
+            if (isTimingPlay)
+            {
+                string timing = ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
+                if (ModContext.Settings.HUD_UseJudgeColor)
+                {
+                    var cond = scrController.instance.chosenPlanet.conductor;
+                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
+                    timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
+                }
+                UpdateTextHUD(_hudInstance, ModContext.Settings.HUD_Format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
+            }
+
+            // ur hud
+            if (isURPlay)
+            {
+                string urStr = CalcUR.Calc().ToString("F" + ModContext.Settings.PercURHUD);
+                UpdateTextHUD(_urHudInstance, ModContext.Settings.URHUD_Format, urStr, ModContext.Settings.URHUD_x, ModContext.Settings.URHUD_y, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_align, ModContext.Settings.URHUD_bold);
+            }
+
+            // ratio hud
+            if (isRatioPlay)
+            {
+                string ratioStr = CalcRatio.GetRatioString();
+                UpdateTextHUD(_ratioHudInstance, ModContext.Settings.RatioHUD_Format, ratioStr, ModContext.Settings.RatioHUD_x, ModContext.Settings.RatioHUD_y, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_align, ModContext.Settings.RatioHUD_bold);
+            }
+
+            ModContext.UIDirty = false;
         }
 
 

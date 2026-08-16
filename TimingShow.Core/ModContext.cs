@@ -17,6 +17,9 @@ namespace TimingShow
         public static List<float> FullXAccHistory = new List<float>();
         public static bool IsLevelFinished = false;
         public static bool IsPlaying { get; set; } = false;
+        
+        public static bool UIDirty = true;
+        public static int XAccVersion;
 
         public static void Initialize(string modPath, IModLogger logger)
         {

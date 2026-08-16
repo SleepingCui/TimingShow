@@ -17,7 +17,10 @@ namespace TimingShow.Patches
                 ModContext.LastTiming = 0;
                 ModContext.LastHitMargin = HitMargin.Perfect;
                 ModContext.SessionOffsets.Clear();
+                CalcUR.Reset();
                 ModContext.FullXAccHistory.Clear();
+                ModContext.XAccVersion++;
+                ModContext.UIDirty = true;
                 MarginTrackerAddHitPatch.ResetCounts();
 
                 bool isAuto = RDC.auto;
@@ -87,6 +90,8 @@ namespace TimingShow.Patches
             public static void Postfix()
             {
                 ModContext.IsLevelFinished = true;
+                ModContext.XAccVersion++;
+                ModContext.UIDirty = true;
             }
         }
 
@@ -97,6 +102,8 @@ namespace TimingShow.Patches
             public static void Postfix()
             {
                 ModContext.IsLevelFinished = true;
+                ModContext.XAccVersion++;
+                ModContext.UIDirty = true;
             }
         }
     }

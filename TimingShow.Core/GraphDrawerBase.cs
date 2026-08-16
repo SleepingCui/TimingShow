@@ -29,6 +29,10 @@ namespace TimingShow
         private Text _topLabelText;
         private Text _tidLabelText;
         private Text _botLabelText;
+        
+        private int _lastDataVersion = -1;
+        private float _lastRectWidth = -1f;
+        private float _lastRectHeight = -1f;
 
         protected override void Awake()
         {
@@ -80,9 +84,18 @@ namespace TimingShow
             canvasRenderer.cull = false;
             ToggleTexts(true);
             UpdateTransform();
-            UpdateData();
-            UpdateTextLayoutAndValues();
-            SetVerticesDirty();
+
+            Rect rect = rectTransform.rect;
+            bool rectChanged = rect.width != _lastRectWidth || rect.height != _lastRectHeight;
+            if (_lastDataVersion != ModContext.XAccVersion || rectChanged)
+            {
+                _lastDataVersion = ModContext.XAccVersion;
+                _lastRectWidth = rect.width;
+                _lastRectHeight = rect.height;
+                UpdateData();
+                UpdateTextLayoutAndValues();
+                SetVerticesDirty();
+            }
         }
 
         private void ToggleTexts(bool active)

@@ -23,7 +23,7 @@ namespace TimingShow.Patches
                 double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
 
                 ModContext.LastTiming = diff;
-                UIPatches.UIReplacePatch.dirty = true;
+                ModContext.UIDirty = true;
 
                 ModContext.LastIsXP = CalcXP.IsXPerfect(diff, bpm, speed, pitch);
 
@@ -35,12 +35,14 @@ namespace TimingShow.Patches
                     if (needRecord && ModContext.SessionOffsets != null)
                     {
                         ModContext.SessionOffsets.Add(diff);
+                        CalcUR.AddSample(diff);
                     }
 
                     if (ModContext.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
                     {
                         float curXAcc = scrController.instance.playerOne.marginTracker.percentXAcc * 100f;
                         ModContext.FullXAccHistory.Add(curXAcc);
+                        ModContext.XAccVersion++;
                     }
 
                     if (isAuto && ModContext.Settings.EnableLogging)

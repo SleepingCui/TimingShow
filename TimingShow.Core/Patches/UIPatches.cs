@@ -89,6 +89,7 @@ namespace TimingShow.Patches
                 {
                     TimingLogger.CloseSession();
                     if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
+                    CalcUR.Reset();
                     return;
                 }
 
@@ -113,6 +114,7 @@ namespace TimingShow.Patches
 
                 TimingLogger.CloseSession();
                 if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
+                CalcUR.Reset();
             }
         }
 
@@ -150,6 +152,7 @@ namespace TimingShow.Patches
                     __instance.detailedResults.textComponent.text += info;
                 }
                 if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
+                CalcUR.Reset();
             }
         }
 
@@ -157,13 +160,12 @@ namespace TimingShow.Patches
         [HarmonyPatch(typeof(scrUIController), "Update")]
         public static class UIReplacePatch
         {
-            public static bool dirty = true;
             public static void Postfix(scrUIController __instance)
             {
                 if (!ModContext.IsEnabled) return;
                 if (ModContext.IsPlaying && ModContext.Settings.ShowInSongTitle && __instance.txtLevelName != null)
                 {
-                    if (dirty)
+                    if (ModContext.UIDirty)
                     {
                         string timing = ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
                         if (ModContext.Settings.Title_UseJudgeColor)
@@ -174,13 +176,16 @@ namespace TimingShow.Patches
                         }
                         __instance.txtLevelName.supportRichText = true;
                         __instance.txtLevelName.text = timing;
-                        dirty = false;
                     }
                 }
 
                 if (ModContext.IsPlaying && (ModContext.Settings.ShowTimingHUD || ModContext.Settings.ShowURHUD || ModContext.Settings.ShowRatioHUD || ModContext.Settings.ShowXACCGraph))
                 {
                     HUDMan.Update();
+                }
+                else
+                {
+                    ModContext.UIDirty = false;
                 }
             }
         }
