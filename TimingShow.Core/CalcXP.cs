@@ -7,7 +7,9 @@ namespace TimingShow
     {
         public static readonly Color32 XPColor = new Color32(77, 204, byte.MaxValue, byte.MaxValue);
         public static readonly Color32 HkModeColor = new Color32(255, 150, 180, byte.MaxValue);
-
+        
+        // from https://github.com/8100print/XPerfect
+        // Licensed under the MIT License.
         public static bool IsXPerfect(double diff, double bpm, double speed, double pitch)
         {
             if (XPerfectBridge.IsAvailable && XPerfectBridge.IsXPerfect()) return true;
