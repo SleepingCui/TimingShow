@@ -1,0 +1,39 @@
+TimingShow.Core/Patches/TimingCalcPatches.cs
+  s_c3569d5b11e5fe::t_74452f093a311c 26,38,45
+TimingShow.Core/CalcUR.cs
+  s_c3569d5b11e5fe::t_69fcfb5b7a6c5c 8-32
+TimingShow.Core/Patches/PlayStatePatches.cs
+  s_c3569d5b11e5fe::t_1ca3fae5bcf67c 20,22-23
+  s_c3569d5b11e5fe::t_a9493c4fac8533 93-94
+  s_c3569d5b11e5fe::t_f329f13d24d367 105-106
+TimingShow.Core/HUDMan.cs
+  s_c3569d5b11e5fe::t_6059cb7c22d9f4 34-58,74
+  s_c3569d5b11e5fe::t_501ae71211d24c 30,85
+TimingShow.Core/GraphDrawerBase.cs
+  s_c3569d5b11e5fe::t_b8fe34b995c9fc 87-98
+  s_c3569d5b11e5fe::t_dd31093fd9479d 32-35
+TimingShow.Core/Patches/UIPatches.cs
+  s_c3569d5b11e5fe::t_16ad8087b881d9 92
+  s_c3569d5b11e5fe::t_d9b3862a7e8679 155
+  s_c3569d5b11e5fe::t_cf84c41940ac46 117
+  s_c3569d5b11e5fe::t_5d2f836a2f8216 168,186-188
+  s_c3569d5b11e5fe::t_aa3c4830739529 189
+TimingShow.Core/ModContext.cs
+  s_c3569d5b11e5fe::t_4d163a1549eb67 20-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6cef2aadb0dc126a9bf7ad0918ff2377b76fd978",
+  "prompts": {},
+  "sessions": {
+    "s_c3569d5b11e5fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "369c3a5a-30d3-44a2-b4e2-ba6c286c7045",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
