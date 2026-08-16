@@ -186,6 +186,7 @@ namespace TimingShow
                     SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
                     Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
                     Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
+                    Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
 
                     // logdir
                     GUILayout.BeginHorizontal();
@@ -307,19 +308,10 @@ namespace TimingShow
                 );
 
                 GUILayout.Space(5);
-                
-                // binarywriter
-                ModContext.Settings.UseBinaryWriter = ToggleWithDescription(
-                    ModContext.Settings.UseBinaryWriter,
-                    "Toggle_UseBinaryWriter",
-                    "Desc_UseBinaryWriter"
-                );
 
-                GUILayout.Space(5);
-                
                 // oldfmt
                 bool previousGuiState = GUI.enabled;
-                if (ModContext.Settings.UseBinaryWriter)
+                if (!ModContext.Settings.UseJsonWriter)
                     GUI.enabled = false;
                 ModContext.Settings.UseOldJsonFormat = ToggleWithDescription(
                     ModContext.Settings.UseOldJsonFormat,

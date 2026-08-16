@@ -87,7 +87,7 @@ namespace TimingShow
         public bool UseHookMode;
         public bool DisplayCurrMode;
         public bool UseOldJsonFormat;
-        public bool UseBinaryWriter;
+        public bool UseJsonWriter;
         public bool AutoReloadInEditor;
         
         

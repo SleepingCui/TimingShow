@@ -17,7 +17,7 @@ namespace TimingShow
         {
             CloseSession();
 
-            _isCurrentSessionBinary = ModContext.Settings.UseBinaryWriter;
+            _isCurrentSessionBinary = !ModContext.Settings.UseJsonWriter;
             if (_isCurrentSessionBinary)
             {
                 TimingLoggerBinary.StartNewSession(levelPath, songName, customDir, bufferSize);
