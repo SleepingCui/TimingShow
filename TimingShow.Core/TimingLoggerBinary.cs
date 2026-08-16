@@ -14,11 +14,12 @@ namespace TimingShow
         private static FileStream _fs;
         private static string _currentFilePath;
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
-        private const byte FormatVersion = 2;
+        private const byte FormatVersion = 4;
         private static long _prevTimingBits;
         private static int _hitCount;
+        private static bool _isAngle;
 
-        public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSize)
+        public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();
 
@@ -46,12 +47,17 @@ namespace TimingShow
 
                 _prevTimingBits = 0;
                 _hitCount = 0;
+                _isAngle = ModContext.Settings.Logger_ShowAngle;
 
                 _writer.Write(MagicBytes);
                 _writer.Write(FormatVersion);
                 _writer.Write(timestamp);
                 _writer.Write(safeSongName);
                 _writer.Write(levelPath ?? "");
+                _writer.Write(bpm);
+                _writer.Write(speed);
+                _writer.Write(pitch);
+                _writer.Write(_isAngle);
 
                 _writer.Flush();
                 ModContext.Logger.Log($"created: {_currentFilePath} (binary)");
@@ -63,14 +69,14 @@ namespace TimingShow
             }
         }
 
-        public static void LogHit(double timing, int marginCode)
+        public static void LogHit(double timing, double angle, int marginCode)
         {
             if (_writer == null) return;
 
             try
             {
                 _hitCount++;
-                long bits = BitConverter.DoubleToInt64Bits(timing);
+                long bits = BitConverter.DoubleToInt64Bits(_isAngle ? angle : timing);
                 _writer.Write(bits ^ _prevTimingBits);
                 _prevTimingBits = bits;
                 uint v =  (uint)marginCode;

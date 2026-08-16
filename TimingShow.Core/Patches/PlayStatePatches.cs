@@ -15,6 +15,7 @@ namespace TimingShow.Patches
                 ModContext.IsPlaying = true;
                 ModContext.IsLevelFinished = false;
                 ModContext.LastTiming = 0;
+                ModContext.LastAngle = 0;
                 ModContext.LastHitMargin = HitMargin.Perfect;
                 ModContext.SessionOffsets.Clear();
                 CalcUR.Reset();
@@ -38,7 +39,13 @@ namespace TimingShow.Patches
                     if (scnGame.instance == null || scnGame.instance.levelData == null) return;
                     if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
 
-                    TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename, ModContext.Settings.LogDirectory, ModContext.Settings.LogBufferSizeKB);
+                    var controller = scrController.instance;
+                    var conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
+                    double bpm = conductor != null ? conductor.bpm : 0;
+                    double speed = controller != null && controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
+                    double pitch = conductor != null && conductor.song != null ? conductor.song.pitch : 1.0;
+
+                    TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename, bpm, speed, pitch, ModContext.Settings.LogDirectory, ModContext.Settings.LogBufferSizeKB);
                 }
                 catch (Exception e)
                 {

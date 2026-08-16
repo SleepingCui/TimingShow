@@ -64,6 +64,7 @@ namespace TimingShow
                 {
                     Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
                 }
+                Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
             }
         }
 
@@ -80,6 +81,7 @@ namespace TimingShow
 
             if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
+                Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
                 GUILayout.Label(LangMan.T("Setting_Title"));
@@ -126,6 +128,7 @@ namespace TimingShow
                 {
                     Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
                 }
+                Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
             }
         }
 
@@ -185,6 +188,7 @@ namespace TimingShow
                 {
                     SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
                     Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
+                    Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
                     Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
                     Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
 
@@ -256,6 +260,7 @@ namespace TimingShow
                 ModContext.SessionOffsets.Clear();
                 ModContext.LastHitMargin = HitMargin.Perfect;
                 ModContext.LastTiming = 0;
+                ModContext.LastAngle = 0;
             }
         }
 

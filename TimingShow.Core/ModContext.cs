@@ -11,6 +11,7 @@ namespace TimingShow
         public static bool IsEnabled;
         public static Settings Settings;
         public static double LastTiming;
+        public static double LastAngle;
         public static bool LastIsXP;
         public static HitMargin LastHitMargin = HitMargin.Perfect;
         public static List<double> SessionOffsets = new List<double>();
@@ -39,6 +40,7 @@ namespace TimingShow
             HarmonyInstance?.UnpatchAll(HarmonyInstance.Id);
             SessionOffsets.Clear();
             LastTiming = 0;
+            LastAngle = 0;
             HUDMan.Destroy();
         }
 
@@ -60,6 +62,11 @@ namespace TimingShow
         public static string Format(double val, int precision)
         {
             return $"{val.ToString("F" + precision)}ms";
+        }
+
+        public static string FormatAngle(double val, int precision)
+        {
+            return $"{val.ToString("F" + precision)}°";
         }
     }
 }

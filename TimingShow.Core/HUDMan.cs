@@ -58,14 +58,18 @@ namespace TimingShow
             // timing hud
             if (isTimingPlay)
             {
-                string timing = ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
+                string timing = ModContext.Settings.HUD_ShowAngle
+                    ? ModContext.LastAngle.ToString("F" + ModContext.Settings.PercHUD)
+                    : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
                     var cond = scrController.instance.chosenPlanet.conductor;
                     Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
-                UpdateTextHUD(_hudInstance, ModContext.Settings.HUD_Format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
+                string format = ModContext.Settings.HUD_Format;
+                if (ModContext.Settings.HUD_ShowAngle) format = format.Replace("ms", "°");
+                UpdateTextHUD(_hudInstance, format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
             }
 
             // ur hud

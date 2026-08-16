@@ -72,7 +72,9 @@ namespace TimingShow.Patches
                         }
                     }
 
-                    __instance.text.text = ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
+                    __instance.text.text = ModContext.Settings.Planet_ShowAngle
+                        ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc2)
+                        : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
                     __instance.text.color = targetColor;
                     __instance.text.ForceMeshUpdate();
                 }
@@ -167,7 +169,7 @@ namespace TimingShow.Patches
                 {
                     if (ModContext.UIDirty)
                     {
-                        string timing = ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
+                        string timing = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
                         if (ModContext.Settings.Title_UseJudgeColor)
                         {
                             var cond = scrController.instance.chosenPlanet.conductor;

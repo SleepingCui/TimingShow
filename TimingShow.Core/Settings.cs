@@ -12,6 +12,8 @@ namespace TimingShow
         public bool ShowOnDeath;
         public bool ShowInWinPage;
         public bool Title_UseJudgeColor;
+        public bool Title_ShowAngle;
+        public bool Planet_ShowAngle;
         public int Perc1 = 1;
         public int Perc2 = 1;
         public int Perc3 = 1;
@@ -38,6 +40,7 @@ namespace TimingShow
         public int PercHUD = 1;
         public string HUD_Format = "Timing - {0}ms";
         public bool HUD_UseJudgeColor;
+        public bool HUD_ShowAngle;
 
         public bool ShowURHUD;
         public float URHUD_x;
@@ -80,6 +83,7 @@ namespace TimingShow
 
         public bool EnableLogging;
         public bool LogAutoplay;
+        public bool Logger_ShowAngle;
         public string LogDirectory = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
         public int PercLog = 4;
         public int LogBufferSizeKB = 64;

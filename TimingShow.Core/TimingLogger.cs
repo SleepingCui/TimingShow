@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -12,20 +13,22 @@ namespace TimingShow
         private static bool _isFirstEntry = true;
         private static int _hitIndex;
         private static bool _isCurrentSessionBinary;
+        private static bool _isCurrentSessionAngle;
 
-        public static void StartNewSession(string levelPath, string songName, string customDir, int bufferSize)
+        public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();
 
             _isCurrentSessionBinary = !ModContext.Settings.UseJsonWriter;
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.StartNewSession(levelPath, songName, customDir, bufferSize);
+                TimingLoggerBinary.StartNewSession(levelPath, songName, bpm, speed, pitch, customDir, bufferSize);
                 return;
             }
 
             _isFirstEntry = true;
             _hitIndex = 0;
+            _isCurrentSessionAngle = ModContext.Settings.Logger_ShowAngle;
 
             try
             {
@@ -48,11 +51,14 @@ namespace TimingShow
 
                 int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
-
                 _writer.WriteLine("{");
                 _writer.WriteLine($"  \"songName\": \"{JsonEscape(safeSongName)}\",");
                 _writer.WriteLine($"  \"levelPath\": \"{JsonEscape(levelPath ?? "")}\",");
                 _writer.WriteLine($"  \"timestamp\": {timestamp},");
+                _writer.WriteLine($"  \"bpm\": {bpm.ToString("R", CultureInfo.InvariantCulture)},");
+                _writer.WriteLine($"  \"speed\": {speed.ToString("R", CultureInfo.InvariantCulture)},");
+                _writer.WriteLine($"  \"pitch\": {pitch.ToString("R", CultureInfo.InvariantCulture)},");
+                _writer.WriteLine($"  \"isAngle\": {(_isCurrentSessionAngle ? "true" : "false")},");
 
                 if (ModContext.Settings.UseOldJsonFormat)
                     _writer.Write("  \"offsets\": {");
@@ -68,13 +74,13 @@ namespace TimingShow
             }
         }
 
-        public static void LogHit(double timing, HitMargin margin)
+        public static void LogHit(double timing, double angle, HitMargin margin)
         {
             int marginCode = RDC.auto ? 10 : (ModContext.Settings.Logger_EnableXPerfect && ModContext.LastIsXP ? 12 : (int)margin);
 
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.LogHit(timing, marginCode);
+                TimingLoggerBinary.LogHit(timing, angle, marginCode);
                 return;
             }
 
@@ -85,7 +91,7 @@ namespace TimingShow
                 _hitIndex++;
 
                 string fmt = "F" + Math.Max(0, ModContext.Settings.PercLog);
-                string formattedTiming = timing.ToString(fmt);
+                string formattedTiming = (_isCurrentSessionAngle ? angle : timing).ToString(fmt);
 
                 if (ModContext.Settings.UseOldJsonFormat)
                 {
@@ -93,7 +99,6 @@ namespace TimingShow
                         _writer.WriteLine(",");
                     else
                         _writer.WriteLine();
-
                     _writer.Write($"    \"{_hitIndex}\": {{\"v\": {formattedTiming}, \"j\": {marginCode}}}");
                 }
                 else
@@ -162,6 +167,7 @@ namespace TimingShow
                 _writer?.Dispose();
                 _writer = null;
                 _currentFilePath = null;
+                _isCurrentSessionAngle = false;
             }
         }
 

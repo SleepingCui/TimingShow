@@ -23,6 +23,7 @@ namespace TimingShow.Patches
                 double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
 
                 ModContext.LastTiming = diff;
+                ModContext.LastAngle = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 180.0 / Math.PI;
                 ModContext.UIDirty = true;
 
                 ModContext.LastIsXP = CalcXP.IsXPerfect(diff, bpm, speed, pitch);
@@ -48,7 +49,7 @@ namespace TimingShow.Patches
                     if (isAuto && ModContext.Settings.EnableLogging)
                     {
                         ModContext.LastHitMargin = HitMargin.Perfect;
-                        TimingLogger.LogHit(diff, HitMargin.Perfect);
+                        TimingLogger.LogHit(diff, ModContext.LastAngle, HitMargin.Perfect);
                     }
                 }
             }
@@ -67,7 +68,7 @@ namespace TimingShow.Patches
                 if (!ModContext.IsEnabled || !ModContext.IsPlaying) return;
 
                 ModContext.LastHitMargin = hit;
-                TimingLogger.LogHit(ModContext.LastTiming, hit);
+                TimingLogger.LogHit(ModContext.LastTiming, ModContext.LastAngle, hit);
                 TotalHitsCount++;
                 if (hit == HitMargin.Perfect) PerfectCount++;
                 if (ModContext.LastIsXP) XPerfectCount++;
