@@ -1,0 +1,64 @@
+TimingShow.Core/Patches/TimingCalcPatches.cs
+  s_71733a4a5dc4c8::t_bc7ff19cc1dc6e 52
+  s_71733a4a5dc4c8::t_8665009c2b2e87 26
+  s_71733a4a5dc4c8::t_996742da607d9a 71
+TimingShow.Core/TimingLogger.cs
+  s_71733a4a5dc4c8::t_d1905518cf0105 61
+  s_71733a4a5dc4c8::t_f98c99efcd739a 31
+  s_71733a4a5dc4c8::t_4d31cf90eeee76 77,83,94
+  s_71733a4a5dc4c8::t_152e24034b1b91 58-60
+  s_71733a4a5dc4c8::t_b1dfac1d441f43 18,25
+  s_71733a4a5dc4c8::t_2d7bbe0f3916e7 16
+  s_71733a4a5dc4c8::t_a273f4cb79ff57 170
+  s_71733a4a5dc4c8::t_169b053b90ae48 2
+TimingShow.Core/HUDMan.cs
+  s_71733a4a5dc4c8::t_1710ba527f9aac 61-63
+  s_71733a4a5dc4c8::t_d4f9ae9af20adb 70-72
+TimingShow.Core/ModContext.cs
+  s_71733a4a5dc4c8::t_b0134bffe5a196 43
+  s_71733a4a5dc4c8::t_8c238859001d90 14
+  s_71733a4a5dc4c8::t_23f2d349ec3d9c 66-70
+TimingShow.Core/Patches/PlayStatePatches.cs
+  s_71733a4a5dc4c8::t_61216b94c7b72a 18
+  s_71733a4a5dc4c8::t_63d806c4f3bfc4 42-48
+TimingShow.Core/Options.cs
+  s_71733a4a5dc4c8::t_f293b5ea6ca29a 131
+  s_71733a4a5dc4c8::t_fd0f838f28c8fb 191
+  s_71733a4a5dc4c8::t_325b8ad3ee3445 84
+  s_71733a4a5dc4c8::t_f119146b102337 67
+  s_71733a4a5dc4c8::t_f6002f98cdf361 263
+TimingShow.Core/Settings.cs
+  s_71733a4a5dc4c8::t_c6e4929d1c21b8 43
+  s_71733a4a5dc4c8::t_27d464b1fb53a5 15-16
+  s_71733a4a5dc4c8::t_212eacbe3d028e 86
+TimingShow.Core/Patches/UIPatches.cs
+  s_71733a4a5dc4c8::t_a9e6880a1752ac 172
+  s_71733a4a5dc4c8::t_7327a1b71419f7 75-77
+TimingShow.Core/TimingLoggerBinary.cs
+  s_71733a4a5dc4c8::t_8629bfdd069b42 50,60
+  s_71733a4a5dc4c8::t_fc83d427f29d77 22
+  s_71733a4a5dc4c8::t_a4b747ea42ab7f 57-59
+  s_71733a4a5dc4c8::t_cad8368b67fd12 20
+  s_71733a4a5dc4c8::t_7dd8a51ec337ce 17
+  s_71733a4a5dc4c8::t_48da321d416bab 72,79
+TimingShow.Core/lang.json
+  s_71733a4a5dc4c8::t_30c01e26010a4a 136-137
+  s_71733a4a5dc4c8::t_01bfe8e2731757 204-205
+  s_71733a4a5dc4c8::t_9de0a457ea437d 67-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "5e27d39c8a079764591e7fbdcf254b9a7c9866e2",
+  "prompts": {},
+  "sessions": {
+    "s_71733a4a5dc4c8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bc001b2b-2a1f-4430-82e5-f6d54309c1b5",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
