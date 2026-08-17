@@ -57,8 +57,6 @@ jobs:
       - name: Prepare release notes
         id: notes
         shell: pwsh
-        env:
-          VERSION: ${{ inputs.tag }}
         run: |
           $changelog = "CHANGELOG.md"
 
@@ -67,24 +65,13 @@ jobs:
             exit 1
           }
 
-          $content = Get-Content $changelog -Raw
-
-          $pattern = "(?ms)^## \[?$([regex]::Escape($env:VERSION))\]?(?:\s*-\s*[^\r\n]+)?\s*\r?\n(.*?)(?=^## |\z)"
-          $match = [regex]::Match($content, $pattern)
-
-          if (-not $match.Success) {
-            Write-Error "No changelog entry found for version $env:VERSION."
-            exit 1
-          }
-
-          $body = $match.Groups[1].Value.Trim()
+          $body = Get-Content $changelog -Raw
 
           "body<<EOF" >> $env:GITHUB_OUTPUT
           $body >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
 
-          Write-Host "Release notes:"
-          Write-Host $body
+          Write-Host "CHANGELOG.md found."
 
       - name: Create tag
         env:
