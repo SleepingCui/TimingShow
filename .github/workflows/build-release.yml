@@ -1,0 +1,106 @@
+﻿name: Build Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout TimingShow
+        uses: actions/checkout@v6
+
+      - name: Checkout ADOFAI libs
+        uses: actions/checkout@v6
+        with:
+          repository: SleepingCui/adofai-libs
+          ref: main
+          token: ${{ secrets.ADOFAI_LIBS_TOKEN }}
+          path: libs
+
+      - name: Inspect libs
+        shell: pwsh
+        run: |
+          Write-Host "Current directory:"
+          Get-Location
+
+          Write-Host "`nlibs directory:"
+          Get-ChildItem -Path libs -Recurse -File |
+            Select-Object FullName, Length
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build and package
+        shell: cmd
+        run: build.bat
+
+      - name: Verify package
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "TimingShow.zip")) {
+            Write-Error "TimingShow.zip was not generated."
+            exit 1
+          }
+
+          Write-Host "Package generated successfully:"
+          Get-Item "TimingShow.zip" | Format-List Name, Length, FullName
+
+      - name: Prepare release notes
+        id: notes
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.tag }}
+        run: |
+          $changelog = "CHANGELOG.md"
+
+          if (-not (Test-Path $changelog)) {
+            "body=" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          $content = Get-Content $changelog -Raw
+
+          $pattern = "(?ms)^## \[?$([regex]::Escape($env:VERSION))\]?(?:\s*-\s*[^\r\n]+)?\s*\r?\n(.*?)(?=^## |\z)"
+          $match = [regex]::Match($content, $pattern)
+
+          if ($match.Success) {
+            $body = $match.Groups[1].Value.Trim()
+          } else {
+            Write-Warning "No changelog entry found for version $env:VERSION."
+            $body = ""
+          }
+
+          "body<<EOF" >> $env:GITHUB_OUTPUT
+          $body >> $env:GITHUB_OUTPUT
+          "EOF" >> $env:GITHUB_OUTPUT
+
+      - name: Create tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        shell: pwsh
+        run: |
+          git tag "$env:TAG"
+          git push origin "$env:TAG"
+
+      - name: Create Draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_BODY: ${{ steps.notes.outputs.body }}
+        shell: pwsh
+        run: |
+          gh release create "$env:TAG" `
+            "TimingShow.zip" `
+            --draft `
+            --title "$env:TAG" `
+            --notes "$env:RELEASE_BODY"
