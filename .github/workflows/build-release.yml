@@ -63,8 +63,8 @@ jobs:
           $changelog = "CHANGELOG.md"
 
           if (-not (Test-Path $changelog)) {
-            "body=" >> $env:GITHUB_OUTPUT
-            exit 0
+            Write-Error "CHANGELOG.md was not found."
+            exit 1
           }
 
           $content = Get-Content $changelog -Raw
@@ -72,16 +72,19 @@ jobs:
           $pattern = "(?ms)^## \[?$([regex]::Escape($env:VERSION))\]?(?:\s*-\s*[^\r\n]+)?\s*\r?\n(.*?)(?=^## |\z)"
           $match = [regex]::Match($content, $pattern)
 
-          if ($match.Success) {
-            $body = $match.Groups[1].Value.Trim()
-          } else {
-            Write-Warning "No changelog entry found for version $env:VERSION."
-            $body = ""
+          if (-not $match.Success) {
+            Write-Error "No changelog entry found for version $env:VERSION."
+            exit 1
           }
+
+          $body = $match.Groups[1].Value.Trim()
 
           "body<<EOF" >> $env:GITHUB_OUTPUT
           $body >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Release notes:"
+          Write-Host $body
 
       - name: Create tag
         env:
