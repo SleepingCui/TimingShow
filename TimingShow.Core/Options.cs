@@ -14,6 +14,8 @@ namespace TimingShow
 
         private static bool _foldoutTitleSettings;
         private static bool _foldoutPlanetSettings;
+        private static bool _foldoutDeathSettings; 
+        private static bool _foldoutWinSettings;
         private static bool _foldoutTimingHUD;
         private static bool _foldoutURHUD;
         private static bool _foldoutRatioHUD;
@@ -109,8 +111,24 @@ namespace TimingShow
 
         private static void DrawDeathAndWinSettings()
         {
-            SettingRow(LangMan.T("Toggle_Death"), ref ModContext.Settings.ShowOnDeath, ref ModContext.Settings.Perc3);
-            SettingRow(LangMan.T("Toggle_Win"), ref ModContext.Settings.ShowInWinPage, ref ModContext.Settings.Perc4);
+            SettingFold(LangMan.T("Toggle_Death"), ref ModContext.Settings.ShowOnDeath, ref ModContext.Settings.Perc3, ref _foldoutDeathSettings);
+            if (ModContext.Settings.ShowOnDeath && _foldoutDeathSettings)
+            {
+                Toggle(ref ModContext.Settings.ShowOnDeath_ShowAvgTiming, "Toggle_Death_AvgTiming");
+                Toggle(ref ModContext.Settings.ShowOnDeath_ShowUR, "Toggle_Death_UR");
+                Toggle(ref ModContext.Settings.ShowOnDeath_ShowXACC, "Toggle_Death_XACC");
+                Toggle(ref ModContext.Settings.ShowOnDeath_ShowRatio, "Toggle_Death_Ratio");
+                SliderInt("Label_FontSize", ref ModContext.Settings.ShowOnDeath_FontSize, 20, 200);
+            }
+            
+            SettingFold(LangMan.T("Toggle_Win"), ref ModContext.Settings.ShowInWinPage, ref ModContext.Settings.Perc4, ref _foldoutWinSettings);
+            if (ModContext.Settings.ShowInWinPage && _foldoutWinSettings)
+            {
+                Toggle(ref ModContext.Settings.ShowInWinPage_ShowAvgTiming, "Toggle_Death_AvgTiming");
+                Toggle(ref ModContext.Settings.ShowInWinPage_ShowUR, "Toggle_Death_UR");
+                Toggle(ref ModContext.Settings.ShowInWinPage_ShowRatio, "Toggle_Death_Ratio");
+                SliderInt("Label_FontSize", ref ModContext.Settings.ShowInWinPage_FontSize, 20, 200);
+            }
         }
 
         private static void DrawTimingHUD()

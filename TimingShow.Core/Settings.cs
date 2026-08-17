@@ -9,8 +9,21 @@ namespace TimingShow
     {
         public bool ShowInSongTitle;
         public bool ShowOnPlanet;
+        
         public bool ShowOnDeath;
-        public bool ShowInWinPage;
+        public bool ShowOnDeath_ShowAvgTiming = true;
+        public bool ShowOnDeath_ShowUR = true;
+        public bool ShowOnDeath_ShowXACC = true;
+        public bool ShowOnDeath_ShowRatio = true;
+        public int ShowOnDeath_FontSize = 60;
+        
+        public bool ShowInWinPage = true;
+        public bool ShowInWinPage_ShowAvgTiming = true;
+        public bool ShowInWinPage_ShowUR = true;
+        public bool ShowInWinPage_ShowRatio = true;
+        public int ShowInWinPage_FontSize = 100;
+        
+        
         public bool Title_UseJudgeColor;
         public bool Title_ShowAngle;
         public bool Planet_ShowAngle;

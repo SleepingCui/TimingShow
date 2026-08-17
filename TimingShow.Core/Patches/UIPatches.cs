@@ -1,5 +1,6 @@
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
@@ -97,21 +98,45 @@ namespace TimingShow.Patches
 
                 if (ModContext.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
                 {
-                    double avgOffset = 0;
-                    float xaccPerc = 0f;
-                    int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
+                    List<string> items = new List<string>();
 
-                    if (count > 0)
+                    if (ModContext.Settings.ShowOnDeath_ShowAvgTiming)
                     {
-                        for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
-                        avgOffset /= count;
+                        double avgOffset = 0;
+                        int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
+                        if (count > 0)
+                        {
+                            for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
+                            avgOffset /= count;
+                        }
+                        items.Add($"{LangMan.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}");
                     }
 
-                    if (__instance.playerOne != null && __instance.playerOne.marginTracker != null)
-                        xaccPerc = __instance.playerOne.marginTracker.percentXAcc * 100f;
+                    if (ModContext.Settings.ShowOnDeath_ShowUR)
+                    {
+                        items.Add($"{LangMan.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}");
+                    }
 
-                    string info = $"<size=60%>{LangMan.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}    {LangMan.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}    XACC: {xaccPerc.ToString("F" + ModContext.Settings.Perc3)}%</size>";
-                    __instance.txtTryCalibrating.text = info;
+                    if (ModContext.Settings.ShowOnDeath_ShowXACC)
+                    {
+                        float xaccPerc = 0f;
+                        if (__instance.playerOne != null && __instance.playerOne.marginTracker != null)
+                            xaccPerc = __instance.playerOne.marginTracker.percentXAcc * 100f;
+                        items.Add($"XACC: {xaccPerc.ToString("F" + ModContext.Settings.Perc3)}%");
+                    }
+
+                    if (ModContext.Settings.ShowOnDeath_ShowRatio)
+                    {
+                        string ratioStr = CalcRatio.GetRatioString();
+                        items.Add($"Ratio: {ratioStr}:1");
+                    }
+
+                    if (items.Count > 0)
+                    {
+                        int fontSize = ModContext.Settings.ShowOnDeath_FontSize;
+                        string info = $"<size={fontSize}%>{string.Join("    ", items)}</size>";
+                        __instance.txtTryCalibrating.text = info;
+                    }
                 }
 
                 TimingLogger.CloseSession();
@@ -132,26 +157,49 @@ namespace TimingShow.Patches
 
                 if (__instance.detailedResults != null && __instance.detailedResults.textComponent != null && __instance.detailedResults.gameObject.activeSelf)
                 {
-                    double avgOffset = 0;
-                    int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
+                    List<string> items = new List<string>();
 
-                    if (count > 0)
+                    if (ModContext.Settings.ShowInWinPage_ShowAvgTiming)
                     {
-                        for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
-                        avgOffset /= count;
-                    }
+                        double avgOffset = 0;
+                        int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
 
-                    string info = LangMan.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4) + "    " + LangMan.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4));
-                    var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (resultsField != null)
-                    {
-                        string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];
-                        if (resultsArray != null)
+                        if (count > 0)
                         {
-                            for (int i = 0; i < resultsArray.Length; i++) resultsArray[i] += info;
+                            for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
+                            avgOffset /= count;
                         }
+
+                        items.Add(LangMan.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4));
                     }
-                    __instance.detailedResults.textComponent.text += info;
+
+                    if (ModContext.Settings.ShowInWinPage_ShowUR)
+                    {
+                        items.Add(LangMan.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4)));
+                    }
+
+                    if (ModContext.Settings.ShowInWinPage_ShowRatio)
+                    {
+                        string ratioStr = CalcRatio.GetRatioString();
+                        items.Add($"Ratio: {ratioStr}:1");
+                    }
+
+                    if (items.Count > 0)
+                    {
+                        int fontSize = ModContext.Settings.ShowInWinPage_FontSize;
+                        string info = $"<size={fontSize}%>    {string.Join("    ", items)}</size>";
+
+                        var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (resultsField != null)
+                        {
+                            string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];
+                            if (resultsArray != null)
+                            {
+                                for (int i = 0; i < resultsArray.Length; i++) resultsArray[i] += info;
+                            }
+                        }
+                        __instance.detailedResults.textComponent.text += info;
+                    }
                 }
                 if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
                 CalcUR.Reset();
