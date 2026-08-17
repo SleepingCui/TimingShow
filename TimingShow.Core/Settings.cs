@@ -8,7 +8,11 @@ namespace TimingShow
     public class Settings
     {
         public bool ShowInSongTitle;
+        public bool Title_UseJudgeColor;
+        public bool Title_ShowAngle;
+        
         public bool ShowOnPlanet;
+        public bool Planet_ShowAngle;
         
         public bool ShowOnDeath;
         public bool ShowOnDeath_ShowAvgTiming = true;
@@ -17,16 +21,12 @@ namespace TimingShow
         public bool ShowOnDeath_ShowRatio = true;
         public int ShowOnDeath_FontSize = 60;
         
-        public bool ShowInWinPage = true;
+        public bool ShowInWinPage;
         public bool ShowInWinPage_ShowAvgTiming = true;
         public bool ShowInWinPage_ShowUR = true;
         public bool ShowInWinPage_ShowRatio = true;
-        public int ShowInWinPage_FontSize = 100;
+        public int ShowInWinPage_FontSize = 60;
         
-        
-        public bool Title_UseJudgeColor;
-        public bool Title_ShowAngle;
-        public bool Planet_ShowAngle;
         public int Perc1 = 1;
         public int Perc2 = 1;
         public int Perc3 = 1;

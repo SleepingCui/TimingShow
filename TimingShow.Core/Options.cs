@@ -26,8 +26,7 @@ namespace TimingShow
 
         public static void OnGUI()
         {
-            if (_activeButtonStyle == null)
-                _activeButtonStyle = new GUIStyle(GUI.skin.button);
+            if (_activeButtonStyle == null) _activeButtonStyle = new GUIStyle(GUI.skin.button);
             
             DrawLanguageSettings();
             DrawTitleSettings();
@@ -58,9 +57,10 @@ namespace TimingShow
 
         private static void DrawTitleSettings()
         {
-            SettingFold(LangMan.T("Toggle_Title"), ref ModContext.Settings.ShowInSongTitle, ref ModContext.Settings.Perc1, ref _foldoutTitleSettings);
+            FoldoutToggle(LangMan.T("Toggle_Title"), ref ModContext.Settings.ShowInSongTitle, ref _foldoutTitleSettings);
             if (ModContext.Settings.ShowInSongTitle && _foldoutTitleSettings)
             {
+                SliderInt("Label_Precision", ref ModContext.Settings.Perc1, 0, 5);
                 Toggle(ref ModContext.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
                 if (ModContext.Settings.Title_UseJudgeColor)
                 {
@@ -73,8 +73,8 @@ namespace TimingShow
         private static void DrawPlanetSettings()
         {
             bool oldShowOnPlanet = ModContext.Settings.ShowOnPlanet;
-            SettingFold(LangMan.T("Toggle_Planet"), ref ModContext.Settings.ShowOnPlanet, ref ModContext.Settings.Perc2, ref _foldoutPlanetSettings);
-
+            FoldoutToggle(LangMan.T("Toggle_Planet"), ref ModContext.Settings.ShowOnPlanet, ref _foldoutPlanetSettings);
+            
             if (oldShowOnPlanet != ModContext.Settings.ShowOnPlanet && ModContext.Settings.AutoReloadInEditor)
             {
                 if (!ADOBase.isLevelEditor) return;
@@ -83,6 +83,7 @@ namespace TimingShow
 
             if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
+                SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
@@ -111,9 +112,10 @@ namespace TimingShow
 
         private static void DrawDeathAndWinSettings()
         {
-            SettingFold(LangMan.T("Toggle_Death"), ref ModContext.Settings.ShowOnDeath, ref ModContext.Settings.Perc3, ref _foldoutDeathSettings);
+            FoldoutToggle(LangMan.T("Toggle_Death"), ref ModContext.Settings.ShowOnDeath, ref _foldoutDeathSettings);
             if (ModContext.Settings.ShowOnDeath && _foldoutDeathSettings)
             {
+                SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
                 Toggle(ref ModContext.Settings.ShowOnDeath_ShowAvgTiming, "Toggle_Death_AvgTiming");
                 Toggle(ref ModContext.Settings.ShowOnDeath_ShowUR, "Toggle_Death_UR");
                 Toggle(ref ModContext.Settings.ShowOnDeath_ShowXACC, "Toggle_Death_XACC");
@@ -121,9 +123,10 @@ namespace TimingShow
                 SliderInt("Label_FontSize", ref ModContext.Settings.ShowOnDeath_FontSize, 20, 200);
             }
             
-            SettingFold(LangMan.T("Toggle_Win"), ref ModContext.Settings.ShowInWinPage, ref ModContext.Settings.Perc4, ref _foldoutWinSettings);
+            FoldoutToggle(LangMan.T("Toggle_Win"), ref ModContext.Settings.ShowInWinPage, ref _foldoutWinSettings);
             if (ModContext.Settings.ShowInWinPage && _foldoutWinSettings)
             {
+                SliderInt("Label_Precision", ref ModContext.Settings.Perc4, 0, 5);
                 Toggle(ref ModContext.Settings.ShowInWinPage_ShowAvgTiming, "Toggle_Death_AvgTiming");
                 Toggle(ref ModContext.Settings.ShowInWinPage_ShowUR, "Toggle_Death_UR");
                 Toggle(ref ModContext.Settings.ShowInWinPage_ShowRatio, "Toggle_Death_Ratio");
