@@ -1,0 +1,20 @@
+README.md
+  s_1a5c47cca818ea::t_a1cc35208cddee 5-6,15,23
+  s_1a5c47cca818ea::t_538c00d6373f0f 3,7-14,16-22,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "a3ca8ebe0fc3df6e6c74b9a4f4414e09b61db073",
+  "prompts": {},
+  "sessions": {
+    "s_1a5c47cca818ea": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0723e-0434-79f0-93e6-95d6903103b5",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
