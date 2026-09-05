@@ -1,0 +1,18 @@
+TimingShow.Core/Options.cs
+  h_acd8c3a33a52ed 2,12-13,17-19,21,25,28,30,32,34-343,345,347-453,455-456,460-467,471-472,474-481,483-484,486-488,491-493,500-503,507-547,582,710,713,715,728,731,748-749,768,780,846-848,853-854,858,860,873,875-876,878,880,890,904-905,915,924,933-935,943,945,966,971-972,978,982-1003,1005
+TimingShow.Core/Settings.cs
+  h_acd8c3a33a52ed 2,91-97,166
+TimingShow.Core/TimingShow.Core.csproj
+  h_acd8c3a33a52ed 52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "711e4aa30626b82743fbe5b13858f593737dbb6a",
+  "prompts": {},
+  "humans": {
+    "h_acd8c3a33a52ed": {
+      "author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
