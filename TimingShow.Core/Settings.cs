@@ -1,7 +1,7 @@
 using System;
+using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
-using System.IO;
 
 namespace TimingShow
 {
@@ -88,6 +88,13 @@ namespace TimingShow
         public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 1f);
         public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
+        
+        public Color Theme_CardBg = new Color(0.12f, 0.13f, 0.15f, 0.95f);      // 外层大卡片底色
+        public Color Theme_SubCardBg = new Color(0.16f, 0.17f, 0.20f, 1.00f);   // 子卡片/警告框底色
+        public Color Theme_Primary = new Color(0.18f, 0.53f, 0.94f, 1.0f);     // 主色调（选中态、胶囊开启色）
+        public Color Theme_BgDark = new Color(0.22f, 0.24f, 0.28f, 1.0f);      // 未选中/默认组件底色
+        public Color Theme_Text = new Color(0.92f, 0.94f, 0.96f, 1.0f);        // 主要文本颜色
+        public Color Theme_Warning = new Color(0.96f, 0.62f, 0.14f, 1.0f);     // 警告信息颜色
 
         public bool Title_EnableXPerfect;
         public bool Planet_EnableXPerfect;
@@ -107,8 +114,6 @@ namespace TimingShow
         public bool UseJsonWriter;
         public bool AutoReloadInEditor;
         
-        
-        //ml only
         public KeyCode ConfigKey = KeyCode.F9;
 
         #region cfgsettings
@@ -159,4 +164,3 @@ namespace TimingShow
         #endregion
     }
 }
-
