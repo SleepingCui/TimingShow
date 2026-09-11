@@ -229,7 +229,7 @@ namespace TimingShow.Patches
                     }
                 }
 
-                if (ModContext.IsPlaying && (ModContext.Settings.ShowTimingHUD || ModContext.Settings.ShowURHUD || ModContext.Settings.ShowRatioHUD || ModContext.Settings.ShowXACCGraph))
+                if (ModContext.IsPlaying)
                 {
                     HUDMan.Update();
                 }

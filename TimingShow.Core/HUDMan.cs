@@ -39,7 +39,7 @@ namespace TimingShow
 
             bool isXACCPlay = isPlayBase && ModContext.Settings.ShowXACCGraph;
             if (ModContext.Settings.XACCGraph_ShowEnd) isXACCPlay = isXACCPlay && ModContext.IsLevelFinished;
-            if (_xaccGraphObject == null)
+            if (isXACCPlay && _xaccGraphObject == null)
             {
                 _xaccGraphObject = new GameObject("TimingShow_XACCCanvas");
                 Canvas canvas = _xaccGraphObject.AddComponent<Canvas>();
@@ -51,7 +51,7 @@ namespace TimingShow
 
                 _xaccGraphInstance = drawerObj.AddComponent<XACCGraphDrawer>();
             }
-            _xaccGraphObject.SetActive(isXACCPlay);
+            if (_xaccGraphObject != null && _xaccGraphObject.activeSelf != isXACCPlay) _xaccGraphObject.SetActive(isXACCPlay);
 
             if (!ModContext.UIDirty) return; 
 
@@ -94,10 +94,11 @@ namespace TimingShow
         {
             if (obj == null)
             {
+                if (!active) return;
                 obj = new GameObject(name);
                 instance = obj.AddComponent<T>();
             }
-            obj.SetActive(active);
+            if (obj.activeSelf != active) obj.SetActive(active);
         }
 
         private static void UpdateTextHUD(TextUI instance, string format, string value, float x, float y, float scale, int align, bool bold)
