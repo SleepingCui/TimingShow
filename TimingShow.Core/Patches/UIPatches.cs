@@ -73,9 +73,13 @@ namespace TimingShow.Patches
                         }
                     }
 
-                    __instance.text.text = ModContext.Settings.Planet_ShowAngle
+                    string timingText = ModContext.Settings.Planet_ShowAngle
                         ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc2)
                         : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
+
+                    int fontSize = ModContext.Settings.Planet_FontSize;
+                    __instance.text.richText = true;
+                    __instance.text.text = fontSize == 100 ? timingText : $"<size={fontSize}%>{timingText}</size>";
                     __instance.text.color = targetColor;
                     __instance.text.ForceMeshUpdate();
                 }
@@ -109,12 +113,12 @@ namespace TimingShow.Patches
                             for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
                             avgOffset /= count;
                         }
-                        items.Add($"{LangMan.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}");
+                        items.Add($"{i18n.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}");
                     }
 
                     if (ModContext.Settings.ShowOnDeath_ShowUR)
                     {
-                        items.Add($"{LangMan.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}");
+                        items.Add($"{i18n.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}");
                     }
 
                     if (ModContext.Settings.ShowOnDeath_ShowXACC)
@@ -170,12 +174,12 @@ namespace TimingShow.Patches
                             avgOffset /= count;
                         }
 
-                        items.Add(LangMan.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4));
+                        items.Add(i18n.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4));
                     }
 
                     if (ModContext.Settings.ShowInWinPage_ShowUR)
                     {
-                        items.Add(LangMan.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4)));
+                        items.Add(i18n.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4)));
                     }
 
                     if (ModContext.Settings.ShowInWinPage_ShowRatio)
@@ -224,6 +228,9 @@ namespace TimingShow.Patches
                             Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.Title_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
                             timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
                         }
+                        int fontSize = ModContext.Settings.Title_FontSize;
+                        if (fontSize != 100) timing = $"<size={fontSize}%>{timing}</size>";
+
                         __instance.txtLevelName.supportRichText = true;
                         __instance.txtLevelName.text = timing;
                     }

@@ -23,10 +23,16 @@ namespace TimingShow
         private static bool _foldoutXACCGraph;
 
         private static GUIStyle _activeButtonStyle;
+        private static GUIStyle _richToggleStyle;
 
         public static void OnGUI()
         {
             if (_activeButtonStyle == null) _activeButtonStyle = new GUIStyle(GUI.skin.button);
+            if (_richToggleStyle == null)
+            {
+                _richToggleStyle = new GUIStyle(GUI.skin.toggle);
+                _richToggleStyle.richText = true;
+            }
             
             ModContext.LastConfigGuiFrame = Time.frameCount;
             ModContext.UIDirty = true;
@@ -48,7 +54,7 @@ namespace TimingShow
         private static void DrawLanguageSettings()
         {
             GUILayout.BeginHorizontal();
-            foreach (string langCode in LangMan.AvailableLanguages)
+            foreach (string langCode in i18n.AvailableLanguages)
             {
                 _activeButtonStyle.fontStyle = (ModContext.Settings.Language == langCode) ? FontStyle.Bold : FontStyle.Normal;
                 if (GUILayout.Button(langCode, _activeButtonStyle, GUILayout.Width(100)))
@@ -60,10 +66,11 @@ namespace TimingShow
 
         private static void DrawTitleSettings()
         {
-            FoldoutToggle(LangMan.T("Toggle_Title"), ref ModContext.Settings.ShowInSongTitle, ref _foldoutTitleSettings);
+            FoldoutToggle(i18n.T("Toggle_Title"), ref ModContext.Settings.ShowInSongTitle, ref _foldoutTitleSettings);
             if (ModContext.Settings.ShowInSongTitle && _foldoutTitleSettings)
             {
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc1, 0, 5);
+                SliderInt("Label_FontSize", ref ModContext.Settings.Title_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
                 if (ModContext.Settings.Title_UseJudgeColor)
                 {
@@ -76,7 +83,7 @@ namespace TimingShow
         private static void DrawPlanetSettings()
         {
             bool oldShowOnPlanet = ModContext.Settings.ShowOnPlanet;
-            FoldoutToggle(LangMan.T("Toggle_Planet"), ref ModContext.Settings.ShowOnPlanet, ref _foldoutPlanetSettings);
+            FoldoutToggle(i18n.T("Toggle_Planet"), ref ModContext.Settings.ShowOnPlanet, ref _foldoutPlanetSettings);
             
             if (oldShowOnPlanet != ModContext.Settings.ShowOnPlanet && ModContext.Settings.AutoReloadInEditor)
             {
@@ -87,10 +94,11 @@ namespace TimingShow
             if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
+                SliderInt("Label_FontSize", ref ModContext.Settings.Planet_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
-                GUILayout.Label(LangMan.T("Setting_Title"));
+                GUILayout.Label(i18n.T("Setting_Title"));
                 GUILayout.BeginHorizontal();
                 {
                     GUILayout.Space(20);
@@ -115,7 +123,7 @@ namespace TimingShow
 
         private static void DrawDeathAndWinSettings()
         {
-            FoldoutToggle(LangMan.T("Toggle_Death"), ref ModContext.Settings.ShowOnDeath, ref _foldoutDeathSettings);
+            FoldoutToggle(i18n.T("Toggle_Death"), ref ModContext.Settings.ShowOnDeath, ref _foldoutDeathSettings);
             if (ModContext.Settings.ShowOnDeath && _foldoutDeathSettings)
             {
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
@@ -126,7 +134,7 @@ namespace TimingShow
                 SliderInt("Label_FontSize", ref ModContext.Settings.ShowOnDeath_FontSize, 20, 200);
             }
             
-            FoldoutToggle(LangMan.T("Toggle_Win"), ref ModContext.Settings.ShowInWinPage, ref _foldoutWinSettings);
+            FoldoutToggle(i18n.T("Toggle_Win"), ref ModContext.Settings.ShowInWinPage, ref _foldoutWinSettings);
             if (ModContext.Settings.ShowInWinPage && _foldoutWinSettings)
             {
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc4, 0, 5);
@@ -139,7 +147,7 @@ namespace TimingShow
 
         private static void DrawTimingHUD()
         {
-            ToggleFold(LangMan.T("Toggle_TimingHUD"), ref ModContext.Settings.ShowTimingHUD, ref _foldoutTimingHUD);
+            ToggleFold(i18n.T("Toggle_TimingHUD"), ref ModContext.Settings.ShowTimingHUD, ref _foldoutTimingHUD);
             if (ModContext.Settings.ShowTimingHUD && _foldoutTimingHUD)
             {
                 HUDBase(
@@ -158,7 +166,7 @@ namespace TimingShow
 
         private static void DrawURHUD()
         {
-            ToggleFold(LangMan.T("Toggle_URHUD"), ref ModContext.Settings.ShowURHUD, ref _foldoutURHUD);
+            ToggleFold(i18n.T("Toggle_URHUD"), ref ModContext.Settings.ShowURHUD, ref _foldoutURHUD);
             if (ModContext.Settings.ShowURHUD && _foldoutURHUD)
             {
                 HUDBase(
@@ -171,7 +179,7 @@ namespace TimingShow
 
         private static void DrawRatioHUD()
         {
-            ToggleFold(LangMan.T("Toggle_RatioHUD"), ref ModContext.Settings.ShowRatioHUD, ref _foldoutRatioHUD);
+            ToggleFold(i18n.T("Toggle_RatioHUD"), ref ModContext.Settings.ShowRatioHUD, ref _foldoutRatioHUD);
             if (ModContext.Settings.ShowRatioHUD && _foldoutRatioHUD)
             {
                 HUDBase(
@@ -185,7 +193,7 @@ namespace TimingShow
 
         private static void DrawXACCGraphSettings()
         {
-            ToggleFold(LangMan.T("Toggle_XACCGraph"), ref ModContext.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
+            ToggleFold(i18n.T("Toggle_XACCGraph"), ref ModContext.Settings.ShowXACCGraph, ref _foldoutXACCGraph);
             if (ModContext.Settings.ShowXACCGraph && _foldoutXACCGraph)
             {
                 Toggle(ref ModContext.Settings.XACCGraph_ShowEnd, "Toggle_ShowEnd");
@@ -194,11 +202,11 @@ namespace TimingShow
                 SliderFloat("Label_Scale", ref ModContext.Settings.XACCGraph_Scale, 0.2f, 3.0f);
                 IntField("Label_MaxPoints", ref _maxPointsText, ref ModContext.Settings.XACCGraph_MaxPoints, 20, 5000, 250);
 
-                ColorPicker(LangMan.T("Label_BgColor"), ref ModContext.Settings.XACCGraph_BgColor);
-                ColorPicker(LangMan.T("Label_LineColor"), ref ModContext.Settings.XACCGraph_LineColor);
-                ColorPicker(LangMan.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor);
-                ColorPicker(LangMan.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor);
-                ColorPicker(LangMan.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor);
+                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.XACCGraph_BgColor);
+                ColorPicker(i18n.T("Label_LineColor"), ref ModContext.Settings.XACCGraph_LineColor);
+                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor);
+                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor);
+                ColorPicker(i18n.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor);
             }
         }
 
@@ -206,7 +214,7 @@ namespace TimingShow
         {
             GUILayout.BeginVertical();
             {
-                ToggleFold(LangMan.T("Toggle_Logging"), ref ModContext.Settings.EnableLogging, ref _foldoutLogging);
+                ToggleFold(i18n.T("Toggle_Logging"), ref ModContext.Settings.EnableLogging, ref _foldoutLogging);
 
                 if (ModContext.Settings.EnableLogging && _foldoutLogging)
                 {
@@ -219,15 +227,15 @@ namespace TimingShow
                     // logdir
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
-                    GUILayout.Label(LangMan.T("Label_LogDir"), GUILayout.Width(140));
+                    GUILayout.Label(i18n.T("Label_LogDir"), GUILayout.Width(140));
                     string absolutePath = AbsLogPath(ModContext.Settings.LogDirectory);
                     string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "None" : absolutePath;
                     GUILayout.Label(displayPath, GUILayout.MinWidth(280), GUILayout.MaxWidth(480));
                     
-                    if (GUILayout.Button(LangMan.T("Btn_Browse"), GUILayout.Width(70)))
+                    if (GUILayout.Button(i18n.T("Btn_Browse"), GUILayout.Width(70)))
                     {
                         string defaultDir = GetLogDirectory();
-                        string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], LangMan.T("Label_LogDir"));
+                        string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], i18n.T("Label_LogDir"));
                         if (!string.IsNullOrEmpty(selectedFolder))
                         {
                             ModContext.Settings.LogDirectory = Path.GetFullPath(selectedFolder);
@@ -238,7 +246,7 @@ namespace TimingShow
                     // lbl buffersize
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(20);
-                    GUILayout.Label(LangMan.T("Label_BufferSize"), GUILayout.Width(140));
+                    GUILayout.Label(i18n.T("Label_BufferSize"), GUILayout.Width(140));
 
                     if (_bufferSizeText == null) _bufferSizeText = ModContext.Settings.LogBufferSizeKB.ToString();
                     string newBufferSizeText = GUILayout.TextField(_bufferSizeText, GUILayout.Width(80));
@@ -260,7 +268,7 @@ namespace TimingShow
 
                 // btn openlogs
                 GUILayout.Space(10);
-                if (GUILayout.Button(LangMan.T("Btn_OpenLogs"), GUILayout.Width(150)))
+                if (GUILayout.Button(i18n.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
                     try
                     {
@@ -279,7 +287,7 @@ namespace TimingShow
 
         private static void DrawSessionControls()
         {
-            if (GUILayout.Button(LangMan.T("Btn_Reset"), GUILayout.Width(150)))
+            if (GUILayout.Button(i18n.T("Btn_Reset"), GUILayout.Width(150)))
             {
                 ModContext.SessionOffsets.Clear();
                 ModContext.LastHitMargin = HitMargin.Perfect;
@@ -291,7 +299,7 @@ namespace TimingShow
         private static void DrawAdvancedSettings()
         {
             string foldoutArrow = _showAdvancedSettings ? "▲" : "▼";
-            if (GUILayout.Button($"{LangMan.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
+            if (GUILayout.Button($"{i18n.T("Btn_Advanced")} {foldoutArrow}", GUILayout.Width(150)))
                 _showAdvancedSettings = !_showAdvancedSettings;
 
             if (!_showAdvancedSettings) return;
@@ -301,30 +309,34 @@ namespace TimingShow
                 GUILayout.Space(5);
                 
                 // hookmode
-                bool newHookMode = ToggleWithDescription( ModContext.Settings.UseHookMode, "Toggle_HookMode", "Desc_HookMode" );
+                XPerfectBridge.HookState currentState = XPerfectBridge.CurrentState;
+                string statusDisplayText;
+                switch (currentState)
+                {
+                    case XPerfectBridge.HookState.Success:
+                        statusDisplayText = $"<color=#55FF55> ({i18n.T("Status_HookSuccess")})</color>";
+                        break;
+                    case XPerfectBridge.HookState.Failed:
+                        statusDisplayText = $"<color=#FF5555> ({i18n.T("Status_HookFailed")}{XPerfectBridge.LastErrorMessage})</color>";
+                        break;
+                    case XPerfectBridge.HookState.Disabled:
+                    default:
+                        statusDisplayText = string.Empty;
+                        break;
+                }
+
+                bool newHookMode = ToggleWithDescription(
+                    ModContext.Settings.UseHookMode,
+                    "Toggle_HookMode",
+                    "Desc_HookMode",
+                    extraLabelHtml: statusDisplayText
+                );
                 if (newHookMode != ModContext.Settings.UseHookMode)
                 {
                     ModContext.Settings.UseHookMode = newHookMode;
                     if (newHookMode) XPerfectBridge.TryInit(force: true);
                     else XPerfectBridge.UnloadHook();
                 }
-
-                XPerfectBridge.HookState currentState = XPerfectBridge.CurrentState;
-                string statusDisplayText;
-                switch (currentState)
-                {
-                    case XPerfectBridge.HookState.Success:
-                        statusDisplayText = $"<color=#55FF55>{LangMan.T("Status_HookSuccess")}</color>";
-                        break;
-                    case XPerfectBridge.HookState.Failed:
-                        statusDisplayText = $"<color=#FF5555>{LangMan.T("Status_HookFailed")}{XPerfectBridge.LastErrorMessage}</color>";
-                        break;
-                    case XPerfectBridge.HookState.Disabled:
-                    default:
-                        statusDisplayText = $"<color=#888888>{LangMan.T("Status_HookDisabled")}</color>";
-                        break;
-                }
-                IndentedLabel($"{LangMan.T("Label_CurrentStatus")}{statusDisplayText}");
 
                 GUILayout.Space(5);
                 
@@ -405,10 +417,10 @@ namespace TimingShow
             }
         }
 
-        private static bool ToggleWithDescription(bool value, string labelKey, string descKey, string extraDescriptionHtml = "", float indent = 20)
+        private static bool ToggleWithDescription(bool value, string labelKey, string descKey, string extraDescriptionHtml = "", float indent = 20, string extraLabelHtml = "")
         {
-            bool newValue = GUILayout.Toggle(value, LangMan.T(labelKey));
-            IndentedLabel($"<color=#888888>{LangMan.T(descKey)}</color>{extraDescriptionHtml}", indent);
+            bool newValue = GUILayout.Toggle(value, i18n.T(labelKey) + extraLabelHtml, _richToggleStyle);
+            IndentedLabel($"<color=#888888>{i18n.T(descKey)}</color>{extraDescriptionHtml}", indent);
             return newValue;
         }
 
@@ -430,7 +442,7 @@ namespace TimingShow
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
-            GUILayout.Label(LangMan.T("Label_Format"), GUILayout.Width(100));
+            GUILayout.Label(i18n.T("Label_Format"), GUILayout.Width(100));
             format = GUILayout.TextField(format, GUILayout.Width(200));
             GUILayout.EndHorizontal();
 
@@ -441,7 +453,7 @@ namespace TimingShow
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
-            GUILayout.Label(LangMan.T(labelKey) + $"{value:F2}", GUILayout.Width(120));
+            GUILayout.Label(i18n.T(labelKey) + $"{value:F2}", GUILayout.Width(120));
             value = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(120));
             GUILayout.EndHorizontal();
         }
@@ -450,7 +462,7 @@ namespace TimingShow
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
-            GUILayout.Label(LangMan.T(labelKey) + $"{value}", GUILayout.Width(120));
+            GUILayout.Label(i18n.T(labelKey) + $"{value}", GUILayout.Width(120));
             value = Mathf.RoundToInt(GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(100)));
             GUILayout.EndHorizontal();
         }
@@ -459,7 +471,7 @@ namespace TimingShow
         {
             GUILayout.BeginHorizontal();
             if (indent > 0) GUILayout.Space(indent);
-            value = GUILayout.Toggle(value, LangMan.T(labelKey));
+            value = GUILayout.Toggle(value, i18n.T(labelKey));
             GUILayout.EndHorizontal();
         }
 
@@ -467,7 +479,7 @@ namespace TimingShow
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
-            GUILayout.Label(LangMan.T(labelKey), GUILayout.Width(labelWidth));
+            GUILayout.Label(i18n.T(labelKey), GUILayout.Width(labelWidth));
             if (text == null) text = value.ToString();
             string newText = GUILayout.TextField(text, GUILayout.Width(80));
             if (newText != text)
@@ -490,9 +502,9 @@ namespace TimingShow
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
-            GUILayout.Label(LangMan.T("Label_Align"), GUILayout.Width(100));
+            GUILayout.Label(i18n.T("Label_Align"), GUILayout.Width(100));
 
-            string[] labels = { LangMan.T("Btn_Left"), LangMan.T("Btn_Center"), LangMan.T("Btn_Right") };
+            string[] labels = { i18n.T("Btn_Left"), i18n.T("Btn_Center"), i18n.T("Btn_Right") };
             for (int i = 0; i < 3; i++)
             {
                 _activeButtonStyle.fontStyle = (align == i) ? FontStyle.Bold : FontStyle.Normal;

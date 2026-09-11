@@ -46,7 +46,7 @@ namespace TimingShow
                 if (type == null)
                 {
                     ModContext.Logger.Log("XPerfect not installed or not loaded");
-                    SetState(HookState.Failed, LangMan.T("Err_AssemblyNotFound"));
+                    SetState(HookState.Failed, i18n.T("Err_AssemblyNotFound"));
                     return;
                 }
 
@@ -54,7 +54,7 @@ namespace TimingShow
                 var getter = prop?.GetGetMethod();
                 if (getter == null)
                 {
-                    SetState(HookState.Failed, LangMan.T(prop == null ? "Err_PropertyNotFound" : "Err_GetterNotFound"));
+                    SetState(HookState.Failed, i18n.T(prop == null ? "Err_PropertyNotFound" : "Err_GetterNotFound"));
                     return;
                 }
 
@@ -65,11 +65,11 @@ namespace TimingShow
                     ModContext.Logger.Log("Successfully hooked into XPerfect mod");
                 }
                 else
-                    SetState(HookState.Failed, LangMan.T("Err_DelegateFailed"));
+                    SetState(HookState.Failed, i18n.T("Err_DelegateFailed"));
             }
             catch (Exception e)
             {
-                SetState(HookState.Failed, $"{LangMan.T("Err_UnhandledException")}{e.Message}");
+                SetState(HookState.Failed, $"{i18n.T("Err_UnhandledException")}{e.Message}");
                 ModContext.Logger.Error($"Failed to hook XPerfect: {e.Message}");
             }
         }

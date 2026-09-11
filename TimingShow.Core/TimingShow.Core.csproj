@@ -100,7 +100,7 @@
     <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />
     <Compile Include="HUDMan.cs" />
-    <Compile Include="LangMan.cs" />
+    <Compile Include="i18n.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Patches\PlayStatePatches.cs" />
     <Compile Include="Patches\TimingCalcPatches.cs" />

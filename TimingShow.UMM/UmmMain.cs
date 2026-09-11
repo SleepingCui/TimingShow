@@ -11,7 +11,7 @@ namespace TimingShow
             ModContext.Initialize(modEntry.Path, logger);
             ModContext.Settings = Settings.Load(modEntry.Path);
 
-            LangMan.LoadLanguages(ModContext.ModPath);
+            i18n.LoadLanguages(ModContext.ModPath);
             XPerfectBridge.TryInit();
 
             var harmony = new Harmony(modEntry.Info.Id);

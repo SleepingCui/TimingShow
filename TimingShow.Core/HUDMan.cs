@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TimingShow
 {
     public static class HUDMan
     {
+        private static readonly HashSet<string> _badFormats = new HashSet<string>();
+
         private static GameObject _hudObj;
         private static TextUI _hudInstance;
 
@@ -63,9 +66,18 @@ namespace TimingShow
                     : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
-                    var cond = scrController.instance.chosenPlanet.conductor;
-                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
-                    timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
+                    var controller = scrController.instance;
+                    var conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
+
+                    if (controller != null && conductor != null && conductor.song != null)
+                    {
+                        double bpm = conductor.bpm;
+                        double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
+                        double pitch = conductor.song.pitch;
+
+                        Color fColor = CalcXP.XPc(controller.chosenPlanet, ModContext.LastTiming, bpm, speed, pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
+                        timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
+                    }
                 }
                 string format = ModContext.Settings.HUD_Format;
                 if (ModContext.Settings.HUD_ShowAngle) format = format.Replace("ms", "°");
@@ -103,11 +115,25 @@ namespace TimingShow
 
         private static void UpdateTextHUD(TextUI instance, string format, string value, float x, float y, float scale, int align, bool bold)
         {
-            instance.SetText(string.Format(format, value));
+            instance.SetText(SafeFormat(format, value));
             instance.SetPosition(x, y);
             instance.SetSize((int)(24 * scale));
             instance.text.alignment = instance.ToAlign(align);
             instance.text.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+        }
+        
+        private static string SafeFormat(string format, string value)
+        {
+            if (format == null || _badFormats.Contains(format)) return value;
+            try
+            {
+                return string.Format(format, value);
+            }
+            catch
+            {
+                _badFormats.Add(format);
+                return value;
+            }
         }
 
         private static void DestroyHUD<T>(ref GameObject obj, ref T instance) where T : class

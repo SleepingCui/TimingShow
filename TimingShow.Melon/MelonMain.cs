@@ -19,7 +19,7 @@ namespace TimingShow
             ModContext.Initialize(modPath, logger);
             ModContext.Settings = Settings.Load(modPath);
 
-            LangMan.LoadLanguages(modPath);
+            i18n.LoadLanguages(modPath);
             XPerfectBridge.TryInit();
             var harmony = new HarmonyLib.Harmony("TimingShow.Melon");
             ModContext.HarmonyInstance = harmony;
@@ -53,7 +53,7 @@ namespace TimingShow
                     GUILayout.Space(4);
                     GUILayout.BeginHorizontal();
                     {
-                        GUILayout.Label(LangMan.T("Label_ConfigKey"), GUILayout.Width(100));
+                        GUILayout.Label(i18n.T("Label_ConfigKey"), GUILayout.Width(100));
                         if (_isRebinding)
                         {
                             var evt = Event.current;
@@ -68,7 +68,7 @@ namespace TimingShow
                                 }
                                 evt.Use();
                             } 
-                            GUILayout.Button(LangMan.T("Btn_PressKey"), GUILayout.Width(140));
+                            GUILayout.Button(i18n.T("Btn_PressKey"), GUILayout.Width(140));
                         }
                         else
                         {
@@ -79,7 +79,7 @@ namespace TimingShow
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button(LangMan.T("Btn_SaveAndClose"), GUILayout.Width(120)))
+                    if (GUILayout.Button(i18n.T("Btn_SaveAndClose"), GUILayout.Width(120)))
                     {
                         ModContext.SaveSettings();
                         _showSettings = false;

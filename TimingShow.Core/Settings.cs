@@ -10,9 +10,11 @@ namespace TimingShow
         public bool ShowInSongTitle;
         public bool Title_UseJudgeColor;
         public bool Title_ShowAngle;
-        
+        public int Title_FontSize = 100;
+
         public bool ShowOnPlanet;
         public bool Planet_ShowAngle;
+        public int Planet_FontSize = 100;
         
         public bool ShowOnDeath;
         public bool ShowOnDeath_ShowAvgTiming = true;
