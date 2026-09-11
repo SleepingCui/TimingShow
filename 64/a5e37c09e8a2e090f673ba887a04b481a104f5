@@ -1,0 +1,22 @@
+TimingShow.Core/Patches/UIPatches.cs
+  s_34d02122a76f29::t_c1ba446a536c52 232
+TimingShow.Core/HUDMan.cs
+  s_34d02122a76f29::t_da59cf0032c5b6 42,54
+  s_34d02122a76f29::t_91bfae9ed4533f 97,101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "64a5e37c09e8a2e090f673ba887a04b481a104f5",
+  "prompts": {},
+  "sessions": {
+    "s_34d02122a76f29": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9356fc-a771-43b6-bfb6-30c4aba751f3",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
