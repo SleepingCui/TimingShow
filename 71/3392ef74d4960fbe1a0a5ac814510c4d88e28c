@@ -1,0 +1,36 @@
+TimingShow.Core/GraphDrawerBase.cs
+  s_34d02122a76f29::t_d974008484011d 34,119-120
+  s_34d02122a76f29::t_81aee2b1238e41 91-92,95,103-118
+TimingShow.Core/lang.json
+  s_34d02122a76f29::t_2992a061c90dcf 73-76
+  s_34d02122a76f29::t_27623059fb26ad 150-153
+  s_34d02122a76f29::t_9b3f917e7909a6 226-229
+TimingShow.Melon/MelonMain.cs
+  s_34d02122a76f29::t_30c80b15d3afb4 82
+  s_34d02122a76f29::t_570a5b6859f9a7 56
+  s_34d02122a76f29::t_92f5f3a96274ac 71
+TimingShow.Core/ModContext.cs
+  s_34d02122a76f29::t_40b498d5475070 26-27
+  s_34d02122a76f29::t_38f81c9496d21a 3
+  s_34d02122a76f29::t_acf94b75950e51 25
+TimingShow.Core/HUDMan.cs
+  s_34d02122a76f29::t_8c8823169e1c2c 29
+TimingShow.Core/Options.cs
+  s_34d02122a76f29::t_302f0d4923d197 31-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "713392ef74d4960fbe1a0a5ac814510c4d88e28c",
+  "prompts": {},
+  "sessions": {
+    "s_34d02122a76f29": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9356fc-a771-43b6-bfb6-30c4aba751f3",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
