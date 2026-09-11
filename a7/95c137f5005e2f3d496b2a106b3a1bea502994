@@ -1,0 +1,33 @@
+TimingShow.Core/Options.cs
+  s_236a353bbcbc21::t_55a92ddf2af16c 26,31-35,57,69,73,86,97,101,126,137,150,169,182,196,205-209,217,230,235,238,249,271,290,302,317,320,324,327-339,420,422-423,445,456,465,474,482,505,507
+TimingShow.Core/Patches/UIPatches.cs
+  s_236a353bbcbc21::t_cf3632d2fd8f7b 76,79-82,116,121,177,182,231-233
+TimingShow.Core/Settings.cs
+  s_236a353bbcbc21::t_9d0f4945d5f441 13-14,17
+TimingShow.Melon/MelonMain.cs
+  s_34d02122a76f29::t_64214e4a08fe0c 22,56,71,82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "a795c137f5005e2f3d496b2a106b3a1bea502994",
+  "prompts": {},
+  "sessions": {
+    "s_236a353bbcbc21": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1a5c4b47-25c6-46cd-98d1-8fc6d9609c9a",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    },
+    "s_34d02122a76f29": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9356fc-a771-43b6-bfb6-30c4aba751f3",
+        "model": "unknown"
+      },
+      "human_author": "SleepingCui <130898297+SleepingCui@users.noreply.github.com>"
+    }
+  }
+}
