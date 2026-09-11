@@ -53,7 +53,7 @@ namespace TimingShow
                     GUILayout.Space(4);
                     GUILayout.BeginHorizontal();
                     {
-                        GUILayout.Label("Config Key", GUILayout.Width(100));
+                        GUILayout.Label(LangMan.T("Label_ConfigKey"), GUILayout.Width(100));
                         if (_isRebinding)
                         {
                             var evt = Event.current;
@@ -68,10 +68,7 @@ namespace TimingShow
                                 }
                                 evt.Use();
                             } 
-                            // var oldColor = GUI.color;
-                            // GUI.color = Color.yellow;
-                            GUILayout.Button("Press a key...", GUILayout.Width(140));
-                            // GUI.color = oldColor;
+                            GUILayout.Button(LangMan.T("Btn_PressKey"), GUILayout.Width(140));
                         }
                         else
                         {
@@ -82,7 +79,7 @@ namespace TimingShow
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("Save & Close", GUILayout.Width(120)))
+                    if (GUILayout.Button(LangMan.T("Btn_SaveAndClose"), GUILayout.Width(120)))
                     {
                         ModContext.SaveSettings();
                         _showSettings = false;

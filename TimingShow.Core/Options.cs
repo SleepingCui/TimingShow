@@ -28,6 +28,9 @@ namespace TimingShow
         {
             if (_activeButtonStyle == null) _activeButtonStyle = new GUIStyle(GUI.skin.button);
             
+            ModContext.LastConfigGuiFrame = Time.frameCount;
+            ModContext.UIDirty = true;
+
             DrawLanguageSettings();
             DrawTitleSettings();
             DrawPlanetSettings();

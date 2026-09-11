@@ -70,7 +70,10 @@
     "Toggle_Death_UR": "显示 UR",
     "Toggle_Death_XACC": "显示 XACC",
     "Toggle_Death_Ratio": "显示 Ratio",
-    "Label_FontSize": "字体大小: "
+    "Label_FontSize": "字体大小: ",
+    "Label_ConfigKey": "配置按键: ",
+    "Btn_PressKey": "请按下按键...",
+    "Btn_SaveAndClose": "保存并关闭"
   },
   "English": {
     "Toggle_Title": "Show in Song Title",
@@ -144,7 +147,10 @@
     "Toggle_Death_UR": "Show UR",
     "Toggle_Death_XACC": "Show XACC",
     "Toggle_Death_Ratio": "Show Ratio",
-    "Label_FontSize": "Font Size: "
+    "Label_FontSize": "Font Size: ",
+    "Label_ConfigKey": "Config Key: ",
+    "Btn_PressKey": "Press a key...",
+    "Btn_SaveAndClose": "Save & Close"
   },
   "한국어": {
     "Toggle_Title": "노래 제목에 표시",
@@ -217,6 +223,9 @@
     "Toggle_Death_UR": "UR 표시",
     "Toggle_Death_XACC": "XACC 표시",
     "Toggle_Death_Ratio": "Ratio 표시",
-    "Label_FontSize": "글꼴 크기: "
+    "Label_FontSize": "글꼴 크기: ",
+    "Label_ConfigKey": "설정 키: ",
+    "Btn_PressKey": "키를 누르세요...",
+    "Btn_SaveAndClose": "저장 및 닫기"
   }
 }

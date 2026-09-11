@@ -1,5 +1,6 @@
 using HarmonyLib;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace TimingShow
 {
@@ -21,6 +22,9 @@ namespace TimingShow
         
         public static bool UIDirty = true;
         public static int XAccVersion;
+        
+        public static int LastConfigGuiFrame = -1;
+        public static bool IsConfigOpen => LastConfigGuiFrame >= 0 && Time.frameCount - LastConfigGuiFrame <= 1;
 
         public static void Initialize(string modPath, IModLogger logger)
         {

@@ -26,7 +26,7 @@ namespace TimingShow
 
         public static void Update()
         {
-            bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused;
+            bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && (!scrController.instance.paused || ModContext.IsConfigOpen);
             
             bool isTimingPlay = isPlayBase && ModContext.Settings.ShowTimingHUD;
             EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
