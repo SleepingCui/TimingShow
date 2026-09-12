@@ -16,6 +16,8 @@ namespace TimingShow
                     targetHits = MarginTrackerAddHitPatch.XPerfectCount;
                     break;
                 case Settings.RatioMode_NormalPerfect:
+                    targetHits = MarginTrackerAddHitPatch.NormalPerfectCount;
+                    break;
                 default:
                     targetHits = MarginTrackerAddHitPatch.NormalPerfectCount;
                     break;
