@@ -25,5 +25,5 @@ using MelonLoader;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
 
-[assembly: MelonInfo(typeof(TimingShow.MelonMain), "TimingShow", "1.9.0", "SleepingCui")]
+[assembly: MelonInfo(typeof(TimingShow.MelonMain), "TimingShow", "1.9.1", "SleepingCui")]
 [assembly: MelonGame("7th Beat Games", "A Dance of Fire and Ice")]

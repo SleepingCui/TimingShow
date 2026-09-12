@@ -11,7 +11,7 @@ namespace TimingShow
         private static StreamWriter _writer;
         private static string _currentFilePath;
         private static bool _isFirstEntry = true;
-        private static int _hitIndex;
+        private static int _hitCount;
         private static bool _isCurrentSessionBinary;
         private static bool _isCurrentSessionAngle;
 
@@ -27,7 +27,7 @@ namespace TimingShow
             }
 
             _isFirstEntry = true;
-            _hitIndex = 0;
+            _hitCount = 0;
             _isCurrentSessionAngle = ModContext.Settings.Logger_ShowAngle;
 
             try
@@ -60,10 +60,7 @@ namespace TimingShow
                 _writer.WriteLine($"  \"pitch\": {pitch.ToString("R", CultureInfo.InvariantCulture)},");
                 _writer.WriteLine($"  \"isAngle\": {(_isCurrentSessionAngle ? "true" : "false")},");
 
-                if (ModContext.Settings.UseOldJsonFormat)
-                    _writer.Write("  \"offsets\": {");
-                else
-                    _writer.Write("  \"offsets\": [");
+                _writer.Write("  \"offsets\": [");
 
                 _writer.Flush();
             }
@@ -88,29 +85,18 @@ namespace TimingShow
             if (_writer == null) return;
             try
             {
-                _hitIndex++;
+                _hitCount++;
 
                 string fmt = "F" + Math.Max(0, ModContext.Settings.PercLog);
                 string formattedTiming = (_isCurrentSessionAngle ? angle : timing).ToString(fmt);
 
-                if (ModContext.Settings.UseOldJsonFormat)
-                {
-                    if (!_isFirstEntry)
-                        _writer.WriteLine(",");
-                    else
-                        _writer.WriteLine();
-                    _writer.Write($"    \"{_hitIndex}\": {{\"v\": {formattedTiming}, \"j\": {marginCode}}}");
-                }
-                else
-                {
-                    string prefix = _isFirstEntry ? "" : ",";
-                    _writer.Write(prefix);
-                    _writer.Write("[");
-                    _writer.Write(formattedTiming);
-                    _writer.Write(",");
-                    _writer.Write(marginCode);
-                    _writer.Write("]");
-                }
+                string prefix = _isFirstEntry ? "" : ",";
+                _writer.Write(prefix);
+                _writer.Write("[");
+                _writer.Write(formattedTiming);
+                _writer.Write(",");
+                _writer.Write(marginCode);
+                _writer.Write("]");
 
                 _isFirstEntry = false;
             }
@@ -133,7 +119,7 @@ namespace TimingShow
 
             try
             {
-                if (_hitIndex == 0)
+                if (_hitCount == 0)
                 {
                     _writer.Dispose();
                     _writer = null;
@@ -144,16 +130,7 @@ namespace TimingShow
                     return;
                 }
 
-                if (ModContext.Settings.UseOldJsonFormat)
-                {
-                    _writer.WriteLine();
-                    _writer.WriteLine("  }");
-                }
-                else
-                {
-                    _writer.WriteLine("]");
-                }
-
+                _writer.WriteLine("]");
                 _writer.Write("}");
                 _writer.Flush();
                 ModContext.Logger.Log($"Successfully closed session: {_currentFilePath}");

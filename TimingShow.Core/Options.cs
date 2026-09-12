@@ -14,6 +14,7 @@ namespace TimingShow
 
         private static bool _foldoutTitleSettings;
         private static bool _foldoutPlanetSettings;
+        private static bool _foldoutReplaceSettings;
         private static bool _foldoutDeathSettings; 
         private static bool _foldoutWinSettings;
         private static bool _foldoutTimingHUD;
@@ -98,7 +99,17 @@ namespace TimingShow
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
-                GUILayout.Label(i18n.T("Setting_Title"));
+                string replaceArrow = _foldoutReplaceSettings ? "▲" : "▼";
+                GUILayout.BeginHorizontal();
+                {
+                    GUILayout.Space(20);
+                    if (GUILayout.Button($"{i18n.T("Setting_Title")} {replaceArrow}", GUILayout.ExpandWidth(false)))
+                        _foldoutReplaceSettings = !_foldoutReplaceSettings;
+                }
+                GUILayout.EndHorizontal();
+
+                if (!_foldoutReplaceSettings) return;
+
                 GUILayout.BeginHorizontal();
                 {
                     GUILayout.Space(20);
@@ -339,30 +350,7 @@ namespace TimingShow
                 }
 
                 GUILayout.Space(5);
-                
-                // curmode
-                ModContext.Settings.DisplayCurrMode = ToggleWithDescription(
-                    ModContext.Settings.DisplayCurrMode,
-                    "Toggle_DisplayCurrMode",
-                    "Desc_DisplayCurrMode",
-                    extraDescriptionHtml: " <color=#FF96B4>#FF96B4</color>"
-                );
 
-                GUILayout.Space(5);
-
-                // oldfmt
-                bool previousGuiState = GUI.enabled;
-                if (!ModContext.Settings.UseJsonWriter)
-                    GUI.enabled = false;
-                ModContext.Settings.UseOldJsonFormat = ToggleWithDescription(
-                    ModContext.Settings.UseOldJsonFormat,
-                    "Toggle_UseOldJsonFormat",
-                    "Desc_UseOldJsonFormat"
-                );
-                GUI.enabled = previousGuiState;
-
-                GUILayout.Space(5);
-                
                 //autoreload
                 ModContext.Settings.AutoReloadInEditor = ToggleWithDescription(
                     ModContext.Settings.AutoReloadInEditor,

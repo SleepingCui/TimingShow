@@ -6,7 +6,6 @@ namespace TimingShow
     public static class CalcXP
     {
         public static readonly Color32 XPColor = new Color32(77, 204, byte.MaxValue, byte.MaxValue);
-        public static readonly Color32 HkModeColor = new Color32(255, 150, 180, byte.MaxValue);
         
         // from https://github.com/8100print/XPerfect
         // Licensed under the MIT License.
@@ -35,9 +34,6 @@ namespace TimingShow
             if (isPS)
             {
                 if (!enableXP) return hitMarginColours.colourPerfect;
-
-                if (XPerfectBridge.IsAvailable && ModContext.Settings.DisplayCurrMode)
-                    return HkModeColor;
 
                 bool xp = isXP ?? IsXPerfect(diff, bpm, speed, pitch);
                 return xp ? (Color)XPColor : hitMarginColours.colourPerfect;
