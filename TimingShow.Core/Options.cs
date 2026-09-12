@@ -37,6 +37,7 @@ namespace TimingShow
             public string FullPath;
             public string FileName;
             public DateTime LastWriteTime;
+            public long Length;
         }
 
         public static void OnGUI()
@@ -360,6 +361,9 @@ namespace TimingShow
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(i18n.T("Btn_RefreshLogs"), GUILayout.Width(70)))
                 RefreshLogList(logDir);
+            long totalBytes = 0;
+            for (int i = 0; i < _logEntries.Count; i++) totalBytes += _logEntries[i].Length;
+            GUILayout.Label(string.Format(i18n.T("LogSummary"), _logEntries.Count, FormatFileSize(totalBytes)), GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -419,9 +423,23 @@ namespace TimingShow
             {
                 FullPath = filePath,
                 FileName = Path.GetFileName(filePath),
-                LastWriteTime = File.GetLastWriteTime(filePath)
+                LastWriteTime = File.GetLastWriteTime(filePath),
+                Length = new FileInfo(filePath).Length
             };
             return entry;
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            string[] units = { "B", "KB", "MB", "GB", "TB" };
+            double size = Math.Max(0, bytes);
+            int unitIndex = 0;
+            while (size >= 1024.0 && unitIndex < units.Length - 1)
+            {
+                size /= 1024.0;
+                unitIndex++;
+            }
+            return size.ToString("F1") + " " + units[unitIndex];
         }
 
         private static void OpenLogInAnalyzer(string filePath)
