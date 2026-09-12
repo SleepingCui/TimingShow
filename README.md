@@ -11,6 +11,21 @@
 - 支持 Timing 日志，可在[Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer)获取详细的分析报告 (包括偏移散点图，正态分布图，XACC曲线等指标)
 - 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
 
+## 版本兼容
+
+同一份 DLL 同时兼容游戏 **3.4 及以后**与 **3.4 以前**的版本，启动时自动识别游戏 `HitMargin` 枚举版本，无需分别下载。
+
+两者的 XPerfect 来源不同：
+
+| 游戏版本 | XPerfect 来源 |
+|---|---|
+| 3.4 及以后 | **游戏原生** `HitMargin.XPerfect`，不再使用 CalcXP 推导 |
+| 3.4 以前 | 优先读取外部 XPerfect 模组；不可用时回退到内置 CalcXP 算法 |
+
+因此「高级功能 → XPerfect Hook 模式」只对 3.4 以前的版本有意义，3.4 下该选项不适用（会显示为不适用，且不会回退到 CalcXP）。
+
+如果游戏枚举既不是已知旧版也不是 3.4，模组会进入安全模式：无法识别的判定不计入统计、不参与着色、不替换星球文字，日志中仍保留原始数值。
+
 ## Screenshots
 <details>
 <summary>（点击展开）</summary>

@@ -36,7 +36,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\libs\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\libs\Assembly-CSharp340.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
@@ -99,6 +99,9 @@
     <Compile Include="CalcRatio.cs" />
     <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />
+    <Compile Include="HitMan.cs" />
+    <Compile Include="JColors.cs" />
+    <Compile Include="VarInt.cs" />
     <Compile Include="HUDMan.cs" />
     <Compile Include="i18n.cs" />
     <Compile Include="Options.cs" />

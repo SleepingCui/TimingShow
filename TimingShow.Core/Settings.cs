@@ -45,6 +45,12 @@ namespace TimingShow
         public bool ReplaceMultipress = true;
         public bool ReplaceFailMiss = true;
         public bool ReplaceFailOverload = true;
+        
+        public bool ReplacePerfectMinus = true;
+        public bool ReplaceXPerfect = true;
+        public bool ReplacePerfectPlus = true;
+        public bool ReplaceAuto;
+        public bool ReplaceOverPress = true;
 
         public bool ShowTimingHUD;
         public float HUD_x;
@@ -74,7 +80,14 @@ namespace TimingShow
         public int RatioHUD_align;
         public int PercRatioHUD = 1;
         public string RatioHUD_Format = "Ratio - {0}:1";
+        
         public bool Ratio_UseXPerfect;
+        
+        public int Ratio_Mode = -1;
+
+        public const int RatioMode_NormalPerfect = 0;
+        public const int RatioMode_PerfectFamily = 1;
+        public const int RatioMode_XPerfect = 2;
 
         public bool ShowXACCGraph;
         public bool XACCGraph_ShowEnd;
@@ -111,6 +124,12 @@ namespace TimingShow
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;
 
+        /// <summary>
+        /// 配置迁移版本 (FOR340 §12)。0 / 缺失表示 3.4 兼容改造之前的旧配置。
+        /// </summary>
+        public const int CurrentSettingsVersion = 1;
+        public int SettingsVersion;
+
         #region cfgsettings
         
         private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
@@ -131,6 +150,8 @@ namespace TimingShow
                     {
                         if (settings.ConfigKey == KeyCode.None)
                             settings.ConfigKey = KeyCode.F9;
+                        bool isLegacyConfig = json.IndexOf("settingsVersion", StringComparison.OrdinalIgnoreCase) < 0;
+                        settings.Migrate(isLegacyConfig);
                         return settings;
                     }
                 }
@@ -139,7 +160,42 @@ namespace TimingShow
             {
                 ModContext.Logger?.Error($"Failed to load settings: {e.Message}");
             }
-            return new Settings();
+            return new Settings
+            {
+                SettingsVersion = CurrentSettingsVersion,
+                Ratio_Mode = RatioMode_NormalPerfect
+            };
+        }
+        
+        private void Migrate(bool isLegacyConfig)
+        {
+            bool migrated = false;
+
+            if (isLegacyConfig || SettingsVersion < CurrentSettingsVersion)
+            {
+                ReplacePerfectMinus = ReplacePerfect;
+                ReplacePerfectPlus = ReplacePerfect;
+                ReplaceXPerfect = Planet_EnableXPerfect;
+                ReplaceOverPress = ReplaceFailMiss;
+                ReplaceAuto = false;
+
+                migrated = true;
+            }
+
+            if (SettingsVersion < CurrentSettingsVersion)
+            {
+                SettingsVersion = CurrentSettingsVersion;
+                migrated = true;
+            }
+
+            if (Ratio_Mode < 0)
+            {
+                Ratio_Mode = Ratio_UseXPerfect ? RatioMode_XPerfect : RatioMode_NormalPerfect;
+                migrated = true;
+            }
+
+            if (migrated)
+                ModContext.Logger?.Log($"Settings migrated to version {CurrentSettingsVersion} (ratio mode {Ratio_Mode}); 旧字段已保留");
         }
 
         public void Save(string modPath)

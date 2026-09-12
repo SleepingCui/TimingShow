@@ -1,22 +1,25 @@
 using System;
-using UnityEngine;
 
 namespace TimingShow
 {
+
     public static class CalcXP
     {
-        public static readonly Color32 XPColor = new Color32(77, 204, byte.MaxValue, byte.MaxValue);
-        
-        // from https://github.com/8100print/XPerfect
-        // Licensed under the MIT License.
-        public static bool IsXPerfect(double diff, double bpm, double speed, double pitch)
+        public static bool IsLegacyXPerfect(double diff, double bpm, double speed, double pitch)
         {
-            if (XPerfectBridge.IsAvailable && XPerfectBridge.IsXPerfect()) return true;
-            if (RDC.auto) return true;
+            if (HitMarginCompat.IsGame34) return false;
+            if (XPerfectBridge.IsXPerfect()) return true;
 
+            return Compute(diff, bpm, speed, pitch);
+        }
+        
+        public static bool Compute(double diff, double bpm, double speed, double pitch)
+        {
             double denominator = Math.PI * bpm * speed * pitch;
             if (denominator == 0) return false;
 
+            // from https://github.com/8100print/XPerfect
+            // Licensed under the MIT License.
             double absDiff = Math.Abs(diff);
             double angleR = 0.01667 * (denominator / 60.0);
             double angleD = angleR * 57.295780181884766;
@@ -24,33 +27,6 @@ namespace TimingShow
             double fBoundary = (fBoundaryD * 60000.0) / (57.295780181884766 * denominator);
 
             return absDiff <= fBoundary;
-        }
-
-        public static Color XPc(scrPlanet planet, double diff, double bpm, double speed, double pitch, bool enableXP, HitMargin margin, bool? isXP = null)
-        {
-            ColourSchemeHitMargin hitMarginColours = RDConstants.data.hitMarginColours;
-            bool isPS = margin == HitMargin.Perfect || margin == HitMargin.EarlyPerfect || margin == HitMargin.LatePerfect;
-
-            if (isPS)
-            {
-                if (!enableXP) return hitMarginColours.colourPerfect;
-
-                bool xp = isXP ?? IsXPerfect(diff, bpm, speed, pitch);
-                return xp ? (Color)XPColor : hitMarginColours.colourPerfect;
-            }
-
-            switch (margin)
-            {
-                case HitMargin.TooEarly: return hitMarginColours.colourTooEarly;
-                case HitMargin.VeryEarly: return hitMarginColours.colourVeryEarly;
-                case HitMargin.VeryLate: return hitMarginColours.colourVeryLate;
-                case HitMargin.TooLate: return hitMarginColours.colourTooLate;
-                case HitMargin.Multipress: return hitMarginColours.colourMultipress;
-                case HitMargin.FailMiss:
-                case HitMargin.FailOverload:
-                case HitMargin.OverPress: return hitMarginColours.colourFail;
-                default: return hitMarginColours.colourPerfect;
-            }
         }
     }
 }

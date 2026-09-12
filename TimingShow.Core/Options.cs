@@ -75,7 +75,8 @@ namespace TimingShow
                 Toggle(ref ModContext.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
                 if (ModContext.Settings.Title_UseJudgeColor)
                 {
-                    Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
+                    if (!HitMarginCompat.IsGame34)
+                        Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
                 }
                 Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
             }
@@ -97,7 +98,8 @@ namespace TimingShow
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Planet_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
-                Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
+                if (!HitMarginCompat.IsGame34)
+                    Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
                 string replaceArrow = _foldoutReplaceSettings ? "▲" : "▼";
                 GUILayout.BeginHorizontal();
@@ -119,12 +121,27 @@ namespace TimingShow
                         Toggle(ref ModContext.Settings.ReplaceTooEarly, "Toggle_TooEarly", 0);
                         Toggle(ref ModContext.Settings.ReplaceVeryEarly, "Toggle_VeryEarly", 0);
                         Toggle(ref ModContext.Settings.ReplaceEarlyPerfect, "Toggle_EarlyPerfect", 0);
-                        Toggle(ref ModContext.Settings.ReplacePerfect, "Toggle_Perfect", 0);
+
+                        // 数值 3：旧版为 Perfect，3.4 为 PerfectMinus
+                        if (HitMarginCompat.IsGame34)
+                            Toggle(ref ModContext.Settings.ReplacePerfectMinus, "Toggle_PerfectMinus", 0);
+                        else
+                            Toggle(ref ModContext.Settings.ReplacePerfect, "Toggle_Perfect", 0);
+
+                        // 仅 3.4 存在的原生判定
+                        if (HitMarginCompat.HasNativeXPerfect)
+                        {
+                            Toggle(ref ModContext.Settings.ReplaceXPerfect, "Toggle_XPerfect", 0);
+                            Toggle(ref ModContext.Settings.ReplacePerfectPlus, "Toggle_PerfectPlus", 0);
+                        }
+
                         Toggle(ref ModContext.Settings.ReplaceLatePerfect, "Toggle_LatePerfect", 0);
                         Toggle(ref ModContext.Settings.ReplaceVeryLate, "Toggle_VeryLate", 0);
                         Toggle(ref ModContext.Settings.ReplaceTooLate, "Toggle_TooLate", 0);
                         Toggle(ref ModContext.Settings.ReplaceFailMiss, "Toggle_FailMiss", 0);
                         Toggle(ref ModContext.Settings.ReplaceMultipress, "Toggle_Multipress", 0);
+                        Toggle(ref ModContext.Settings.ReplaceOverPress, "Toggle_OverPress", 0);
+                        Toggle(ref ModContext.Settings.ReplaceAuto, "Toggle_Auto", 0);
                     }
                     GUILayout.EndVertical();
                 }
@@ -169,7 +186,8 @@ namespace TimingShow
                 Toggle(ref ModContext.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
-                    Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
+                    if (!HitMarginCompat.IsGame34)
+                        Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
                 }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
             }
@@ -198,7 +216,7 @@ namespace TimingShow
                     ref ModContext.Settings.RatioHUD_bold, ref ModContext.Settings.RatioHUD_align, ref ModContext.Settings.RatioHUD_Format,
                     ref ModContext.Settings.PercRatioHUD
                 );
-                Toggle(ref ModContext.Settings.Ratio_UseXPerfect, "Enable_XP");
+                RatioModeButtons();
             }
         }
 
@@ -230,7 +248,8 @@ namespace TimingShow
                 if (ModContext.Settings.EnableLogging && _foldoutLogging)
                 {
                     SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
-                    Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
+                    if (!HitMarginCompat.IsGame34)
+                        Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
                     Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
                     Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
                     Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
@@ -301,9 +320,10 @@ namespace TimingShow
             if (GUILayout.Button(i18n.T("Btn_Reset"), GUILayout.Width(150)))
             {
                 ModContext.SessionOffsets.Clear();
-                ModContext.LastHitMargin = HitMargin.Perfect;
+                ModContext.ResetJudgeState();
                 ModContext.LastTiming = 0;
                 ModContext.LastAngle = 0;
+                Patches.TimingCalcPatches.MarginTrackerAddHitPatch.ResetCounts();
             }
         }
 
@@ -330,11 +350,18 @@ namespace TimingShow
                     case XPerfectBridge.HookState.Failed:
                         statusDisplayText = $"<color=#FF5555> ({i18n.T("Status_HookFailed")}{XPerfectBridge.LastErrorMessage})</color>";
                         break;
+                    case XPerfectBridge.HookState.NotApplicable:
+                        statusDisplayText = $"<color=#55CCFF> ({i18n.T("Status_HookNotApplicable")})</color>";
+                        break;
                     case XPerfectBridge.HookState.Disabled:
                     default:
                         statusDisplayText = string.Empty;
                         break;
                 }
+                
+                bool hookSupported = XPerfectBridge.IsSupported;
+                bool prevGuiEnabled = GUI.enabled;
+                GUI.enabled = hookSupported;
 
                 bool newHookMode = ToggleWithDescription(
                     ModContext.Settings.UseHookMode,
@@ -342,7 +369,10 @@ namespace TimingShow
                     "Desc_HookMode",
                     extraLabelHtml: statusDisplayText
                 );
-                if (newHookMode != ModContext.Settings.UseHookMode)
+
+                GUI.enabled = prevGuiEnabled;
+
+                if (hookSupported && newHookMode != ModContext.Settings.UseHookMode)
                 {
                     ModContext.Settings.UseHookMode = newHookMode;
                     if (newHookMode) XPerfectBridge.TryInit(force: true);
@@ -482,6 +512,34 @@ namespace TimingShow
                     text = fallback.ToString();
                     value = fallback;
                 }
+            }
+            GUILayout.EndHorizontal();
+        }
+        
+        private static void RatioModeButtons()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(i18n.T("Label_RatioMode"), GUILayout.Width(120));
+
+            string[] labels =
+            {
+                i18n.T("Btn_RatioNormalPerfect"),
+                i18n.T("Btn_RatioPerfectFamily"),
+                i18n.T("Btn_RatioXPerfect")
+            };
+            int[] modes =
+            {
+                Settings.RatioMode_NormalPerfect,
+                Settings.RatioMode_PerfectFamily,
+                Settings.RatioMode_XPerfect
+            };
+
+            for (int i = 0; i < labels.Length; i++)
+            {
+                _activeButtonStyle.fontStyle = (ModContext.Settings.Ratio_Mode == modes[i]) ? FontStyle.Bold : FontStyle.Normal;
+                if (GUILayout.Button(labels[i], _activeButtonStyle, GUILayout.Width(110)))
+                    ModContext.Settings.Ratio_Mode = modes[i];
             }
             GUILayout.EndHorizontal();
         }

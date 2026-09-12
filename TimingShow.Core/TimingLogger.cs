@@ -8,6 +8,8 @@ namespace TimingShow
 {
     public static class TimingLogger
     {
+        public const int FormatVersion = 5;
+
         private static StreamWriter _writer;
         private static string _currentFilePath;
         private static bool _isFirstEntry = true;
@@ -59,6 +61,9 @@ namespace TimingShow
                 _writer.WriteLine($"  \"speed\": {speed.ToString("R", CultureInfo.InvariantCulture)},");
                 _writer.WriteLine($"  \"pitch\": {pitch.ToString("R", CultureInfo.InvariantCulture)},");
                 _writer.WriteLine($"  \"isAngle\": {(_isCurrentSessionAngle ? "true" : "false")},");
+                _writer.WriteLine($"  \"formatVersion\": {FormatVersion},");
+                _writer.WriteLine($"  \"hitMarginVersion\": \"{HitMarginCompat.Version}\",");
+                _writer.WriteLine($"  \"judgeCodeVersion\": {HitMarginCompat.JudgeCodeVersion},");
 
                 _writer.Write("  \"offsets\": [");
 
@@ -70,17 +75,18 @@ namespace TimingShow
                 _writer = null;
             }
         }
-
-        public static void LogHit(double timing, double angle, HitMargin margin)
+        
+        public static void LogHit(double timing, double angle, int rawMarginCode, HitMan judge, bool isXP)
         {
-            int marginCode = RDC.auto ? 10 : (ModContext.Settings.Logger_EnableXPerfect && ModContext.LastIsXP ? 12 : (int)margin);
+            int judgeCode = (int)judge;
+            
+            bool logXP = isXP && (HitMarginCompat.IsGame34 || ModContext.Settings.Logger_EnableXPerfect);
 
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.LogHit(timing, angle, marginCode);
+                TimingLoggerBinary.LogHit(timing, angle, rawMarginCode, judgeCode, logXP);
                 return;
             }
-
 
             if (_writer == null) return;
             try
@@ -95,7 +101,11 @@ namespace TimingShow
                 _writer.Write("[");
                 _writer.Write(formattedTiming);
                 _writer.Write(",");
-                _writer.Write(marginCode);
+                _writer.Write(rawMarginCode);
+                _writer.Write(",");
+                _writer.Write(judgeCode);
+                _writer.Write(",");
+                _writer.Write(logXP ? 1 : 0);
                 _writer.Write("]");
 
                 _isFirstEntry = false;

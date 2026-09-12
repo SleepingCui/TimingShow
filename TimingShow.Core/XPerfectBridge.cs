@@ -10,15 +10,25 @@ namespace TimingShow
         private static bool _isInitialized;
         private static Func<int> _getLastJudgeDelegate;
 
-
-        public enum HookState { Disabled, Success, Failed }
+        public enum HookState
+        {
+            Disabled,
+            Success,
+            Failed,
+            NotApplicable
+        }
 
         public static HookState CurrentState { get; private set; } = HookState.Disabled;
         public static string LastErrorMessage { get; private set; } = string.Empty;
+        
+        public static bool IsSupported => !HitMarginCompat.IsGame34;
 
-        public static bool IsAvailable => ProtInitialize() && CurrentState == HookState.Success && _getLastJudgeDelegate != null;
+        public static bool IsAvailable => IsSupported && ProtInitialize() && CurrentState == HookState.Success && _getLastJudgeDelegate != null;
+
         private static bool ProtInitialize()
         {
+            if (!IsSupported) return false;
+
             if (!ModContext.Settings.UseHookMode)
             {
                 if (_isInitialized) UnloadHook();
@@ -31,6 +41,13 @@ namespace TimingShow
 
         public static void TryInit(bool force = false)
         {
+            if (!IsSupported)
+            {
+                _getLastJudgeDelegate = null;
+                SetState(HookState.NotApplicable);
+                return;
+            }
+
             if (!ModContext.Settings.UseHookMode)
             {
                 UnloadHook();
@@ -62,7 +79,7 @@ namespace TimingShow
                 if (_getLastJudgeDelegate != null)
                 {
                     SetState(HookState.Success);
-                    ModContext.Logger.Log("Successfully hooked into XPerfect mod");
+                    ModContext.Logger.Log("Successfully hooked into XPerfect mod (legacy compatibility mode)");
                 }
                 else
                     SetState(HookState.Failed, i18n.T("Err_DelegateFailed"));
@@ -78,7 +95,7 @@ namespace TimingShow
         {
             _isInitialized = false;
             _getLastJudgeDelegate = null;
-            SetState(HookState.Disabled);
+            SetState(IsSupported ? HookState.Disabled : HookState.NotApplicable);
         }
 
         private static void SetState(HookState state, string errorMsg = "")
@@ -87,7 +104,7 @@ namespace TimingShow
             LastErrorMessage = errorMsg;
             if (state != HookState.Success) _getLastJudgeDelegate = null;
         }
-
+        
         public static bool IsXPerfect()
         {
             if (!IsAvailable) return false;

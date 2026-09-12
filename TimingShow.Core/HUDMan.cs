@@ -66,18 +66,8 @@ namespace TimingShow
                     : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
-                    var controller = scrController.instance;
-                    var conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
-
-                    if (controller != null && conductor != null && conductor.song != null)
-                    {
-                        double bpm = conductor.bpm;
-                        double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
-                        double pitch = conductor.song.pitch;
-
-                        Color fColor = CalcXP.XPc(controller.chosenPlanet, ModContext.LastTiming, bpm, speed, pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
-                        timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
-                    }
+                    Color fColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.HUD_EnableXPerfect);
+                    timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
                 string format = ModContext.Settings.HUD_Format;
                 if (ModContext.Settings.HUD_ShowAngle) format = format.Replace("ms", "°");

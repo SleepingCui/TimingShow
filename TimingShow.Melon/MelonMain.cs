@@ -20,6 +20,7 @@ namespace TimingShow
             ModContext.Settings = Settings.Load(modPath);
 
             i18n.LoadLanguages(modPath);
+            ModContext.InitializeJudgeCompat();
             XPerfectBridge.TryInit();
             var harmony = new HarmonyLib.Harmony("TimingShow.Melon");
             ModContext.HarmonyInstance = harmony;

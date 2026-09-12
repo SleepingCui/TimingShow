@@ -24,9 +24,13 @@ namespace TimingShow.Patches
 
                 ModContext.LastTiming = diff;
                 ModContext.LastAngle = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 180.0 / Math.PI;
+                ModContext.LastBpm = bpm;
+                ModContext.LastSpeed = speed;
+                ModContext.LastPitch = pitch;
                 ModContext.UIDirty = true;
-
-                ModContext.LastIsXP = CalcXP.IsXPerfect(diff, bpm, speed, pitch);
+                
+                if (HitMarginCompat.IsLegacy)
+                    ModContext.LastIsXP = CalcXP.IsLegacyXPerfect(diff, bpm, speed, pitch);
 
                 bool isAuto = RDC.auto;
 
@@ -45,11 +49,10 @@ namespace TimingShow.Patches
                         ModContext.FullXAccHistory.Add(curXAcc);
                         ModContext.XAccVersion++;
                     }
-
-                    if (isAuto && ModContext.Settings.EnableLogging)
+                    
+                    if (isAuto)
                     {
-                        ModContext.LastHitMargin = HitMargin.Perfect;
-                        TimingLogger.LogHit(diff, ModContext.LastAngle, HitMargin.Perfect);
+                        MarginTrackerAddHitPatch.ApplyAutoHit(diff, ModContext.LastAngle, ModContext.Settings.EnableLogging);
                     }
                 }
             }
@@ -59,33 +62,99 @@ namespace TimingShow.Patches
         [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
         public static class MarginTrackerAddHitPatch
         {
-            public static int PerfectCount;
+            public static int NormalPerfectCount;
+            public static int PerfectFamilyCount;
             public static int XPerfectCount;
             public static int TotalHitsCount;
 
             public static void Prefix(HitMargin hit)
             {
                 if (!ModContext.IsEnabled || !ModContext.IsPlaying) return;
+                int raw = HitMarginCompat.ToRawCode(hit);
+                
+                ApplyHit(raw, allowLog: !RDC.auto);
+            }
 
-                ModContext.LastHitMargin = hit;
-                TimingLogger.LogHit(ModContext.LastTiming, ModContext.LastAngle, hit);
-                TotalHitsCount++;
-                if (hit == HitMargin.Perfect) PerfectCount++;
-                if (ModContext.LastIsXP) XPerfectCount++;
+
+            public static void ApplyAutoHit(double timing, double angle, bool allowLog)
+            {
+                int raw = HitMarginCompat.RawAutoCode;
+                ApplyHit(raw, allowLog: allowLog, countHit: false, timingOverride: timing, angleOverride: angle);
+            }
+
+            private static void ApplyHit(int rawMargin, bool allowLog, bool countHit = true, double? timingOverride = null, double? angleOverride = null)
+            {
+                HitMan judge = HitMarginCompat.ToJudgeKind(rawMargin);
+                
+                ModContext.LastRawMargin = rawMargin;
+                ModContext.LastJudge = judge;
+                ModContext.LastIsXP = DetermineIsXPerfect(judge);
+
+                if (countHit)
+                {
+                    TotalHitsCount++;
+                    if (HitMarginCompat.IsPerfectFamily(judge)) PerfectFamilyCount++;
+                    if (HitMarginCompat.IsNormalPerfect(judge)) NormalPerfectCount++;
+                    if (ModContext.LastIsXP) XPerfectCount++;
+                }
+
+                if (allowLog)
+                {
+                    TimingLogger.LogHit(timingOverride ?? ModContext.LastTiming, angleOverride ?? ModContext.LastAngle, rawMargin, judge, ModContext.LastIsXP);
+                }
+            }
+
+            private static bool DetermineIsXPerfect(HitMan judge)
+            {
+
+                if (!HitMarginCompat.IsPerfectFamily(judge)) return false;
+
+                if (HitMarginCompat.IsGame34) return judge == HitMan.XPerfect;
+                if (HitMarginCompat.IsLegacy) return CalcXP.IsLegacyXPerfect(ModContext.LastTiming, ModContext.LastBpm, ModContext.LastSpeed, ModContext.LastPitch);
+                return false;
             }
 
             public static void ResetCounts()
             {
-                PerfectCount = 0;
+                NormalPerfectCount = 0;
+                PerfectFamilyCount = 0;
                 XPerfectCount = 0;
                 TotalHitsCount = 0;
             }
 
+
             public static void SyncFromTracker(scrMarginTracker tracker)
             {
-                if (tracker == null) return;
-                PerfectCount = tracker.GetHits(HitMargin.Perfect);
-                TotalHitsCount = (int)tracker.GetTotalHits();
+                if (tracker == null || !HitMarginCompat.IsInitialized) return;
+
+                try
+                {
+                    int[] rawValues = HitMarginCompat.AllRawValues;
+                    int normalPerfect = 0;
+                    int perfectFamily = 0;
+
+                    for (int i = 0; i < rawValues.Length; i++)
+                    {
+                        int raw = rawValues[i];
+                        int count = tracker.GetHits(HitMarginCompat.FromRawCode(raw));
+                        if (count <= 0) continue;
+
+                        HitMan judge = HitMarginCompat.ToJudgeKind(raw);
+                        if (HitMarginCompat.IsPerfectFamily(judge)) perfectFamily += count;
+                        if (HitMarginCompat.IsNormalPerfect(judge)) normalPerfect += count;
+                    }
+
+                    NormalPerfectCount = normalPerfect;
+                    PerfectFamilyCount = perfectFamily;
+                    TotalHitsCount = (int)tracker.GetTotalHits();
+
+                    if (HitMarginCompat.IsGame34 && HitMarginCompat.RawXPerfectCode >= 0)
+                        XPerfectCount = tracker.GetHits(HitMarginCompat.FromRawCode(HitMarginCompat.RawXPerfectCode));
+                }
+                catch (Exception e)
+                {
+                    ModContext.Logger?.Log($"SyncFromTracker: {e.Message}");
+                }
             }
         }
     }

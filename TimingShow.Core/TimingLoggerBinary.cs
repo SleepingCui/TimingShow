@@ -14,7 +14,7 @@ namespace TimingShow
         private static FileStream _fs;
         private static string _currentFilePath;
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
-        private const byte FormatVersion = 4;
+        private const byte FormatVersion = TimingLogger.FormatVersion;
         private static long _prevTimingBits;
         private static int _hitCount;
         private static bool _isAngle;
@@ -58,6 +58,8 @@ namespace TimingShow
                 _writer.Write(speed);
                 _writer.Write(pitch);
                 _writer.Write(_isAngle);
+                _writer.Write((byte)HitMarginCompat.Version);
+                _writer.Write((byte)HitMarginCompat.JudgeCodeVersion);
 
                 _writer.Flush();
                 ModContext.Logger.Log($"created: {_currentFilePath} (binary)");
@@ -68,8 +70,9 @@ namespace TimingShow
                 CloseSession();
             }
         }
-
-        public static void LogHit(double timing, double angle, int marginCode)
+        
+        
+        public static void LogHit(double timing, double angle, int rawMarginCode, int judgeCode, bool isXP)
         {
             if (_writer == null) return;
 
@@ -79,13 +82,10 @@ namespace TimingShow
                 long bits = BitConverter.DoubleToInt64Bits(_isAngle ? angle : timing);
                 _writer.Write(bits ^ _prevTimingBits);
                 _prevTimingBits = bits;
-                uint v =  (uint)marginCode;
-                while (v >= 0x80)
-                {
-                    _writer.Write((byte)(v | 0x80));
-                    v >>= 7;
-                }
-                _writer.Write((byte)v);
+
+                VarInt.Write(_writer, rawMarginCode);
+                VarInt.Write(_writer, judgeCode);
+                _writer.Write((byte)(isXP ? 1 : 0));
             }
             catch (Exception ex)
             {

@@ -16,12 +16,13 @@ namespace TimingShow.Patches
                 ModContext.IsLevelFinished = false;
                 ModContext.LastTiming = 0;
                 ModContext.LastAngle = 0;
-                ModContext.LastHitMargin = HitMargin.Perfect;
+                ModContext.ResetJudgeState();
                 ModContext.SessionOffsets.Clear();
                 CalcUR.Reset();
                 ModContext.FullXAccHistory.Clear();
                 ModContext.XAccVersion++;
                 ModContext.UIDirty = true;
+                JColors.ResetCache();
                 MarginTrackerAddHitPatch.ResetCounts();
 
                 bool isAuto = RDC.auto;

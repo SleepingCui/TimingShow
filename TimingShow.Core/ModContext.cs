@@ -13,8 +13,13 @@ namespace TimingShow
         public static Settings Settings;
         public static double LastTiming;
         public static double LastAngle;
+        public static HitMan LastJudge = HitMan.Unknown;
+        public static int LastRawMargin = -1;
         public static bool LastIsXP;
-        public static HitMargin LastHitMargin = HitMargin.Perfect;
+        public static double LastBpm;
+        public static double LastSpeed = 1.0;
+        public static double LastPitch = 1.0;
+
         public static List<double> SessionOffsets = new List<double>();
         public static List<float> FullXAccHistory = new List<float>();
         public static bool IsLevelFinished = false;
@@ -31,6 +36,21 @@ namespace TimingShow
             ModPath = modPath;
             Logger = logger;
         }
+        
+        public static void InitializeJudgeCompat()
+        {
+            HitMarginCompat.Initialize();
+            Logger.Log($"Detected version: {HitMarginCompat.Version}");
+            if (HitMarginCompat.Version == HitMarginVersion.Unknown)
+                Logger.Error("Unrecognized HitMargin enum version");
+        }
+        
+        public static void ResetJudgeState()
+        {
+            LastJudge = HitMan.Unknown;
+            LastRawMargin = -1;
+            LastIsXP = false;
+        }
 
         public static void Enable()
         {
@@ -45,6 +65,7 @@ namespace TimingShow
             SessionOffsets.Clear();
             LastTiming = 0;
             LastAngle = 0;
+            ResetJudgeState();
             HUDMan.Destroy();
         }
 
@@ -57,7 +78,7 @@ namespace TimingShow
         {
             if (Settings == null)
             {
-                Logger?.Error("SaveSettings: Settings is NULL!!!");
+                Logger.Error("SaveSettings: Settings is NULL!!!");
                 return;
             }
             Settings.Save(ModPath);
