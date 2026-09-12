@@ -83,7 +83,7 @@ namespace TimingShow
                 }
                 signature = sb.ToString();
             }
-            catch (Exception e)
+            catch
             {
                 Version = HitMarginVersion.Unknown;
                 _rawToJudge = EmptyMap;

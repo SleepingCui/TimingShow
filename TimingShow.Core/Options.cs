@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using UnityEngine;
@@ -22,12 +23,33 @@ namespace TimingShow
         private static bool _foldoutRatioHUD;
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
+        private static bool _showLogList;
 
         private static GUIStyle _activeButtonStyle;
         private static GUIStyle _richToggleStyle;
+        private static readonly List<LogListEntry> _logEntries = new List<LogListEntry>();
+        private static Vector2 _logListScroll;
+        private static string _logListDirectory;
+        private static float _nextLogListRefresh;
+
+        private sealed class LogListEntry
+        {
+            public string FullPath;
+            public string FileName;
+            public DateTime LastWriteTime;
+        }
 
         public static void OnGUI()
         {
+            bool configJustOpened = !ModContext.IsConfigOpen;
+            if (configJustOpened)
+            {
+                _logListDirectory = null;
+                _nextLogListRefresh = 0f;
+                try { RefreshLogList(GetLogDirectory()); }
+                catch (Exception e) { ModContext.Logger.Error("Failed to refresh logs on config open: " + e.Message); }
+            }
+
             if (_activeButtonStyle == null) _activeButtonStyle = new GUIStyle(GUI.skin.button);
             if (_richToggleStyle == null)
             {
@@ -48,6 +70,7 @@ namespace TimingShow
             DrawXACCGraphSettings();
             DrawLoggingSettings();
             DrawSessionControls();
+            DrawLogList();
             DrawAdvancedSettings();
         }
 
@@ -311,8 +334,107 @@ namespace TimingShow
                         ModContext.Logger.Error(e.Message);
                     }
                 }
+
             }
             GUILayout.EndVertical();
+        }
+
+        private static void DrawLogList()
+        {
+            string foldoutArrow = _showLogList ? "▲" : "▼";
+            GUILayout.Space(6);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button($"{i18n.T("Label_LogList")} {foldoutArrow}", GUILayout.Width(150)))
+                _showLogList = !_showLogList;
+            GUILayout.EndHorizontal();
+
+            if (!_showLogList) return;
+
+            string logDir;
+            try { logDir = GetLogDirectory(); }
+            catch { logDir = string.Empty; }
+
+            if (_logListDirectory != logDir || Time.realtimeSinceStartup >= _nextLogListRefresh)
+                RefreshLogList(logDir);
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(i18n.T("Btn_RefreshLogs"), GUILayout.Width(70)))
+                RefreshLogList(logDir);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical(GUI.skin.box);
+            if (_logEntries.Count == 0)
+            {
+                GUILayout.Label(i18n.T("Label_NoLogs"));
+            }
+            else
+            {
+                _logListScroll = GUILayout.BeginScrollView(_logListScroll, GUILayout.Height(180));
+                for (int i = 0; i < _logEntries.Count; i++)
+                {
+                    LogListEntry entry = _logEntries[i];
+                    GUILayout.BeginHorizontal(GUI.skin.box);
+                    GUILayout.Label(entry.FileName, GUILayout.MinWidth(190), GUILayout.ExpandWidth(true));
+                    if (GUILayout.Button(i18n.T("Btn_AnalyzeLog"), GUILayout.Width(70)))
+                        OpenLogInAnalyzer(entry.FullPath);
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndScrollView();
+            }
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+        }
+
+        private static void RefreshLogList(string logDir)
+        {
+            _logEntries.Clear();
+            _logListDirectory = logDir;
+            _nextLogListRefresh = Time.realtimeSinceStartup + 2f;
+            if (string.IsNullOrWhiteSpace(logDir) || !Directory.Exists(logDir)) return;
+
+            try
+            {
+                string[] files = Directory.GetFiles(logDir);
+                var entries = new List<LogListEntry>();
+                for (int i = 0; i < files.Length; i++)
+                {
+                    string file = files[i];
+                    string lower = file.ToLowerInvariant();
+                    if (!lower.EndsWith(".json") && !lower.EndsWith(".tlog") && !lower.EndsWith(".tlog.gz")) continue;
+                    entries.Add(ReadLogEntry(file));
+                }
+                entries.Sort((a, b) => b.LastWriteTime.CompareTo(a.LastWriteTime));
+                _logEntries.AddRange(entries);
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Error("Failed to refresh log list: " + e.Message);
+            }
+        }
+
+        private static LogListEntry ReadLogEntry(string filePath)
+        {
+            var entry = new LogListEntry
+            {
+                FullPath = filePath,
+                FileName = Path.GetFileName(filePath),
+                LastWriteTime = File.GetLastWriteTime(filePath)
+            };
+            return entry;
+        }
+
+        private static void OpenLogInAnalyzer(string filePath)
+        {
+            try
+            {
+                string url = LogAnalyzerBridge.CreateUrl(filePath);
+                Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Error("Failed to open log analyzer: " + e.Message);
+            }
         }
 
         private static void DrawSessionControls()

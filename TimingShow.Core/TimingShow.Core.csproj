@@ -105,6 +105,7 @@
     <Compile Include="HUDMan.cs" />
     <Compile Include="i18n.cs" />
     <Compile Include="Options.cs" />
+    <Compile Include="LogAnalyzerBridge.cs" />
     <Compile Include="Patches\PlayStatePatches.cs" />
     <Compile Include="Patches\TimingCalcPatches.cs" />
     <Compile Include="Patches\UIPatches.cs" />

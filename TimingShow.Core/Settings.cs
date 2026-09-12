@@ -123,10 +123,9 @@ namespace TimingShow
         
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;
-
-        /// <summary>
-        /// 配置迁移版本 (FOR340 §12)。0 / 缺失表示 3.4 兼容改造之前的旧配置。
-        /// </summary>
+        
+        
+        
         public const int CurrentSettingsVersion = 1;
         public int SettingsVersion;
 
@@ -195,7 +194,9 @@ namespace TimingShow
             }
 
             if (migrated)
-                ModContext.Logger?.Log($"Settings migrated to version {CurrentSettingsVersion} (ratio mode {Ratio_Mode}); 旧字段已保留");
+            {
+                ModContext.Logger?.Log("Settings migrated to ver " + CurrentSettingsVersion);
+            }
         }
 
         public void Save(string modPath)
