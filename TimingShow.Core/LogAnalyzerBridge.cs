@@ -42,7 +42,8 @@ namespace TimingShow
 
             string source = "http://127.0.0.1:" + port + "/log?token=" + token;
             string analyzerUrl = AnalyzerUrl + "?source=" + Uri.EscapeDataString(source) + "&name=" + Uri.EscapeDataString(Path.GetFileName(filePath));
-            ModContext.Logger?.Log("Started on " + port + " for " + Path.GetFileName(filePath));
+            ModContext.Logger.Log($"server started at 127.0.0.1:{port}");
+            ModContext.Logger.Log($"token={token},url={analyzerUrl}");
             return analyzerUrl;
         }
 
@@ -69,7 +70,7 @@ namespace TimingShow
                     {
                         byte[] data = File.ReadAllBytes(filePath);
                         WriteResponse(stream, 200, "OK", data, ContentType(filePath), Path.GetFileName(filePath));
-                        ModContext.Logger?.Log("Sent " + data.Length + " bytes for " + Path.GetFileName(filePath));
+                        ModContext.Logger.Log("Sent " + data.Length + " bytes for " + token);
                     }
                     else
                     {
@@ -79,7 +80,7 @@ namespace TimingShow
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Log(e.Message);
+                ModContext.Logger.Log(e.Message);
             }
             finally
             {

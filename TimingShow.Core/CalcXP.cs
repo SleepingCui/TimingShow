@@ -13,7 +13,7 @@ namespace TimingShow
             return Compute(diff, bpm, speed, pitch);
         }
         
-        public static bool Compute(double diff, double bpm, double speed, double pitch)
+        private static bool Compute(double diff, double bpm, double speed, double pitch)
         {
             double denominator = Math.PI * bpm * speed * pitch;
             if (denominator == 0) return false;

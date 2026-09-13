@@ -20,10 +20,8 @@ namespace TimingShow
 
             modEntry.OnToggle = (entry, value) =>
             {
-                if (value)
-                    ModContext.Enable();
-                else
-                    ModContext.Disable();
+                if (value)  ModContext.Enable();
+                else ModContext.Disable();
                 return true;
             };
             modEntry.OnGUI = (entry) => ModContext.OnGUI();

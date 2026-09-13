@@ -122,7 +122,13 @@ namespace TimingShow
 
         public bool AnalyzerBridgeEnabled = true;
         public int AnalyzerBridgePort;
-        
+
+        public int LogSort = 0;
+
+        public const int LogSort_Time = 0;
+        public const int LogSort_Size = 1;
+        public const int LogSort_SongName = 2;
+
         
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;

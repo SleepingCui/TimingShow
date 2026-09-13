@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Diagnostics;
+using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityFileDialog;
@@ -27,21 +28,23 @@ namespace TimingShow
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
         private static bool _showLogList;
-        private static LogSortMode _logSortMode = LogSortMode.Time;
-
-        private enum LogSortMode
-        {
-            Time,
-            Size,
-            SongName
-        }
 
         private static GUIStyle _activeButtonStyle;
         private static GUIStyle _richToggleStyle;
+        private static GUIStyle _deleteButtonStyle;
+        private static GUIStyle _deleteArmedButtonStyle;
         private static readonly List<LogListEntry> _logEntries = new List<LogListEntry>();
+        private static readonly Dictionary<string, DateTime> _deleteArmedUntil = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> _deletePending = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly List<string> _deleteCompleted = new List<string>();
+        private static readonly object DeleteSync = new object();
         private static Vector2 _logListScroll;
         private static string _logListDirectory;
         private static float _nextLogListRefresh;
+        
+        private static readonly object LogScanSync = new object();
+        private static LogScanResult _logScanCompleted;
+        private static bool _logScanRunning;
 
         private sealed class LogListEntry
         {
@@ -53,6 +56,12 @@ namespace TimingShow
             public long Timestamp = -1;
         }
 
+        private sealed class LogScanResult
+        {
+            public string Directory;
+            public List<LogListEntry> Entries;
+        }
+
         public static void OnGUI()
         {
             bool configJustOpened = !ModContext.IsConfigOpen;
@@ -60,7 +69,7 @@ namespace TimingShow
             {
                 _logListDirectory = null;
                 _nextLogListRefresh = 0f;
-                try { RefreshLogList(GetLogDirectory()); }
+                try { RequestLogScan(GetLogDirectory()); }
                 catch (Exception e) { ModContext.Logger.Error("Failed to refresh logs on config open: " + e.Message); }
             }
 
@@ -70,7 +79,17 @@ namespace TimingShow
                 _richToggleStyle = new GUIStyle(GUI.skin.toggle);
                 _richToggleStyle.richText = true;
             }
-            
+            if (_deleteButtonStyle == null)
+            {
+                _deleteButtonStyle = new GUIStyle(GUI.skin.button);
+                _deleteArmedButtonStyle = new GUIStyle(_deleteButtonStyle);
+                SetButtonTextColor(_deleteButtonStyle, Color.white);
+                SetButtonTextColor(_deleteArmedButtonStyle, Color.red);
+            }
+
+            ProcessDeleteResults();
+            ApplyLogScanResults();
+
             ModContext.LastConfigGuiFrame = Time.frameCount;
             ModContext.UIDirty = true;
 
@@ -159,13 +178,12 @@ namespace TimingShow
                         Toggle(ref ModContext.Settings.ReplaceVeryEarly, "Toggle_VeryEarly", 0);
                         Toggle(ref ModContext.Settings.ReplaceEarlyPerfect, "Toggle_EarlyPerfect", 0);
 
-                        // 数值 3：旧版为 Perfect，3.4 为 PerfectMinus
+
                         if (HitMarginCompat.IsGame34)
                             Toggle(ref ModContext.Settings.ReplacePerfectMinus, "Toggle_PerfectMinus", 0);
                         else
                             Toggle(ref ModContext.Settings.ReplacePerfect, "Toggle_Perfect", 0);
-
-                        // 仅 3.4 存在的原生判定
+                        
                         if (HitMarginCompat.HasNativeXPerfect)
                         {
                             Toggle(ref ModContext.Settings.ReplaceXPerfect, "Toggle_XPerfect", 0);
@@ -369,15 +387,15 @@ namespace TimingShow
             catch { logDir = string.Empty; }
 
             if (_logListDirectory != logDir || Time.realtimeSinceStartup >= _nextLogListRefresh)
-                RefreshLogList(logDir);
+                RequestLogScan(logDir);
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(i18n.T("Btn_RefreshLogs"), GUILayout.Width(70)))
-                RefreshLogList(logDir);
+                RequestLogScan(logDir);
             if (GUILayout.Button(GetSortButtonText(), GUILayout.Width(120)))
             {
-                _logSortMode = (LogSortMode)(((int)_logSortMode + 1) % 3);
-                RefreshLogList(logDir);
+                ModContext.Settings.LogSort = (ModContext.Settings.LogSort + 1) % 3;
+                _logEntries.Sort(CompareLogEntries);
             }
             long totalBytes = 0;
             for (int i = 0; i < _logEntries.Count; i++) totalBytes += _logEntries[i].Length;
@@ -402,6 +420,16 @@ namespace TimingShow
                     GUILayout.Label(FormatTimestamp(entry.Timestamp), GUILayout.Width(145));
                     if (GUILayout.Button(i18n.T("Btn_AnalyzeLog"), GUILayout.Width(70)))
                         OpenLogInAnalyzer(entry.FullPath);
+                    bool deletePending;
+                    lock (DeleteSync) deletePending = _deletePending.Contains(entry.FullPath);
+                    bool deleteArmed = IsDeleteArmed(entry.FullPath);
+                    bool previousEnabled = GUI.enabled;
+                    GUI.enabled = previousEnabled && !deletePending;
+                    GUIStyle deleteStyle = deleteArmed ? _deleteArmedButtonStyle : _deleteButtonStyle;
+                    string deleteLabel = deletePending ? i18n.T("Btn_DeletingLog") : i18n.T("Btn_DeleteLog");
+                    if (GUILayout.Button(deleteLabel, deleteStyle, GUILayout.Width(70)))
+                        HandleDeleteClick(entry.FullPath);
+                    GUI.enabled = previousEnabled;
                     GUILayout.EndHorizontal();
                 }
                 GUILayout.EndScrollView();
@@ -410,44 +438,81 @@ namespace TimingShow
             GUILayout.EndHorizontal();
         }
 
-        private static void RefreshLogList(string logDir)
+        private static void RequestLogScan(string logDir)
         {
-            _logEntries.Clear();
-            _logListDirectory = logDir;
-            _nextLogListRefresh = Time.realtimeSinceStartup + 2f;
-            if (string.IsNullOrWhiteSpace(logDir) || !Directory.Exists(logDir)) return;
+            lock (LogScanSync)
+            {
+                if (_logScanRunning) return;
+                _logScanRunning = true;
+            }
+            ThreadPool.QueueUserWorkItem(_ => ScanLogDirectory(logDir));
+        }
 
+        private static void ScanLogDirectory(string logDir)
+        {
+            var result = new LogScanResult { Directory = logDir, Entries = new List<LogListEntry>() };
             try
             {
-                string[] files = Directory.GetFiles(logDir);
-                var entries = new List<LogListEntry>();
-                for (int i = 0; i < files.Length; i++)
+                if (!string.IsNullOrWhiteSpace(logDir) && Directory.Exists(logDir))
                 {
-                    string file = files[i];
-                    string lower = file.ToLowerInvariant();
-                    if (!lower.EndsWith(".json") && !lower.EndsWith(".tlog") && !lower.EndsWith(".tlog.gz")) continue;
-                    entries.Add(ReadLogEntry(file));
+                    string[] files = Directory.GetFiles(logDir);
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        string file = files[i];
+                        string lower = file.ToLowerInvariant();
+                        if (!lower.EndsWith(".json") && !lower.EndsWith(".tlog") && !lower.EndsWith(".tlog.gz")) continue;
+                        LogListEntry entry = ReadLogEntry(file);
+                        if (entry != null) result.Entries.Add(entry);
+                    }
                 }
-                entries.Sort(CompareLogEntries);
-                _logEntries.AddRange(entries);
             }
             catch (Exception e)
             {
-                ModContext.Logger.Error("Failed to refresh log list: " + e.Message);
+                ModContext.Logger.Error("Failed to scan log directory: " + e.Message);
             }
+
+            lock (LogScanSync)
+            {
+                _logScanCompleted = result;
+                _logScanRunning = false;
+            }
+        }
+
+        private static void ApplyLogScanResults()
+        {
+            LogScanResult result;
+            lock (LogScanSync)
+            {
+                result = _logScanCompleted;
+                _logScanCompleted = null;
+            }
+            if (result == null) return;
+            
+            result.Entries.Sort(CompareLogEntries);
+            _logEntries.Clear();
+            _logEntries.AddRange(result.Entries);
+            _logListDirectory = result.Directory;
+            _nextLogListRefresh = Time.realtimeSinceStartup + 2f;
         }
 
         private static LogListEntry ReadLogEntry(string filePath)
         {
-            var entry = new LogListEntry
+            try
             {
-                FullPath = filePath,
-                FileName = Path.GetFileName(filePath),
-                LastWriteTime = File.GetLastWriteTime(filePath),
-                Length = new FileInfo(filePath).Length
-            };
-            ReadLogMetadata(filePath, entry);
-            return entry;
+                var entry = new LogListEntry
+                {
+                    FullPath = filePath,
+                    FileName = Path.GetFileName(filePath),
+                    LastWriteTime = File.GetLastWriteTime(filePath),
+                    Length = new FileInfo(filePath).Length
+                };
+                ReadLogMetadata(filePath, entry);
+                return entry;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static void ReadLogMetadata(string filePath, LogListEntry entry)
@@ -492,11 +557,11 @@ namespace TimingShow
 
         private static int CompareLogEntries(LogListEntry a, LogListEntry b)
         {
-            switch (_logSortMode)
+            switch (ModContext.Settings.LogSort)
             {
-                case LogSortMode.Size:
+                case Settings.LogSort_Size:
                     return b.Length.CompareTo(a.Length);
-                case LogSortMode.SongName:
+                case Settings.LogSort_SongName:
                     return StringComparer.OrdinalIgnoreCase.Compare(a.SongName ?? a.FileName, b.SongName ?? b.FileName);
                 default:
                     return b.Timestamp.CompareTo(a.Timestamp);
@@ -506,12 +571,12 @@ namespace TimingShow
         private static string GetSortButtonText()
         {
             string label;
-            switch (_logSortMode)
+            switch (ModContext.Settings.LogSort)
             {
-                case LogSortMode.Size:
+                case Settings.LogSort_Size:
                     label = i18n.T("SortBySize");
                     break;
-                case LogSortMode.SongName:
+                case Settings.LogSort_SongName:
                     label = i18n.T("SortBySongName");
                     break;
                 default:
@@ -563,6 +628,90 @@ namespace TimingShow
             {
                 ModContext.Logger.Error("Failed to open log analyzer: " + e.Message);
             }
+        }
+
+        private static bool IsDeleteArmed(string filePath)
+        {
+            DateTime until;
+            if (!_deleteArmedUntil.TryGetValue(filePath, out until)) return false;
+            if (DateTime.UtcNow <= until) return true;
+            _deleteArmedUntil.Remove(filePath);
+            return false;
+        }
+
+        private static void HandleDeleteClick(string filePath)
+        {
+            if (IsDeleteArmed(filePath))
+            {
+                _deleteArmedUntil.Remove(filePath);
+                lock (DeleteSync)
+                {
+                    if (!_deletePending.Add(filePath)) return;
+                }
+                ThreadPool.QueueUserWorkItem(_ => DeleteLogFileWorker(filePath));
+                return;
+            }
+
+            _deleteArmedUntil[filePath] = DateTime.UtcNow.AddSeconds(3);
+            GUI.changed = true;
+        }
+
+        private static void DeleteLogFileWorker(string filePath)
+        {
+            try
+            {
+                File.Delete(filePath);
+                lock (DeleteSync) _deleteCompleted.Add(filePath);
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Error("Failed to delete log file " + Path.GetFileName(filePath) + ": " + e.Message);
+            }
+            finally
+            {
+                lock (DeleteSync) _deletePending.Remove(filePath);
+            }
+        }
+
+        private static void ProcessDeleteResults()
+        {
+            List<string> completed = null;
+            lock (DeleteSync)
+            {
+                if (_deleteCompleted.Count > 0)
+                {
+                    completed = new List<string>(_deleteCompleted);
+                    _deleteCompleted.Clear();
+                }
+            }
+            if (completed == null) return;
+            
+            for (int i = 0; i < completed.Count; i++)
+                RemoveLogEntry(completed[i]);
+
+            _logListDirectory = null;
+            _nextLogListRefresh = 0f;
+        }
+
+        private static void RemoveLogEntry(string fullPath)
+        {
+            for (int i = _logEntries.Count - 1; i >= 0; i--)
+            {
+                if (string.Equals(_logEntries[i].FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                    _logEntries.RemoveAt(i);
+            }
+        }
+
+        private static void SetButtonTextColor(GUIStyle style, Color color)
+        {
+            style.normal.textColor = color;
+            style.hover.textColor = color;
+            style.active.textColor = color;
+            style.focused.textColor = color;
+            style.onNormal.textColor = color;
+            style.onHover.textColor = color;
+            style.onActive.textColor = color;
+            style.onFocused.textColor = color;
         }
 
         private static void DrawSessionControls()

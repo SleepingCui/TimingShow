@@ -49,11 +49,7 @@ namespace TimingShow
 
             _settingsWindowRect = GUILayout.Window(GetHashCode(), _settingsWindowRect, (id) =>
                 {
-                    _scrollPos = GUILayout.BeginScrollView(
-                        _scrollPos,
-                        GUILayout.Width(WindowWidth - 20),
-                        GUILayout.Height(WindowHeight - 60)
-                    );
+                    _scrollPos = GUILayout.BeginScrollView( _scrollPos, GUILayout.Width(WindowWidth - 20), GUILayout.Height(WindowHeight - 60));
                     Options.OnGUI();
                     GUILayout.EndScrollView();
 
