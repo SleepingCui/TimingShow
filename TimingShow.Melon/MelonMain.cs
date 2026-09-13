@@ -7,9 +7,12 @@ namespace TimingShow
 {
     public class MelonMain : MelonMod
     {
+        private const float WindowWidth = 900f;
+        private const float WindowHeight = 600f;
+
         private bool _showSettings;
         private bool _isRebinding;
-        private Rect _settingsWindowRect = new Rect(20, 20, 540, 600);
+        private Rect _settingsWindowRect = new Rect(20, 20, WindowWidth, WindowHeight);
         private Vector2 _scrollPos;
 
         public override void OnInitializeMelon()
@@ -46,7 +49,11 @@ namespace TimingShow
 
             _settingsWindowRect = GUILayout.Window(GetHashCode(), _settingsWindowRect, (id) =>
                 {
-                    _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUILayout.Width(520), GUILayout.Height(540));
+                    _scrollPos = GUILayout.BeginScrollView(
+                        _scrollPos,
+                        GUILayout.Width(WindowWidth - 20),
+                        GUILayout.Height(WindowHeight - 60)
+                    );
                     Options.OnGUI();
                     GUILayout.EndScrollView();
 
@@ -68,7 +75,7 @@ namespace TimingShow
                                     _isRebinding = false;
                                 }
                                 evt.Use();
-                            } 
+                            }
                             GUILayout.Button(i18n.T("Btn_PressKey"), GUILayout.Width(140));
                         }
                         else
@@ -87,11 +94,11 @@ namespace TimingShow
                     }
                     GUILayout.EndHorizontal();
 
-                    GUI.DragWindow(new Rect(0, 0, 540, 20));
+                    GUI.DragWindow(new Rect(0, 0, WindowWidth, 20));
                 },
                 $"TimingShow v{Info.Version}",
-                GUILayout.Width(540),
-                GUILayout.Height(600)
+                GUILayout.Width(WindowWidth),
+                GUILayout.Height(WindowHeight)
             );
         }
 

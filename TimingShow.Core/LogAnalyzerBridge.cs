@@ -13,20 +13,21 @@ namespace TimingShow
         private static readonly object Sync = new object();
         private static TcpListener _listener;
 
-        public static string CreateUrl(string filePath)
+        public static string CreateUrl(string filePath, int requestedPort = 0)
         {
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
                 throw new FileNotFoundException("Log file not found", filePath);
-
+            if (requestedPort < 0 || requestedPort > 65535)
+                throw new ArgumentOutOfRangeException("requestedPort", "Port must be between 0 and 65535");
             Stop();
 
             string token = Guid.NewGuid().ToString("N");
-            TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+            TcpListener listener = new TcpListener(IPAddress.Loopback, requestedPort);
             listener.Start();
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
 
             lock (Sync) _listener = listener;
-            var worker = new Thread(() => ServeOne(listener, filePath, token))
+            var worker = new Thread(() => Server(listener, filePath, token))
             {
                 IsBackground = true,
                 Name = "TimingShow.LogAnalyzerBridge"
@@ -41,11 +42,11 @@ namespace TimingShow
 
             string source = "http://127.0.0.1:" + port + "/log?token=" + token;
             string analyzerUrl = AnalyzerUrl + "?source=" + Uri.EscapeDataString(source) + "&name=" + Uri.EscapeDataString(Path.GetFileName(filePath));
-            ModContext.Logger?.Log("Started on port " + port + " for " + Path.GetFileName(filePath));
+            ModContext.Logger?.Log("Started on " + port + " for " + Path.GetFileName(filePath));
             return analyzerUrl;
         }
 
-        private static void ServeOne(TcpListener listener, string filePath, string token)
+        private static void Server(TcpListener listener, string filePath, string token)
         {
             TcpClient client = null;
             try

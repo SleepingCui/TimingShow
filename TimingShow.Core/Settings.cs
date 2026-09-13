@@ -119,6 +119,9 @@ namespace TimingShow
         public bool UseHookMode;
         public bool UseJsonWriter;
         public bool AutoReloadInEditor;
+
+        public bool AnalyzerBridgeEnabled = true;
+        public int AnalyzerBridgePort;
         
         
         //ml only

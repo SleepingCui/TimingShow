@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Diagnostics;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityFileDialog;
 
@@ -11,6 +13,7 @@ namespace TimingShow
     {
         private static string _bufferSizeText;
         private static string _maxPointsText;
+        private static string _analyzerPortText;
         private static bool _showAdvancedSettings;
 
         private static bool _foldoutTitleSettings;
@@ -24,6 +27,14 @@ namespace TimingShow
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
         private static bool _showLogList;
+        private static LogSortMode _logSortMode = LogSortMode.Time;
+
+        private enum LogSortMode
+        {
+            Time,
+            Size,
+            SongName
+        }
 
         private static GUIStyle _activeButtonStyle;
         private static GUIStyle _richToggleStyle;
@@ -36,8 +47,10 @@ namespace TimingShow
         {
             public string FullPath;
             public string FileName;
+            public string SongName;
             public DateTime LastWriteTime;
             public long Length;
+            public long Timestamp = -1;
         }
 
         public static void OnGUI()
@@ -361,6 +374,11 @@ namespace TimingShow
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(i18n.T("Btn_RefreshLogs"), GUILayout.Width(70)))
                 RefreshLogList(logDir);
+            if (GUILayout.Button(GetSortButtonText(), GUILayout.Width(120)))
+            {
+                _logSortMode = (LogSortMode)(((int)_logSortMode + 1) % 3);
+                RefreshLogList(logDir);
+            }
             long totalBytes = 0;
             for (int i = 0; i < _logEntries.Count; i++) totalBytes += _logEntries[i].Length;
             GUILayout.Label(string.Format(i18n.T("LogSummary"), _logEntries.Count, FormatFileSize(totalBytes)), GUILayout.ExpandWidth(true));
@@ -380,6 +398,8 @@ namespace TimingShow
                     LogListEntry entry = _logEntries[i];
                     GUILayout.BeginHorizontal(GUI.skin.box);
                     GUILayout.Label(entry.FileName, GUILayout.MinWidth(190), GUILayout.ExpandWidth(true));
+                    GUILayout.Label(FormatFileSize(entry.Length), GUILayout.Width(78));
+                    GUILayout.Label(FormatTimestamp(entry.Timestamp), GUILayout.Width(145));
                     if (GUILayout.Button(i18n.T("Btn_AnalyzeLog"), GUILayout.Width(70)))
                         OpenLogInAnalyzer(entry.FullPath);
                     GUILayout.EndHorizontal();
@@ -408,7 +428,7 @@ namespace TimingShow
                     if (!lower.EndsWith(".json") && !lower.EndsWith(".tlog") && !lower.EndsWith(".tlog.gz")) continue;
                     entries.Add(ReadLogEntry(file));
                 }
-                entries.Sort((a, b) => b.LastWriteTime.CompareTo(a.LastWriteTime));
+                entries.Sort(CompareLogEntries);
                 _logEntries.AddRange(entries);
             }
             catch (Exception e)
@@ -426,7 +446,92 @@ namespace TimingShow
                 LastWriteTime = File.GetLastWriteTime(filePath),
                 Length = new FileInfo(filePath).Length
             };
+            ReadLogMetadata(filePath, entry);
             return entry;
+        }
+
+        private static void ReadLogMetadata(string filePath, LogListEntry entry)
+        {
+            try
+            {
+                string lower = filePath.ToLowerInvariant();
+                if (lower.EndsWith(".json"))
+                {
+                    using (var reader = new JsonTextReader(new StreamReader(filePath)))
+                    {
+                        while (reader.Read())
+                        {
+                            if (reader.TokenType != JsonToken.PropertyName) continue;
+                            string propertyName = reader.Value?.ToString();
+                            if (!reader.Read()) continue;
+                            if (string.Equals(propertyName, "timestamp", StringComparison.Ordinal) && reader.TokenType == JsonToken.Integer)
+                                entry.Timestamp = Convert.ToInt64(reader.Value);
+                            else if (string.Equals(propertyName, "songName", StringComparison.Ordinal) && reader.TokenType == JsonToken.String)
+                                entry.SongName = reader.Value?.ToString();
+                        }
+                    }
+                    return;
+                }
+
+                using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (Stream input = lower.EndsWith(".tlog.gz") ? (Stream)new GZipStream(fs, CompressionMode.Decompress) : fs)
+                using (var reader = new BinaryReader(input, System.Text.Encoding.UTF8))
+                {
+                    string magic = new string(reader.ReadChars(4));
+                    if (magic != "TSMZ") return;
+                    reader.ReadByte();
+                    entry.Timestamp = reader.ReadInt64();
+                    entry.SongName = reader.ReadString();
+                }
+            }
+            catch
+            {
+                // Keep defaults for incomplete or currently-writing files.
+            }
+        }
+
+        private static int CompareLogEntries(LogListEntry a, LogListEntry b)
+        {
+            switch (_logSortMode)
+            {
+                case LogSortMode.Size:
+                    return b.Length.CompareTo(a.Length);
+                case LogSortMode.SongName:
+                    return StringComparer.OrdinalIgnoreCase.Compare(a.SongName ?? a.FileName, b.SongName ?? b.FileName);
+                default:
+                    return b.Timestamp.CompareTo(a.Timestamp);
+            }
+        }
+
+        private static string GetSortButtonText()
+        {
+            string label;
+            switch (_logSortMode)
+            {
+                case LogSortMode.Size:
+                    label = i18n.T("SortBySize");
+                    break;
+                case LogSortMode.SongName:
+                    label = i18n.T("SortBySongName");
+                    break;
+                default:
+                    label = i18n.T("SortByTime");
+                    break;
+            }
+            return i18n.T("Btn_Sort") + ": " + label;
+        }
+
+        private static string FormatTimestamp(long timestamp)
+        {
+            if (timestamp < 0) return "-";
+            try
+            {
+                return DateTimeOffset.FromUnixTimeSeconds(timestamp).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+            }
+            catch
+            {
+                return "-";
+            }
         }
 
         private static string FormatFileSize(long bytes)
@@ -446,7 +551,12 @@ namespace TimingShow
         {
             try
             {
-                string url = LogAnalyzerBridge.CreateUrl(filePath);
+                if (!ModContext.Settings.AnalyzerBridgeEnabled)
+                {
+                    ModContext.Logger.Log("Log analyzer bridge is disabled");
+                    return;
+                }
+                string url = LogAnalyzerBridge.CreateUrl(filePath, ModContext.Settings.AnalyzerBridgePort);
                 Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
             }
             catch (Exception e)
@@ -527,6 +637,23 @@ namespace TimingShow
                     "Toggle_AutoReloadInEditor",
                     "Desc_AutoReloadInEditor"
                 );
+
+                GUILayout.Space(5);
+
+                bool previousAnalyzerEnabled = ModContext.Settings.AnalyzerBridgeEnabled;
+                bool analyzerEnabled = ToggleWithDescription(
+                    ModContext.Settings.AnalyzerBridgeEnabled,
+                    "Toggle_AnalyzerBridge",
+                    "Desc_AnalyzerBridge"
+                );
+                ModContext.Settings.AnalyzerBridgeEnabled = analyzerEnabled;
+                if (previousAnalyzerEnabled && !analyzerEnabled)
+                    LogAnalyzerBridge.Stop();
+
+                if (analyzerEnabled)
+                {
+                    IntField("Label_AnalyzerPort", ref _analyzerPortText, ref ModContext.Settings.AnalyzerBridgePort, 0, 65535, 0, 160);
+                }
             }
             GUILayout.EndVertical();
         }
