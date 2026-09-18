@@ -13,12 +13,18 @@ namespace TimingShow
         private static readonly object Sync = new object();
         private static TcpListener _listener;
 
-        public static string CreateUrl(string filePath, int requestedPort = 0)
+        public const int MinTimeoutSeconds = 5;
+        public const int MaxTimeoutSeconds = 3600;
+        public const int DefaultTimeoutSeconds = 60;
+
+        public static string CreateUrl(string filePath, int requestedPort = 0, int timeoutSeconds = DefaultTimeoutSeconds)
         {
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
                 throw new FileNotFoundException("Log file not found", filePath);
             if (requestedPort < 0 || requestedPort > 65535)
                 throw new ArgumentOutOfRangeException("requestedPort", "Port must be between 0 and 65535");
+            if (timeoutSeconds < MinTimeoutSeconds || timeoutSeconds > MaxTimeoutSeconds)
+                throw new ArgumentOutOfRangeException("timeoutSeconds", "Timeout must be between " + MinTimeoutSeconds + " and " + MaxTimeoutSeconds + " seconds");
             Stop();
 
             string token = Guid.NewGuid().ToString("N");
@@ -32,7 +38,7 @@ namespace TimingShow
                 IsBackground = true,
                 Name = "TimingShow.LogAnalyzerBridge"
             };
-            var expiry = new Thread(() => Expire(listener))
+            var expiry = new Thread(() => Expire(listener, timeoutSeconds))
             {
                 IsBackground = true,
                 Name = "TimingShow.LogAnalyzerExpiry"
@@ -89,9 +95,9 @@ namespace TimingShow
             }
         }
 
-        private static void Expire(TcpListener listener)
+        private static void Expire(TcpListener listener, int timeoutSeconds)
         {
-            Thread.Sleep(60000);
+            Thread.Sleep(TimeSpan.FromSeconds(timeoutSeconds));
             Stop(listener);
         }
 

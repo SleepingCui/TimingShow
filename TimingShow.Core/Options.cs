@@ -12,6 +12,7 @@ namespace TimingShow
         private static string _bufferSizeText;
         private static string _maxPointsText;
         private static string _analyzerPortText;
+        private static string _analyzerTimeoutText;
         private static bool _showAdvancedSettings;
 
         private static bool _foldoutTitleSettings;
@@ -438,6 +439,8 @@ namespace TimingShow
                 if (analyzerEnabled)
                 {
                     IntField("Label_AnalyzerPort", ref _analyzerPortText, ref ModContext.Settings.AnalyzerBridgePort, 0, 65535, 0, 160);
+                    IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, ref ModContext.Settings.AnalyzerBridgeTimeoutSec,
+                        LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds, LogAnalyzerBridge.DefaultTimeoutSeconds, 160);
                 }
             }
             GUILayout.EndVertical();

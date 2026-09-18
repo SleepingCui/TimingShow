@@ -20,6 +20,12 @@ namespace TimingShow
         private static int _hitCount;
         private static bool _isAngle;
 
+        public static bool IsFileBeingWritten(string filePath)
+        {
+            return _writer != null && !string.IsNullOrWhiteSpace(filePath) &&
+                string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase);
+        }
+
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();

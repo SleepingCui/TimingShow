@@ -58,6 +58,7 @@ namespace TimingShow
             EnsureStyles();
             ProcessDeleteResults();
             ApplyLogScanResults();
+            RemoveActiveLogEntries();
 
             string foldoutArrow = _showLogList ? "▲" : "▼";
             GUILayout.Space(6);
@@ -163,6 +164,7 @@ namespace TimingShow
                         string file = files[i];
                         string lower = file.ToLowerInvariant();
                         if (!lower.EndsWith(".json") && !lower.EndsWith(".tlog") && !lower.EndsWith(".tlog.gz")) continue;
+                        if (TimingLogger.IsFileBeingWritten(file)) continue;
                         LogListEntry entry = ReadLogEntry(file);
                         if (entry != null) result.Entries.Add(entry);
                     }
@@ -321,7 +323,7 @@ namespace TimingShow
                     ModContext.Logger.Log("Log analyzer bridge is disabled");
                     return;
                 }
-                string url = LogAnalyzerBridge.CreateUrl(filePath, ModContext.Settings.AnalyzerBridgePort);
+                string url = LogAnalyzerBridge.CreateUrl(filePath, ModContext.Settings.AnalyzerBridgePort, ModContext.Settings.AnalyzerBridgeTimeoutSec);
                 Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
             }
             catch (Exception e)
@@ -398,6 +400,15 @@ namespace TimingShow
             for (int i = _logEntries.Count - 1; i >= 0; i--)
             {
                 if (string.Equals(_logEntries[i].FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                    _logEntries.RemoveAt(i);
+            }
+        }
+
+        private static void RemoveActiveLogEntries()
+        {
+            for (int i = _logEntries.Count - 1; i >= 0; i--)
+            {
+                if (TimingLogger.IsFileBeingWritten(_logEntries[i].FullPath))
                     _logEntries.RemoveAt(i);
             }
         }

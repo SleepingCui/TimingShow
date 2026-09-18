@@ -17,6 +17,13 @@ namespace TimingShow
         private static bool _isCurrentSessionBinary;
         private static bool _isCurrentSessionAngle;
 
+        public static bool IsFileBeingWritten(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath)) return false;
+            if (_isCurrentSessionBinary) return TimingLoggerBinary.IsFileBeingWritten(filePath);
+            return _writer != null && string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase);
+        }
+
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();

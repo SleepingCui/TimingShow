@@ -128,6 +128,7 @@ namespace TimingShow
 
         public bool AnalyzerBridgeEnabled = true;
         public int AnalyzerBridgePort;
+        public int AnalyzerBridgeTimeoutSec = LogAnalyzerBridge.DefaultTimeoutSeconds;
 
         public int LogSort = 0;
 
