@@ -62,6 +62,8 @@ namespace TimingShow
         public string HUD_Format = "Timing - {0}ms";
         public bool HUD_UseJudgeColor;
         public bool HUD_ShowAngle;
+        public bool HUD_UseCustomFont;
+        public string HUD_FontPath = "";
 
         public bool ShowURHUD;
         public float URHUD_x;
@@ -71,6 +73,8 @@ namespace TimingShow
         public int URHUD_align;
         public int PercURHUD = 1;
         public string URHUD_Format = "UR - {0}";
+        public bool URHUD_UseCustomFont;
+        public string URHUD_FontPath = "";
 
         public bool ShowRatioHUD;
         public float RatioHUD_x;
@@ -80,6 +84,8 @@ namespace TimingShow
         public int RatioHUD_align;
         public int PercRatioHUD = 1;
         public string RatioHUD_Format = "Ratio - {0}:1";
+        public bool RatioHUD_UseCustomFont;
+        public string RatioHUD_FontPath = "";
         
         public bool Ratio_UseXPerfect;
         

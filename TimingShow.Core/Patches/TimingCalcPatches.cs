@@ -23,6 +23,7 @@ namespace TimingShow.Patches
                 double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
 
                 ModContext.LastTiming = diff;
+                ModContext.LastSongTimeMs = PlayStatePatches.GetSessionTimeMs();
                 ModContext.LastAngle = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 180.0 / Math.PI;
                 ModContext.LastBpm = bpm;
                 ModContext.LastSpeed = speed;
@@ -56,6 +57,7 @@ namespace TimingShow.Patches
                     }
                 }
             }
+
         }
 
         // hit

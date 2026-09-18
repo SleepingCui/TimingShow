@@ -15,7 +15,8 @@ namespace TimingShow
         private static string _currentFilePath;
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
         private const byte FormatVersion = TimingLogger.FormatVersion;
-        private static long _prevTimingBits;
+        private static long _prevTimeBits;
+        private static long _prevValueBits;
         private static int _hitCount;
         private static bool _isAngle;
 
@@ -45,7 +46,8 @@ namespace TimingShow
                 _gzStream = new GZipStream(_fs, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: false);
                 _writer = new BinaryWriter(_gzStream, new UTF8Encoding(false));
 
-                _prevTimingBits = 0;
+                _prevTimeBits = 0;
+                _prevValueBits = 0;
                 _hitCount = 0;
                 _isAngle = ModContext.Settings.Logger_ShowAngle;
 
@@ -79,9 +81,13 @@ namespace TimingShow
             try
             {
                 _hitCount++;
-                long bits = BitConverter.DoubleToInt64Bits(_isAngle ? angle : timing);
-                _writer.Write(bits ^ _prevTimingBits);
-                _prevTimingBits = bits;
+                long timeBits = BitConverter.DoubleToInt64Bits(ModContext.LastSongTimeMs);
+                _writer.Write(timeBits ^ _prevTimeBits);
+                _prevTimeBits = timeBits;
+
+                long valueBits = BitConverter.DoubleToInt64Bits(_isAngle ? angle : timing);
+                _writer.Write(valueBits ^ _prevValueBits);
+                _prevValueBits = valueBits;
 
                 VarInt.Write(_writer, rawMarginCode);
                 VarInt.Write(_writer, judgeCode);

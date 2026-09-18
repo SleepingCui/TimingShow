@@ -1,17 +1,28 @@
 using HarmonyLib;
 using System;
+using System.Diagnostics;
 using static TimingShow.Patches.TimingCalcPatches;
 
 namespace TimingShow.Patches
 {
     public static class PlayStatePatches
     {
+        private static readonly Stopwatch SessionTimer = new Stopwatch();
+
+        public static double GetSessionTimeMs()
+        {
+            return SessionTimer.IsRunning ? SessionTimer.Elapsed.TotalMilliseconds : -1.0;
+        }
+
+
+
         // start playing
         [HarmonyPatch(typeof(scrController), "Start_Rewind")]
         public static class LevelStartPatch
         {
             public static void Postfix()
             {
+                SessionTimer.Restart();
                 ModContext.IsPlaying = true;
                 ModContext.IsLevelFinished = false;
                 ModContext.LastTiming = 0;
@@ -61,6 +72,7 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
+                SessionTimer.Stop();
                 ModContext.IsPlaying = false;
                 MarginTrackerAddHitPatch.ResetCounts();
                 HUDMan.Destroy();
@@ -74,6 +86,7 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
+                SessionTimer.Stop();
                 ModContext.IsPlaying = false;
                 MarginTrackerAddHitPatch.ResetCounts();
                 TimingLogger.CloseSession();

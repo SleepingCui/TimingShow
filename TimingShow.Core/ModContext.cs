@@ -13,6 +13,7 @@ namespace TimingShow
         public static Settings Settings;
         public static double LastTiming;
         public static double LastAngle;
+        public static double LastSongTimeMs = -1.0;
         public static HitMan LastJudge = HitMan.Unknown;
         public static int LastRawMargin = -1;
         public static bool LastIsXP;
@@ -65,6 +66,7 @@ namespace TimingShow
             SessionOffsets.Clear();
             LastTiming = 0;
             LastAngle = 0;
+            LastSongTimeMs = -1.0;
             ResetJudgeState();
             HUDMan.Destroy();
         }

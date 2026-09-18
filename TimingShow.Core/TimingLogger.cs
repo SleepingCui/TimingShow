@@ -8,7 +8,7 @@ namespace TimingShow
 {
     public static class TimingLogger
     {
-        public const int FormatVersion = 5;
+        public const int FormatVersion = 6;
 
         private static StreamWriter _writer;
         private static string _currentFilePath;
@@ -95,10 +95,15 @@ namespace TimingShow
 
                 string fmt = "F" + Math.Max(0, ModContext.Settings.PercLog);
                 string formattedTiming = (_isCurrentSessionAngle ? angle : timing).ToString(fmt);
+                string formattedSongTime = double.IsNaN(ModContext.LastSongTimeMs) || double.IsInfinity(ModContext.LastSongTimeMs) || ModContext.LastSongTimeMs < 0
+                    ? "null"
+                    : ModContext.LastSongTimeMs.ToString("F3", CultureInfo.InvariantCulture);
 
                 string prefix = _isFirstEntry ? "" : ",";
                 _writer.Write(prefix);
                 _writer.Write("[");
+                _writer.Write(formattedSongTime);
+                _writer.Write(",");
                 _writer.Write(formattedTiming);
                 _writer.Write(",");
                 _writer.Write(rawMarginCode);
