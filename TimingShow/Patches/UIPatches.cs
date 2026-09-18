@@ -258,6 +258,7 @@ namespace TimingShow.Patches
 
                 if (ModContext.IsPlaying)
                 {
+                    PlayStatePatches.SyncPauseState();
                     HUDMan.Update();
                 }
                 else

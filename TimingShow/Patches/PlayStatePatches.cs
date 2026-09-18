@@ -8,10 +8,33 @@ namespace TimingShow.Patches
     public static class PlayStatePatches
     {
         private static readonly Stopwatch SessionTimer = new Stopwatch();
+        private static bool _isGamePaused;
 
         public static double GetSessionTimeMs()
         {
             return SessionTimer.IsRunning ? SessionTimer.Elapsed.TotalMilliseconds : -1.0;
+        }
+
+        public static void SyncPauseState()
+        {
+            if (!ModContext.IsPlaying || scrController.instance == null)
+                return;
+
+            bool isPaused = scrController.instance.paused;
+            if (isPaused == _isGamePaused)
+                return;
+
+            _isGamePaused = isPaused;
+            if (isPaused)
+            {
+                SessionTimer.Stop();
+                ModContext.Logger.Log("session paused");
+            }
+            else
+            {
+                SessionTimer.Start();
+                ModContext.Logger.Log("session resumed");
+            }
         }
 
 
@@ -23,6 +46,7 @@ namespace TimingShow.Patches
             public static void Postfix()
             {
                 SessionTimer.Restart();
+                _isGamePaused = false;
                 ModContext.IsPlaying = true;
                 ModContext.IsLevelFinished = false;
                 ModContext.LastTiming = 0;
@@ -65,6 +89,16 @@ namespace TimingShow.Patches
                 }
             }
         }
+        
+        //pause
+        [HarmonyPatch(typeof(scrController), "TogglePauseGame")]
+        public static class TogglePauseGamePatch
+        {
+            public static void Postfix()
+            {
+                SyncPauseState();
+            }
+        }
 
         // quit (editor)
         [HarmonyPatch(typeof(scnEditor), "SwitchToEditMode")]
@@ -73,6 +107,7 @@ namespace TimingShow.Patches
             public static void Prefix()
             {
                 SessionTimer.Stop();
+                _isGamePaused = false;
                 ModContext.IsPlaying = false;
                 MarginTrackerAddHitPatch.ResetCounts();
                 HUDMan.Destroy();
@@ -87,6 +122,7 @@ namespace TimingShow.Patches
             public static void Prefix()
             {
                 SessionTimer.Stop();
+                _isGamePaused = false;
                 ModContext.IsPlaying = false;
                 MarginTrackerAddHitPatch.ResetCounts();
                 TimingLogger.CloseSession();
