@@ -1,8 +1,8 @@
 ﻿## Features
 
-- **双加载器支持**
+- **三加载器支持**
   
-  - 现可同时支持MelonLoader和UMM加载器，默认使用快捷键F9呼出配置界面
+  - 新增 BepInEx 加载器支持,现可同时支持MelonLoader、UMM和BepInEx,BepInEx下同样使用快捷键F9呼出配置界面
   - 设置存储从 UnityModManager.ModSettings 迁移至独立 JSON 序列化
 
 - **新增可选角度显示**：

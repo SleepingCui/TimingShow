@@ -1,8 +1,8 @@
 # TimingShow
 
-面向冰与火之舞的Timing信息提示模组，支持 MelonLoader 和 UnityModManager
+面向冰与火之舞的Timing信息提示模组，支持 MelonLoader、UnityModManager 和 BepInEx
 
-A Timing information display mod for A Dance of Fire and Ice, supporting MelonLoader and UnityModManager
+A Timing information display mod for A Dance of Fire and Ice, supporting MelonLoader, UnityModManager and BepInEx
 
 ## 功能 / Features
 
@@ -22,9 +22,9 @@ A Timing information display mod for A Dance of Fire and Ice, supporting MelonLo
 - 支持 Timing 日志，可在[Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer)获取详细的分析报告 (包括偏移散点图，正态分布图，XACC曲线等指标)
 
   Supports Timing logs; detailed analysis reports (including offset scatter plots, normal distribution graphs, XACC curves, and other metrics) are available at [Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer).
-- 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
+- 同时支持UMM、MelonLoader和BepInEx,以MelonLoader或BepInEx加载时使用`F9`呼出配置界面
 
-  Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.
+  Supports UMM, MelonLoader and BepInEx; when loaded via MelonLoader or BepInEx, press `F9` to open the configuration interface.
 
 ## Screenshots
 <details>
