@@ -1,20 +1,33 @@
 # TimingShow
 
-面向冰与火之舞的Timing信息提示模组，支持 MelonLoader 和 UnityModManager。
+面向冰与火之舞的Timing信息提示模组，支持 MelonLoader 和 UnityModManager
+A Timing information display mod for A Dance of Fire and Ice, supporting MelonLoader and UnityModManager
 
-## 功能
+## 功能 / Features
 
-- 显示 Timing、UR、Perfect(XPerfect) Ratio 和 XACC曲线图。
-- 支持在歌曲标题、星球判定文字、HUD、死亡页和通关页显示。
-- 可自定义显示内容、颜色、位置、缩放、格式和精度。
+- 显示 Timing、UR、Perfect(XPerfect) Ratio 和 XACC曲线图
+
+  Displays Timing, UR, Perfect (XPerfect) Ratio, and XACC curve graphs
+
+- 支持在歌曲标题、星球判定文字、HUD、死亡页和通关页显示
+
+  Supports display on song titles, planet judgement text, HUD, death screen, and level complete screen
+- 可自定义显示内容、颜色、位置、缩放、格式和精度
+
+  Customizable display content, colors, position, scale, format, and precision
 - 支持 XPerfect 判定
+
+  Supports XPerfect
 - 支持 Timing 日志，可在[Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer)获取详细的分析报告 (包括偏移散点图，正态分布图，XACC曲线等指标)
+
+  Supports Timing logs; detailed analysis reports (including offset scatter plots, normal distribution graphs, XACC curves, and other metrics) are available at [Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer).
 - 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
 
+  Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.
 
 ## Screenshots
 <details>
-<summary>（点击展开）</summary>
+<summary>（点击展开 / Click to expand）</summary>
 
 <img width="682" height="645" alt="屏幕截图 2026-09-06 000354" src="https://github.com/user-attachments/assets/6abc512e-3f7d-446d-ba2f-d314ffed2934" />
 
@@ -28,7 +41,7 @@
 
 </details>
 
-## 引用 & 代码参考
+## 引用 & 代码参考 / References & Code Credits
 
 - [Oerlayer](https://github.com/c3nb/Overlayer)
 - [ProgressDisplayer](https://github.com/FLOWERs-Modding/ADOFAI_ProgressDisplayer2)
@@ -36,4 +49,4 @@
 
 ## LICENSE
 
- [MIT](LICENSE.txt)
+[MIT](LICENSE.txt)
