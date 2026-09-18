@@ -17,6 +17,7 @@ namespace TimingShow
         private string _fontConfigKey;
         private TMP_FontAsset _customFontAsset;
         private string _customFontPath;
+        private Material _shadowMaterial;
 
         private void Awake()
         {
@@ -52,6 +53,8 @@ namespace TimingShow
             shadow = textObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
             shadow.effectDistance = new Vector2(2f, -2f);
+            shadow.enabled = false;
+            ApplyTMPShadow();
         }
 
         public void SetText(string value)
@@ -103,9 +106,33 @@ namespace TimingShow
             }
 
             text.font = fontAsset;
+            ApplyTMPShadow();
             text.SetVerticesDirty();
             text.SetLayoutDirty();
             _fontConfigKey = configKey;
+        }
+
+        private void ApplyTMPShadow()
+        {
+            if (text == null || text.fontSharedMaterial == null) return;
+
+            if (_shadowMaterial != null)
+                Object.Destroy(_shadowMaterial);
+
+            _shadowMaterial = new Material(text.fontSharedMaterial);
+            _shadowMaterial.name = "TimingShow_TMP_ShadowMaterial";
+            if (_shadowMaterial.HasProperty(ShaderUtilities.ID_UnderlayColor))
+            {
+                _shadowMaterial.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+                _shadowMaterial.SetColor(
+                    ShaderUtilities.ID_UnderlayColor,
+                    new Color(0f, 0f, 0f, 0.45f));
+                _shadowMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.1f);
+                _shadowMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.1f);
+                _shadowMaterial.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.1f);
+                _shadowMaterial.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.05f);
+                text.fontMaterial = _shadowMaterial;
+            }
         }
 
         private static TMP_FontAsset FindGameFont()
