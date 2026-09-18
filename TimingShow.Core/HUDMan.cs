@@ -33,12 +33,18 @@ namespace TimingShow
             
             bool isTimingPlay = isPlayBase && ModContext.Settings.ShowTimingHUD;
             EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
+            if (_hudInstance != null)
+                _hudInstance.ApplyFont(ModContext.Settings.HUD_UseCustomFont, ModContext.Settings.HUD_FontPath);
 
             bool isURPlay = isPlayBase && ModContext.Settings.ShowURHUD;
             EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
+            if (_urHudInstance != null)
+                _urHudInstance.ApplyFont(ModContext.Settings.URHUD_UseCustomFont, ModContext.Settings.URHUD_FontPath);
 
             bool isRatioPlay = isPlayBase && ModContext.Settings.ShowRatioHUD;
             EnsureUI(ref _ratiohudObj, ref _ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
+            if (_ratioHudInstance != null)
+                _ratioHudInstance.ApplyFont(ModContext.Settings.RatioHUD_UseCustomFont, ModContext.Settings.RatioHUD_FontPath);
 
             bool isXACCPlay = isPlayBase && ModContext.Settings.ShowXACCGraph;
             if (ModContext.Settings.XACCGraph_ShowEnd) isXACCPlay = isXACCPlay && ModContext.IsLevelFinished;
@@ -108,8 +114,8 @@ namespace TimingShow
             instance.SetText(SafeFormat(format, value));
             instance.SetPosition(x, y);
             instance.SetSize((int)(24 * scale));
-            instance.text.alignment = instance.ToAlign(align);
-            instance.text.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+            instance.SetAlignment(align);
+            instance.SetBold(bold);
         }
         
         private static string SafeFormat(string format, string value)

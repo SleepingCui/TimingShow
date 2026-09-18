@@ -54,7 +54,7 @@ namespace TimingShow.Patches
                     }
                     catch (Exception e)
                     {
-                        ModContext.Logger?.Log($"xPerfectBorder 不可用, 跳过原生边框处理: {e.Message}");
+                        ModContext.Logger.Log($"xPerfectBorder not available, skipping native border handling: {e.Message}");
                     }
                 }
                 if (_xPerfectBorderField == null) return;
@@ -73,7 +73,7 @@ namespace TimingShow.Patches
                 }
                 catch (Exception e)
                 {
-                    ModContext.Logger?.Log($"关闭 xPerfectBorder 失败: {e.Message}");
+                    ModContext.Logger?.Log($"Failed to disable xPerfectBorder: {e.Message}");
                 }
             }
 

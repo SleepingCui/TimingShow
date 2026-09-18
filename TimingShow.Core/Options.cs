@@ -177,6 +177,7 @@ namespace TimingShow
                     ref ModContext.Settings.HUD_bold, ref ModContext.Settings.HUD_align, ref ModContext.Settings.HUD_Format,
                     ref ModContext.Settings.PercHUD
                 );
+                DrawHUDFontSettings(ref ModContext.Settings.HUD_UseCustomFont, ref ModContext.Settings.HUD_FontPath);
                 Toggle(ref ModContext.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
@@ -197,6 +198,7 @@ namespace TimingShow
                     ref ModContext.Settings.URHUD_bold, ref ModContext.Settings.URHUD_align, ref ModContext.Settings.URHUD_Format,
                     ref ModContext.Settings.PercURHUD
                 );
+                DrawHUDFontSettings(ref ModContext.Settings.URHUD_UseCustomFont, ref ModContext.Settings.URHUD_FontPath);
             }
         }
 
@@ -210,8 +212,46 @@ namespace TimingShow
                     ref ModContext.Settings.RatioHUD_bold, ref ModContext.Settings.RatioHUD_align, ref ModContext.Settings.RatioHUD_Format,
                     ref ModContext.Settings.PercRatioHUD
                 );
+                DrawHUDFontSettings(ref ModContext.Settings.RatioHUD_UseCustomFont, ref ModContext.Settings.RatioHUD_FontPath);
                 RatioModeButtons();
             }
+        }
+
+        private static void DrawHUDFontSettings(ref bool useCustomFont, ref string fontPath)
+        {
+            Toggle(ref useCustomFont, "Toggle_CustomFont");
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            GUILayout.Label(i18n.T("Label_FontPath"), GUILayout.Width(100));
+            string displayPath = string.IsNullOrWhiteSpace(fontPath) ? i18n.T("Label_GameFont") : fontPath;
+            GUILayout.Label(displayPath, GUILayout.MinWidth(240), GUILayout.MaxWidth(450));
+
+            if (GUILayout.Button(i18n.T("Btn_SelectFont"), GUILayout.Width(80)))
+            {
+                string initialDirectory = string.IsNullOrWhiteSpace(fontPath) ? "" : Path.GetDirectoryName(fontPath);
+                string selectedFont = FileBrowser.PickFile(
+                    initialDirectory,
+                    "Font",
+                    new[] { "ttf", "otf" },
+                    i18n.T("Btn_SelectFont"));
+
+                if (!string.IsNullOrWhiteSpace(selectedFont))
+                {
+                    string extension = Path.GetExtension(selectedFont);
+                    if (string.Equals(extension, ".ttf", System.StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".otf", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        fontPath = Path.GetFullPath(selectedFont);
+                        useCustomFont = true;
+                    }
+                    else
+                    {
+                        ModContext.Logger?.Log("Unsupported HUD font file: " + selectedFont);
+                    }
+                }
+            }
+            GUILayout.EndHorizontal();
         }
 
         private static void DrawXACCGraphSettings()

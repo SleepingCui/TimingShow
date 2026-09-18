@@ -43,7 +43,7 @@ namespace TimingShow
             string source = "http://127.0.0.1:" + port + "/log?token=" + token;
             string analyzerUrl = AnalyzerUrl + "?source=" + Uri.EscapeDataString(source) + "&name=" + Uri.EscapeDataString(Path.GetFileName(filePath));
             ModContext.Logger.Log($"server started at 127.0.0.1:{port}");
-            ModContext.Logger.Log($"token={token},url={analyzerUrl}");
+            ModContext.Logger.Log($"token={token}");
             return analyzerUrl;
         }
 
