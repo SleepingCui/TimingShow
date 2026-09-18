@@ -23,6 +23,8 @@ namespace TimingShow
         protected override int MaxPoints => ModContext.Settings.XACCGraph_MaxPoints > 0 ? ModContext.Settings.XACCGraph_MaxPoints : 250;
         public override string GraphName => "XACC";
 
+        private const float MinYRange = 0.1f;
+
         private float _cachedMinY;
         private float _cachedMaxY;
 
@@ -78,6 +80,11 @@ namespace TimingShow
                 if (100f - minVal < 1.0f)
                 {
                     _cachedMinY = Mathf.Max(0f, (float)Math.Floor(minVal * 10f) / 10f);
+                }
+
+                if (_cachedMaxY - _cachedMinY < MinYRange)
+                {
+                    _cachedMinY = Mathf.Max(0f, _cachedMaxY - 1f);
                 }
             }
             else
