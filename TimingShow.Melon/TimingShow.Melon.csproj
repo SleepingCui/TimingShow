@@ -59,9 +59,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TimingShow.Core\TimingShow.Core.csproj">
+    <ProjectReference Include="..\TimingShow\TimingShow.csproj">
       <Project>{BD86317D-26B5-43F4-9CFA-3761BD6863E0}</Project>
-      <Name>TimingShow.Core</Name>
+      <Name>TimingShow</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
