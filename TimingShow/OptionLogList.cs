@@ -11,10 +11,14 @@ namespace TimingShow
 {
     internal static class OptionLogList
     {
+        private const string Ellipsis = "...";
+
         private static bool _showLogList;
         private static GUIStyle _deleteButtonStyle;
         private static GUIStyle _deleteArmedButtonStyle;
         private static GUIStyle _warningLabelStyle;
+        private static GUIStyle _logNameLabelStyle;
+        private static readonly GUIContent _measureContent = new GUIContent();
 
         private static readonly List<LogListEntry> _logEntries = new List<LogListEntry>();
         private static readonly Dictionary<string, DateTime> _deleteArmedUntil = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
@@ -107,11 +111,18 @@ namespace TimingShow
                 {
                     LogListEntry entry = _logEntries[i];
                     GUILayout.BeginHorizontal(GUI.skin.box);
-                    GUILayout.Label(entry.FileName, GUILayout.MinWidth(190), GUILayout.ExpandWidth(true));
+                    _measureContent.text = entry.FileName;
+                    Rect nameRect = GUILayoutUtility.GetRect(_measureContent, _logNameLabelStyle,
+                        GUILayout.MinWidth(190), GUILayout.ExpandWidth(true));
+                    GUI.Label(nameRect, TruncateToWidth(entry.FileName, _logNameLabelStyle, nameRect.width), _logNameLabelStyle);
                     GUILayout.Label(FormatFileSize(entry.Length), GUILayout.Width(78));
                     GUILayout.Label(FormatTimestamp(entry.Timestamp), GUILayout.Width(145));
-                    if (GUILayout.Button(i18n.T("Btn_AnalyzeLog"), GUILayout.Width(70)))
+                    string analyzeLabel = i18n.T("Btn_AnalyzeLog");
+                    if (GUILayout.Button(analyzeLabel, GUILayout.Width(MeasureButtonWidth(analyzeLabel, 70f))))
                         OpenLogInAnalyzer(entry.FullPath);
+                    string openFileLabel = i18n.T("Btn_OpenLogFile");
+                    if (GUILayout.Button(openFileLabel, GUILayout.Width(MeasureButtonWidth(openFileLabel, 70f))))
+                        OpenLogFile(entry.FullPath);
                     bool deletePending;
                     lock (DeleteSync) deletePending = _deletePending.Contains(entry.FullPath);
                     bool deleteArmed = IsDeleteArmed(entry.FullPath);
@@ -136,6 +147,9 @@ namespace TimingShow
             _deleteButtonStyle = new GUIStyle(GUI.skin.button);
             _deleteArmedButtonStyle = new GUIStyle(_deleteButtonStyle);
             _warningLabelStyle = new GUIStyle(GUI.skin.label);
+            _logNameLabelStyle = new GUIStyle(GUI.skin.label);
+            _logNameLabelStyle.wordWrap = false;
+            _logNameLabelStyle.clipping = TextClipping.Clip;
             SetButtonTextColor(_deleteButtonStyle, Color.white);
             SetButtonTextColor(_deleteArmedButtonStyle, Color.red);
             SetButtonTextColor(_warningLabelStyle, Color.yellow);
@@ -330,6 +344,48 @@ namespace TimingShow
             {
                 ModContext.Logger.Error("Failed to open log analyzer: " + e.Message);
             }
+        }
+
+        private static void OpenLogFile(string filePath)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo { FileName = filePath, UseShellExecute = true, Verb = "open" });
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Error("Failed to open log file: " + e.Message);
+            }
+        }
+
+        private static float MeasureWidth(string text, GUIStyle style)
+        {
+            _measureContent.text = text;
+            return style.CalcSize(_measureContent).x;
+        }
+
+        private static float MeasureButtonWidth(string text, float minWidth)
+        {
+            return Mathf.Max(minWidth, MeasureWidth(text, GUI.skin.button) + 14f);
+        }
+
+        private static string TruncateToWidth(string text, GUIStyle style, float maxWidth)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            if (MeasureWidth(text, style) <= maxWidth) return text;
+
+            float ellipsisWidth = MeasureWidth(Ellipsis, style);
+            if (ellipsisWidth > maxWidth) return string.Empty;
+
+            int low = 0;
+            int high = text.Length;
+            while (low < high)
+            {
+                int mid = (low + high + 1) / 2;
+                if (MeasureWidth(text.Substring(0, mid), style) + ellipsisWidth <= maxWidth) low = mid;
+                else high = mid - 1;
+            }
+            return low == 0 ? Ellipsis : text.Substring(0, low) + Ellipsis;
         }
 
         private static bool IsDeleteArmed(string filePath)
