@@ -200,6 +200,7 @@
     "Toggle_Death_UR": "Show UR",
     "Toggle_Death_XACC": "Show XACC",
     "Toggle_Death_Ratio": "Show Ratio",
+    "Label_UR": "UR: ",
     "Label_FontSize": "Font Size: ",
     "Label_ConfigKey": "Config Key: ",
     "Btn_PressKey": "Press a key...",
