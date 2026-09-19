@@ -9,6 +9,7 @@ namespace TimingShow
     public static class TimingLogger
     {
         public const int FormatVersion = 6;
+        public const int BinaryFormatVersion = 7;
 
         private static StreamWriter _writer;
         private static string _currentFilePath;

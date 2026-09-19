@@ -14,7 +14,7 @@ namespace TimingShow
         private static FileStream _fs;
         private static string _currentFilePath;
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
-        private const byte FormatVersion = TimingLogger.FormatVersion;
+        private const byte FormatVersion = TimingLogger.BinaryFormatVersion;
         private static long _prevTimeBits;
         private static long _prevValueBits;
         private static int _hitCount;
@@ -87,13 +87,8 @@ namespace TimingShow
             try
             {
                 _hitCount++;
-                long timeBits = BitConverter.DoubleToInt64Bits(ModContext.LastSongTimeMs);
-                _writer.Write(timeBits ^ _prevTimeBits);
-                _prevTimeBits = timeBits;
-
-                long valueBits = BitConverter.DoubleToInt64Bits(_isAngle ? angle : timing);
-                _writer.Write(valueBits ^ _prevValueBits);
-                _prevValueBits = valueBits;
+                WriteXorDouble(_writer, ModContext.LastSongTimeMs, ref _prevTimeBits);
+                WriteXorDouble(_writer, _isAngle ? angle : timing, ref _prevValueBits);
 
                 VarInt.Write(_writer, rawMarginCode);
                 VarInt.Write(_writer, judgeCode);
@@ -103,6 +98,53 @@ namespace TimingShow
             {
                 ModContext.Logger.Error($"Failed to write log: {ex.Message}");
             }
+        }
+
+        private static void WriteXorDouble(BinaryWriter writer, double value, ref long previousBits)
+        {
+            long currentBits = BitConverter.DoubleToInt64Bits(value);
+            ulong xor = (ulong)(currentBits ^ previousBits);
+            if (xor == 0)
+            {
+                writer.Write((byte)0);
+                return;
+            }
+
+            int leadingBytes = CountLeadingZeroBytes(xor);
+            int trailingBytes = CountTrailingZeroBytes(xor);
+            int significantBytes = 8 - leadingBytes - trailingBytes;
+
+            // Bit 7 marks a non-zero XOR. Bits 4-6 store leading zero bytes,
+            // and bits 0-3 store the number of significant bytes.
+            byte control = (byte)(0x80 | (leadingBytes << 4) | significantBytes);
+            writer.Write(control);
+
+            for (int i = 0; i < significantBytes; i++)
+                writer.Write((byte)(xor >> (8 * (trailingBytes + i))));
+
+            previousBits = currentBits;
+        }
+
+        private static int CountLeadingZeroBytes(ulong value)
+        {
+            int count = 0;
+            while ((value & 0xFF00000000000000UL) == 0 && count < 8)
+            {
+                value <<= 8;
+                count++;
+            }
+            return count;
+        }
+
+        private static int CountTrailingZeroBytes(ulong value)
+        {
+            int count = 0;
+            while ((value & 0xFFUL) == 0 && count < 8)
+            {
+                value >>= 8;
+                count++;
+            }
+            return count;
         }
 
         public static void CloseSession()
