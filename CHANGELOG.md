@@ -9,8 +9,11 @@
 - **内置日志列表与网页分析器联动 (Log Analyzer Bridge)**：
   
   - 配置界面新增日志列表面板，支持异步扫描目录、显示曲名与文件大小，并支持按时间、大小、曲名排序
-  - 集成本地 HTTP 桥接服务，支持一键将日志传输至网页版 Offset Analyzer 开展详细分析，并提供自定义端口与超时设置
+  - 集成本地 HTTP 桥接服务，支持一键将日志传输至网页版 [Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer/) 获得散点图，正态分布图等多种分析功能
   - 支持在列表中直接打开日志文件，以及带防误触确认机制的日志删除功能
+
+<img width="1161" height="286" alt="image" src="https://github.com/user-attachments/assets/9da960c1-712e-4bbb-b264-cd4172181b99" />
+
 
 - **HUD 迁移至 TextMeshPro 与自定义字体支持**：
   
@@ -31,7 +34,7 @@
 
 ## Bug fixes
 
-- 修复 XACC 折线图在 Pure Perfect (PP) 状态下总览图因 Y 轴极值范围过小导致显示异常的 bug
+- 修复 XACC 折线图在 Pure Perfect 状态下总览图因 Y 轴极值范围过小导致显示异常的 bug
 - 修复关闭 HUD 显示开关后组件仍在后台更新渲染的 bug
 - 修复修改配置时未正确触发脏标记导致 HUD 无法即时刷新渲染的 bug
 - 修复游戏暂停时打开设置面板无法即时预览 HUD 位置与样式的 bug
