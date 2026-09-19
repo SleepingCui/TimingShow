@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TimingShow
 {
     public static class HUDMan
     {
+        private static readonly HashSet<string> _badFormats = new HashSet<string>();
+
         private static GameObject _hudObj;
         private static TextUI _hudInstance;
 
@@ -26,20 +29,26 @@ namespace TimingShow
 
         public static void Update()
         {
-            bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && !scrController.instance.paused;
+            bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && (!scrController.instance.paused || ModContext.IsConfigOpen);
             
             bool isTimingPlay = isPlayBase && ModContext.Settings.ShowTimingHUD;
             EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
+            if (_hudInstance != null)
+                _hudInstance.ApplyFont(ModContext.Settings.HUD_UseCustomFont, ModContext.Settings.HUD_FontPath);
 
             bool isURPlay = isPlayBase && ModContext.Settings.ShowURHUD;
             EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
+            if (_urHudInstance != null)
+                _urHudInstance.ApplyFont(ModContext.Settings.URHUD_UseCustomFont, ModContext.Settings.URHUD_FontPath);
 
             bool isRatioPlay = isPlayBase && ModContext.Settings.ShowRatioHUD;
             EnsureUI(ref _ratiohudObj, ref _ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
+            if (_ratioHudInstance != null)
+                _ratioHudInstance.ApplyFont(ModContext.Settings.RatioHUD_UseCustomFont, ModContext.Settings.RatioHUD_FontPath);
 
             bool isXACCPlay = isPlayBase && ModContext.Settings.ShowXACCGraph;
             if (ModContext.Settings.XACCGraph_ShowEnd) isXACCPlay = isXACCPlay && ModContext.IsLevelFinished;
-            if (_xaccGraphObject == null)
+            if (isXACCPlay && _xaccGraphObject == null)
             {
                 _xaccGraphObject = new GameObject("TimingShow_XACCCanvas");
                 Canvas canvas = _xaccGraphObject.AddComponent<Canvas>();
@@ -51,7 +60,7 @@ namespace TimingShow
 
                 _xaccGraphInstance = drawerObj.AddComponent<XACCGraphDrawer>();
             }
-            _xaccGraphObject.SetActive(isXACCPlay);
+            if (_xaccGraphObject != null && _xaccGraphObject.activeSelf != isXACCPlay) _xaccGraphObject.SetActive(isXACCPlay);
 
             if (!ModContext.UIDirty) return; 
 
@@ -63,8 +72,7 @@ namespace TimingShow
                     : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
-                    var cond = scrController.instance.chosenPlanet.conductor;
-                    Color fColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.HUD_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
+                    Color fColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.HUD_EnableXPerfect);
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
                 string format = ModContext.Settings.HUD_Format;
@@ -94,19 +102,34 @@ namespace TimingShow
         {
             if (obj == null)
             {
+                if (!active) return;
                 obj = new GameObject(name);
                 instance = obj.AddComponent<T>();
             }
-            obj.SetActive(active);
+            if (obj.activeSelf != active) obj.SetActive(active);
         }
 
         private static void UpdateTextHUD(TextUI instance, string format, string value, float x, float y, float scale, int align, bool bold)
         {
-            instance.SetText(string.Format(format, value));
+            instance.SetText(SafeFormat(format, value));
             instance.SetPosition(x, y);
             instance.SetSize((int)(24 * scale));
-            instance.text.alignment = instance.ToAlign(align);
-            instance.text.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+            instance.SetAlignment(align);
+            instance.SetBold(bold);
+        }
+        
+        private static string SafeFormat(string format, string value)
+        {
+            if (format == null || _badFormats.Contains(format)) return value;
+            try
+            {
+                return string.Format(format, value);
+            }
+            catch
+            {
+                _badFormats.Add(format);
+                return value;
+            }
         }
 
         private static void DestroyHUD<T>(ref GameObject obj, ref T instance) where T : class

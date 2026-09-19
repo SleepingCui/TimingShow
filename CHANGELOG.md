@@ -1,36 +1,40 @@
-﻿## Features
+## Features
 
-- **双加载器支持**
+- **适配 3.4 原生 XPerfect 与双版本兼容**：
   
-  - 现可同时支持MelonLoader和UMM加载器，默认使用快捷键F9呼出配置界面
-  - 设置存储从 UnityModManager.ModSettings 迁移至独立 JSON 序列化
+  - 原生适配 ADOFAI 3.4 版本新增的 `XPerfect`、`Perfect-`、`Perfect+` 判定
+  - 保持向下兼容 3.3 及更早版本（旧版本仍可使用内置 XPerfect 算法或 Hook 外部模组）
+  - 新增 Ratio 统计口径选择：支持按“完美 (Normal)”、“+-完美 (Family)”或“X完美 (XPerfect)”计算
 
-- **新增可选角度显示**：
+- **内置日志列表与网页分析器联动 (Log Analyzer Bridge)**：
   
-  - 标题、星球文字、TimingHUD、Logger 均可切换以角度代替毫秒显示
+  - 配置界面新增日志列表面板，支持异步扫描目录、显示曲名与文件大小，并支持按时间、大小、曲名排序
+  - 集成本地 HTTP 桥接服务，支持一键将日志传输至网页版 [Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer/) 获得散点图，正态分布图等多种分析功能
+  - 支持在列表中直接打开日志文件，以及带防误触确认机制的日志删除功能
 
-- **死亡 / 通关页面统计信息自定义**：
-  
-  - 死亡/通关页面可分别开关：平均偏移、UR、Ratio、XACC
-  - 两处显示字号均可调节
+<img width="1161" height="286" alt="image" src="https://github.com/user-attachments/assets/9da960c1-712e-4bbb-b264-cd4172181b99" />
 
-- **Logger增强**：
-  
-  - 默认改用二进制格式写入
-  - 使用XOR编码+varint，进一步降低体积
 
-- **UI变化**：
+- **HUD 迁移至 TextMeshPro 与自定义字体支持**：
   
-  - 新增自动重载编辑器选项
+  - HUD 渲染全面迁移至 TextMeshPro (TMP)，优化文字清晰度并增加文字阴影效果
+  - Timing HUD、UR HUD 与 Ratio HUD 均支持加载外部自定义字体（.ttf / .otf）或选用游戏内置字体
+
+- **日志记录升级**：
+  
+  - 日志数据新增单打时间戳字段（ms），精确记录击打时刻
+  - 二进制日志对时间与判定数据引入 XOR 浮点压缩及高低零字节打包编码，显著缩减文件体积
+  - 完善游戏暂停处理逻辑，暂停期间自动挂起计时器，避免将暂停时长计入判定时间戳
 
 ## Improvements
 
-- UR 统计算法重写为增量式计算，提升性能
-- HUD 刷新机制优化：使用脏标记减小重绘导致的开销
-- XACC 图表渲染优化：使用 UGUI 渲染，仅在数据或窗口尺寸变化时才重建图形，降低每帧开销
+- 设置界面模块化重构：将 `Options` 拆分为多个独立组件，优化代码结构
+- 清理冗余配置项，移除 `DisplayCurrMode` 和旧版 JSON 日志相关选项
+- 日志列表管理优化，支持识别并安全保护正在写入中的活跃日志文件
 
 ## Bug fixes
 
-- 修复保存设置时因序列化颜色导致栈溢出、游戏崩溃的问题
-- 修复 XACC 图表 Y 轴位置计算错误的问题
-- 修复空会话时可能导致异常的问题
+- 修复 XACC 折线图在 Pure Perfect 状态下总览图因 Y 轴极值范围过小导致显示异常的 bug
+- 修复关闭 HUD 显示开关后组件仍在后台更新渲染的 bug
+- 修复修改配置时未正确触发脏标记导致 HUD 无法即时刷新渲染的 bug
+- 修复游戏暂停时打开设置面板无法即时预览 HUD 位置与样式的 bug

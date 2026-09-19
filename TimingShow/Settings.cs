@@ -10,9 +10,11 @@ namespace TimingShow
         public bool ShowInSongTitle;
         public bool Title_UseJudgeColor;
         public bool Title_ShowAngle;
-        
+        public int Title_FontSize = 100;
+
         public bool ShowOnPlanet;
         public bool Planet_ShowAngle;
+        public int Planet_FontSize = 100;
         
         public bool ShowOnDeath;
         public bool ShowOnDeath_ShowAvgTiming = true;
@@ -43,6 +45,12 @@ namespace TimingShow
         public bool ReplaceMultipress = true;
         public bool ReplaceFailMiss = true;
         public bool ReplaceFailOverload = true;
+        
+        public bool ReplacePerfectMinus = true;
+        public bool ReplaceXPerfect = true;
+        public bool ReplacePerfectPlus = true;
+        public bool ReplaceAuto;
+        public bool ReplaceOverPress = true;
 
         public bool ShowTimingHUD;
         public float HUD_x;
@@ -54,6 +62,8 @@ namespace TimingShow
         public string HUD_Format = "Timing - {0}ms";
         public bool HUD_UseJudgeColor;
         public bool HUD_ShowAngle;
+        public bool HUD_UseCustomFont;
+        public string HUD_FontPath = "";
 
         public bool ShowURHUD;
         public float URHUD_x;
@@ -63,6 +73,8 @@ namespace TimingShow
         public int URHUD_align;
         public int PercURHUD = 1;
         public string URHUD_Format = "UR - {0}";
+        public bool URHUD_UseCustomFont;
+        public string URHUD_FontPath = "";
 
         public bool ShowRatioHUD;
         public float RatioHUD_x;
@@ -72,7 +84,16 @@ namespace TimingShow
         public int RatioHUD_align;
         public int PercRatioHUD = 1;
         public string RatioHUD_Format = "Ratio - {0}:1";
+        public bool RatioHUD_UseCustomFont;
+        public string RatioHUD_FontPath = "";
+        
         public bool Ratio_UseXPerfect;
+        
+        public int Ratio_Mode = -1;
+
+        public const int RatioMode_NormalPerfect = 0;
+        public const int RatioMode_PerfectFamily = 1;
+        public const int RatioMode_XPerfect = 2;
 
         public bool ShowXACCGraph;
         public bool XACCGraph_ShowEnd;
@@ -102,14 +123,27 @@ namespace TimingShow
         public int LogBufferSizeKB = 64;
 
         public bool UseHookMode;
-        public bool DisplayCurrMode;
-        public bool UseOldJsonFormat;
         public bool UseJsonWriter;
         public bool AutoReloadInEditor;
-        
+
+        public bool AnalyzerBridgeEnabled = true;
+        public int AnalyzerBridgePort;
+        public int AnalyzerBridgeTimeoutSec = LogAnalyzerBridge.DefaultTimeoutSeconds;
+
+        public int LogSort = 0;
+
+        public const int LogSort_Time = 0;
+        public const int LogSort_Size = 1;
+        public const int LogSort_SongName = 2;
+
         
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;
+        
+        
+        
+        public const int CurrentSettingsVersion = 1;
+        public int SettingsVersion;
 
         #region cfgsettings
         
@@ -131,6 +165,8 @@ namespace TimingShow
                     {
                         if (settings.ConfigKey == KeyCode.None)
                             settings.ConfigKey = KeyCode.F9;
+                        bool isLegacyConfig = json.IndexOf("settingsVersion", StringComparison.OrdinalIgnoreCase) < 0;
+                        settings.Migrate(isLegacyConfig);
                         return settings;
                     }
                 }
@@ -139,7 +175,44 @@ namespace TimingShow
             {
                 ModContext.Logger?.Error($"Failed to load settings: {e.Message}");
             }
-            return new Settings();
+            return new Settings
+            {
+                SettingsVersion = CurrentSettingsVersion,
+                Ratio_Mode = RatioMode_NormalPerfect
+            };
+        }
+        
+        private void Migrate(bool isLegacyConfig)
+        {
+            bool migrated = false;
+
+            if (isLegacyConfig || SettingsVersion < CurrentSettingsVersion)
+            {
+                ReplacePerfectMinus = ReplacePerfect;
+                ReplacePerfectPlus = ReplacePerfect;
+                ReplaceXPerfect = Planet_EnableXPerfect;
+                ReplaceOverPress = ReplaceFailMiss;
+                ReplaceAuto = false;
+
+                migrated = true;
+            }
+
+            if (SettingsVersion < CurrentSettingsVersion)
+            {
+                SettingsVersion = CurrentSettingsVersion;
+                migrated = true;
+            }
+
+            if (Ratio_Mode < 0)
+            {
+                Ratio_Mode = Ratio_UseXPerfect ? RatioMode_XPerfect : RatioMode_NormalPerfect;
+                migrated = true;
+            }
+
+            if (migrated)
+            {
+                ModContext.Logger?.Log("Settings migrated to ver " + CurrentSettingsVersion);
+            }
         }
 
         public void Save(string modPath)

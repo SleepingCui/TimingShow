@@ -14,10 +14,17 @@ namespace TimingShow
         private static FileStream _fs;
         private static string _currentFilePath;
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
-        private const byte FormatVersion = 4;
-        private static long _prevTimingBits;
+        private const byte FormatVersion = TimingLogger.BinaryFormatVersion;
+        private static long _prevTimeBits;
+        private static long _prevValueBits;
         private static int _hitCount;
         private static bool _isAngle;
+
+        public static bool IsFileBeingWritten(string filePath)
+        {
+            return _writer != null && !string.IsNullOrWhiteSpace(filePath) &&
+                string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase);
+        }
 
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
@@ -45,7 +52,8 @@ namespace TimingShow
                 _gzStream = new GZipStream(_fs, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: false);
                 _writer = new BinaryWriter(_gzStream, new UTF8Encoding(false));
 
-                _prevTimingBits = 0;
+                _prevTimeBits = 0;
+                _prevValueBits = 0;
                 _hitCount = 0;
                 _isAngle = ModContext.Settings.Logger_ShowAngle;
 
@@ -58,6 +66,8 @@ namespace TimingShow
                 _writer.Write(speed);
                 _writer.Write(pitch);
                 _writer.Write(_isAngle);
+                _writer.Write((byte)HitMarginCompat.Version);
+                _writer.Write((byte)HitMarginCompat.JudgeCodeVersion);
 
                 _writer.Flush();
                 ModContext.Logger.Log($"created: {_currentFilePath} (binary)");
@@ -68,29 +78,73 @@ namespace TimingShow
                 CloseSession();
             }
         }
-
-        public static void LogHit(double timing, double angle, int marginCode)
+        
+        
+        public static void LogHit(double timing, double angle, int rawMarginCode, int judgeCode, bool isXP)
         {
             if (_writer == null) return;
 
             try
             {
                 _hitCount++;
-                long bits = BitConverter.DoubleToInt64Bits(_isAngle ? angle : timing);
-                _writer.Write(bits ^ _prevTimingBits);
-                _prevTimingBits = bits;
-                uint v =  (uint)marginCode;
-                while (v >= 0x80)
-                {
-                    _writer.Write((byte)(v | 0x80));
-                    v >>= 7;
-                }
-                _writer.Write((byte)v);
+                WriteXorDouble(_writer, ModContext.LastSongTimeMs, ref _prevTimeBits);
+                WriteXorDouble(_writer, _isAngle ? angle : timing, ref _prevValueBits);
+
+                VarInt.Write(_writer, rawMarginCode);
+                VarInt.Write(_writer, judgeCode);
+                _writer.Write((byte)(isXP ? 1 : 0));
             }
             catch (Exception ex)
             {
                 ModContext.Logger.Error($"Failed to write log: {ex.Message}");
             }
+        }
+
+        private static void WriteXorDouble(BinaryWriter writer, double value, ref long previousBits)
+        {
+            long currentBits = BitConverter.DoubleToInt64Bits(value);
+            ulong xor = (ulong)(currentBits ^ previousBits);
+            if (xor == 0)
+            {
+                writer.Write((byte)0);
+                return;
+            }
+
+            int leadingBytes = CountLeadingZeroBytes(xor);
+            int trailingBytes = CountTrailingZeroBytes(xor);
+            int significantBytes = 8 - leadingBytes - trailingBytes;
+
+            // Bit 7 marks a non-zero XOR. Bits 4-6 store leading zero bytes,
+            // and bits 0-3 store the number of significant bytes.
+            byte control = (byte)(0x80 | (leadingBytes << 4) | significantBytes);
+            writer.Write(control);
+
+            for (int i = 0; i < significantBytes; i++)
+                writer.Write((byte)(xor >> (8 * (trailingBytes + i))));
+
+            previousBits = currentBits;
+        }
+
+        private static int CountLeadingZeroBytes(ulong value)
+        {
+            int count = 0;
+            while ((value & 0xFF00000000000000UL) == 0 && count < 8)
+            {
+                value <<= 8;
+                count++;
+            }
+            return count;
+        }
+
+        private static int CountTrailingZeroBytes(ulong value)
+        {
+            int count = 0;
+            while ((value & 0xFFUL) == 0 && count < 8)
+            {
+                value >>= 8;
+                count++;
+            }
+            return count;
         }
 
         public static void CloseSession()

@@ -11,7 +11,8 @@ namespace TimingShow
             ModContext.Initialize(modEntry.Path, logger);
             ModContext.Settings = Settings.Load(modEntry.Path);
 
-            LangMan.LoadLanguages(ModContext.ModPath);
+            i18n.LoadLanguages(ModContext.ModPath);
+            ModContext.InitializeJudgeCompat();
             XPerfectBridge.TryInit();
 
             var harmony = new Harmony(modEntry.Info.Id);
@@ -19,10 +20,8 @@ namespace TimingShow
 
             modEntry.OnToggle = (entry, value) =>
             {
-                if (value)
-                    ModContext.Enable();
-                else
-                    ModContext.Disable();
+                if (value)  ModContext.Enable();
+                else ModContext.Disable();
                 return true;
             };
             modEntry.OnGUI = (entry) => ModContext.OnGUI();

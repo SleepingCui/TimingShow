@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>TimingShow</RootNamespace>
-    <AssemblyName>TimingShow.Core</AssemblyName>
+    <AssemblyName>TimingShow</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -36,7 +36,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\libs\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\libs\Assembly-CSharp340.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
@@ -99,9 +99,15 @@
     <Compile Include="CalcRatio.cs" />
     <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />
+    <Compile Include="HitMan.cs" />
+    <Compile Include="JColors.cs" />
+    <Compile Include="VarInt.cs" />
     <Compile Include="HUDMan.cs" />
-    <Compile Include="LangMan.cs" />
+    <Compile Include="i18n.cs" />
     <Compile Include="Options.cs" />
+    <Compile Include="OptionsWidgets.cs" />
+    <Compile Include="OptionLogList.cs" />
+    <Compile Include="LogAnalyzerBridge.cs" />
     <Compile Include="Patches\PlayStatePatches.cs" />
     <Compile Include="Patches\TimingCalcPatches.cs" />
     <Compile Include="Patches\UIPatches.cs" />

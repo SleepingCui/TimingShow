@@ -31,6 +31,7 @@ namespace TimingShow
         private Text _botLabelText;
         
         private int _lastDataVersion = -1;
+        private int _lastSettingsHash = int.MinValue;
         private float _lastRectWidth = -1f;
         private float _lastRectHeight = -1f;
 
@@ -87,14 +88,34 @@ namespace TimingShow
 
             Rect rect = rectTransform.rect;
             bool rectChanged = rect.width != _lastRectWidth || rect.height != _lastRectHeight;
-            if (_lastDataVersion != ModContext.XAccVersion || rectChanged)
+            int settingsHash = ComputeSettingsHash();
+            if (_lastDataVersion != ModContext.XAccVersion || rectChanged || settingsHash != _lastSettingsHash)
             {
                 _lastDataVersion = ModContext.XAccVersion;
+                _lastSettingsHash = settingsHash;
                 _lastRectWidth = rect.width;
                 _lastRectHeight = rect.height;
                 UpdateData();
                 UpdateTextLayoutAndValues();
                 SetVerticesDirty();
+            }
+        }
+        
+        private int ComputeSettingsHash()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + Scale.GetHashCode();
+                hash = hash * 31 + Width.GetHashCode();
+                hash = hash * 31 + Height.GetHashCode();
+                hash = hash * 31 + PosX.GetHashCode();
+                hash = hash * 31 + PosY.GetHashCode();
+                hash = hash * 31 + MaxPoints;
+                hash = hash * 31 + BgColor.GetHashCode();
+                hash = hash * 31 + GridColor.GetHashCode();
+                hash = hash * 31 + LineColor.GetHashCode();
+                return hash;
             }
         }
 

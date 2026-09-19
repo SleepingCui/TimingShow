@@ -16,69 +16,94 @@ namespace TimingShow.Patches
             public static void Postfix(scrHitTextMesh __instance)
             {
                 if (!ModContext.IsEnabled || !ModContext.Settings.ShowOnPlanet || !ModContext.IsPlaying) return;
+                if (__instance.text == null) return;
+                
+                HitMan judge = HitMarginCompat.ToJudgeKind((int)__instance.hitMargin);
 
-                bool replace;
-                switch (__instance.hitMargin)
+                if (!ShouldReplace(judge)) return;
+
+                Color targetColor = JColors.GetColor(judge, ResolveIsXP(judge), ModContext.Settings.Planet_EnableXPerfect);
+
+                string timingText = ModContext.Settings.Planet_ShowAngle
+                    ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc2)
+                    : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
+
+                int fontSize = ModContext.Settings.Planet_FontSize;
+                __instance.text.richText = true;
+                __instance.text.text = fontSize == 100 ? timingText : $"<size={fontSize}%>{timingText}</size>";
+                __instance.text.color = targetColor;
+                __instance.text.ForceMeshUpdate();
+                
+                if (judge == HitMan.XPerfect)
+                    HideXPerfectBorder(__instance);
+            }
+
+            private static FieldInfo _xPerfectBorderField;
+            private static bool _xPerfectBorderResolved;
+            
+            private static void HideXPerfectBorder(scrHitTextMesh instance)
+            {
+                if (!_xPerfectBorderResolved)
                 {
-                    case HitMargin.TooEarly: replace = ModContext.Settings.ReplaceTooEarly; break;
-                    case HitMargin.VeryEarly: replace = ModContext.Settings.ReplaceVeryEarly; break;
-                    case HitMargin.EarlyPerfect: replace = ModContext.Settings.ReplaceEarlyPerfect; break;
-                    case HitMargin.Perfect: replace = ModContext.Settings.ReplacePerfect; break;
-                    case HitMargin.LatePerfect: replace = ModContext.Settings.ReplaceLatePerfect; break;
-                    case HitMargin.VeryLate: replace = ModContext.Settings.ReplaceVeryLate; break;
-                    case HitMargin.TooLate: replace = ModContext.Settings.ReplaceTooLate; break;
-                    case HitMargin.Multipress: replace = ModContext.Settings.ReplaceMultipress; break;
-                    case HitMargin.FailMiss: replace = ModContext.Settings.ReplaceFailMiss; break;
-                    case HitMargin.FailOverload: replace = ModContext.Settings.ReplaceFailOverload; break;
-                    default: replace = false; break;
+                    _xPerfectBorderResolved = true;
+                    try
+                    {
+                        _xPerfectBorderField = typeof(scrHitTextMesh).GetField(
+                            "xPerfectBorder",
+                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    }
+                    catch (Exception e)
+                    {
+                        ModContext.Logger.Log($"xPerfectBorder not available, skipping native border handling: {e.Message}");
+                    }
                 }
+                if (_xPerfectBorderField == null) return;
 
-                if (replace && __instance.text != null)
+                try
                 {
-                    ColourSchemeHitMargin hitMarginColours = RDConstants.data.hitMarginColours;
-                    Color targetColor = Color.gray;
-
-                    bool isvanilla = __instance.hitMargin == HitMargin.Perfect || __instance.hitMargin == HitMargin.EarlyPerfect || __instance.hitMargin == HitMargin.LatePerfect;
-
-                    if (isvanilla)
+                    object border = _xPerfectBorderField.GetValue(instance);
+                    if (border is Component component)
                     {
-                        var controller = scrController.instance;
-                        var conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
-
-                        if (controller != null && conductor != null && conductor.song != null)
-                        {
-                            double bpm = conductor.bpm;
-                            double speed = controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
-                            double pitch = conductor.song.pitch;
-
-                            targetColor = CalcXP.XPc(controller.chosenPlanet, ModContext.LastTiming, bpm, speed, pitch, ModContext.Settings.Planet_EnableXPerfect, __instance.hitMargin, ModContext.LastIsXP);
-                        }
-                        else
-                        {
-                            targetColor = hitMarginColours.colourPerfect;
-                        }
+                        if (component != null) component.gameObject.SetActive(false);
                     }
-                    else
+                    else if (border is GameObject go)
                     {
-                        switch (__instance.hitMargin)
-                        {
-                            case HitMargin.TooEarly: targetColor = hitMarginColours.colourTooEarly; break;
-                            case HitMargin.VeryEarly: targetColor = hitMarginColours.colourVeryEarly; break;
-                            case HitMargin.VeryLate: targetColor = hitMarginColours.colourVeryLate; break;
-                            case HitMargin.TooLate: targetColor = hitMarginColours.colourTooLate; break;
-                            case HitMargin.Multipress: targetColor = hitMarginColours.colourMultipress; break;
-                            case HitMargin.FailMiss: targetColor = hitMarginColours.colourFail; break;
-                            case HitMargin.FailOverload: targetColor = hitMarginColours.colourFail; break;
-                            case HitMargin.OverPress: targetColor = hitMarginColours.colourFail; break;
-                        }
+                        if (go != null) go.SetActive(false);
                     }
-
-                    __instance.text.text = ModContext.Settings.Planet_ShowAngle
-                        ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc2)
-                        : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
-                    __instance.text.color = targetColor;
-                    __instance.text.ForceMeshUpdate();
                 }
+                catch (Exception e)
+                {
+                    ModContext.Logger?.Log($"Failed to disable xPerfectBorder: {e.Message}");
+                }
+            }
+
+            private static bool ShouldReplace(HitMan judge)
+            {
+                Settings s = ModContext.Settings;
+                switch (judge)
+                {
+                    case HitMan.TooEarly: return s.ReplaceTooEarly;
+                    case HitMan.VeryEarly: return s.ReplaceVeryEarly;
+                    case HitMan.EarlyPerfect: return s.ReplaceEarlyPerfect;
+                    case HitMan.PerfectMinus: return HitMarginCompat.IsGame34 ? s.ReplacePerfectMinus : s.ReplacePerfect;
+                    case HitMan.XPerfect: return s.ReplaceXPerfect;
+                    case HitMan.PerfectPlus: return s.ReplacePerfectPlus;
+                    case HitMan.LatePerfect: return s.ReplaceLatePerfect;
+                    case HitMan.VeryLate: return s.ReplaceVeryLate;
+                    case HitMan.TooLate: return s.ReplaceTooLate;
+                    case HitMan.Multipress: return s.ReplaceMultipress;
+                    case HitMan.FailMiss: return s.ReplaceFailMiss;
+                    case HitMan.FailOverload: return s.ReplaceFailOverload;
+                    case HitMan.OverPress: return s.ReplaceOverPress;
+                    case HitMan.Auto: return s.ReplaceAuto;
+                    default: return false;
+                }
+            }
+            
+            private static bool ResolveIsXP(HitMan judge)
+            {
+                if (HitMarginCompat.IsGame34) return judge == HitMan.XPerfect;
+                return ModContext.LastIsXP;
             }
         }
 
@@ -109,12 +134,12 @@ namespace TimingShow.Patches
                             for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
                             avgOffset /= count;
                         }
-                        items.Add($"{LangMan.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}");
+                        items.Add($"{i18n.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}");
                     }
 
                     if (ModContext.Settings.ShowOnDeath_ShowUR)
                     {
-                        items.Add($"{LangMan.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}");
+                        items.Add($"{i18n.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}");
                     }
 
                     if (ModContext.Settings.ShowOnDeath_ShowXACC)
@@ -170,12 +195,12 @@ namespace TimingShow.Patches
                             avgOffset /= count;
                         }
 
-                        items.Add(LangMan.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4));
+                        items.Add(i18n.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4));
                     }
 
                     if (ModContext.Settings.ShowInWinPage_ShowUR)
                     {
-                        items.Add(LangMan.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4)));
+                        items.Add(i18n.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4)));
                     }
 
                     if (ModContext.Settings.ShowInWinPage_ShowRatio)
@@ -220,17 +245,20 @@ namespace TimingShow.Patches
                         string timing = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
                         if (ModContext.Settings.Title_UseJudgeColor)
                         {
-                            var cond = scrController.instance.chosenPlanet.conductor;
-                            Color titleColor = CalcXP.XPc(scrController.instance.chosenPlanet, ModContext.LastTiming, cond.bpm, scrController.instance.planetarySystem.speed, cond.song.pitch, ModContext.Settings.Title_EnableXPerfect, ModContext.LastHitMargin, ModContext.LastIsXP);
+                            Color titleColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.Title_EnableXPerfect);
                             timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
                         }
+                        int fontSize = ModContext.Settings.Title_FontSize;
+                        if (fontSize != 100) timing = $"<size={fontSize}%>{timing}</size>";
+
                         __instance.txtLevelName.supportRichText = true;
                         __instance.txtLevelName.text = timing;
                     }
                 }
 
-                if (ModContext.IsPlaying && (ModContext.Settings.ShowTimingHUD || ModContext.Settings.ShowURHUD || ModContext.Settings.ShowRatioHUD || ModContext.Settings.ShowXACCGraph))
+                if (ModContext.IsPlaying)
                 {
+                    PlayStatePatches.SyncPauseState();
                     HUDMan.Update();
                 }
                 else

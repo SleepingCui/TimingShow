@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace TimingShow
 {
-    public static class LangMan
+    public static class i18n
     {
         private static Dictionary<string, Dictionary<string, string>> _langData = new Dictionary<string, Dictionary<string, string>>();
         public static IEnumerable<string> AvailableLanguages => _langData.Keys;
