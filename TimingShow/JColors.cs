@@ -8,6 +8,7 @@ namespace TimingShow
     public static class JColors
     {
         public static readonly Color Gray = new Color(0.5f, 0.5f, 0.5f, 1f);
+        public static readonly Color XPerfectFallback = new Color32(77, 204, 255, byte.MaxValue);
 
         private static readonly Dictionary<string, Color> Cache = new Dictionary<string, Color>(StringComparer.Ordinal);
         private static readonly HashSet<string> Missing = new HashSet<string>(StringComparer.Ordinal);
@@ -19,12 +20,12 @@ namespace TimingShow
         {
             if (judge == HitMan.Unknown) return Gray;
             if (judge == HitMan.XPerfect)
-                return GetGameColor("colourXPerfect", "colourPerfect");
+                return GetXPerfectColor();
 
             if (HitMarginCompat.IsPerfectFamily(judge))
             {
                 if (!HitMarginCompat.IsGame34 && enableXP && isXP)
-                    return GetGameColor("colourXPerfect", "colourPerfect");
+                    return GetXPerfectColor();
                 return GetPerfectFamilyColor(judge);
             }
 
@@ -42,6 +43,12 @@ namespace TimingShow
                 case HitMan.Auto: return Gray;
                 default: return Gray;
             }
+        }
+        
+        private static Color GetXPerfectColor()
+        {
+            if (TryResolve("colourXPerfect", out Color color)) return color;
+            return XPerfectFallback;
         }
 
         internal static Color GetPerfectFamilyColor(HitMan judge)
