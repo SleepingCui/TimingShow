@@ -16,10 +16,6 @@ namespace TimingShow
         public static double LastSongTimeMs = -1.0;
         public static HitMan LastJudge = HitMan.Unknown;
         public static int LastRawMargin = -1;
-        public static bool LastIsXP;
-        public static double LastBpm;
-        public static double LastSpeed = 1.0;
-        public static double LastPitch = 1.0;
 
         public static List<double> SessionOffsets = new List<double>();
         public static List<float> FullXAccHistory = new List<float>();
@@ -38,19 +34,23 @@ namespace TimingShow
             Logger = logger;
         }
         
-        public static void InitializeJudgeCompat()
+
+        public static bool InitializeJudgeCompat()
         {
             HitMarginCompat.Initialize();
-            Logger.Log($"Detected version: {HitMarginCompat.Version}");
-            if (HitMarginCompat.Version == HitMarginVersion.Unknown)
-                Logger.Error("Unrecognized HitMargin enum version");
+            if (HitMarginCompat.IsGame34)
+            {
+                Logger.Log($"Detected version: {HitMarginCompat.Version}");
+                return true;
+            }
+            
+            return false;
         }
         
         public static void ResetJudgeState()
         {
             LastJudge = HitMan.Unknown;
             LastRawMargin = -1;
-            LastIsXP = false;
         }
 
         public static void Enable()

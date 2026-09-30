@@ -98,7 +98,6 @@
     <Compile Include="ColorConverter.cs" />
     <Compile Include="CalcRatio.cs" />
     <Compile Include="CalcUR.cs" />
-    <Compile Include="CalcXP.cs" />
     <Compile Include="HitMan.cs" />
     <Compile Include="JColors.cs" />
     <Compile Include="VarInt.cs" />
@@ -117,7 +116,6 @@
     <Compile Include="TimingLogger.cs" />
     <Compile Include="TimingLoggerBinary.cs" />
     <Compile Include="XACCGraphDrawer.cs" />
-    <Compile Include="XPerfectBridge.cs" />
     <Compile Include="GraphDrawerBase.cs" />
   </ItemGroup>
   <ItemGroup>

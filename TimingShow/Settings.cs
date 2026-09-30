@@ -38,7 +38,6 @@ namespace TimingShow
         public bool ReplaceTooEarly = true;
         public bool ReplaceVeryEarly = true;
         public bool ReplaceEarlyPerfect = true;
-        public bool ReplacePerfect = true;
         public bool ReplaceLatePerfect = true;
         public bool ReplaceVeryLate = true;
         public bool ReplaceTooLate = true;
@@ -110,11 +109,6 @@ namespace TimingShow
         public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
 
-        public bool Title_EnableXPerfect;
-        public bool Planet_EnableXPerfect;
-        public bool HUD_EnableXPerfect;
-        public bool Logger_EnableXPerfect;
-
         public bool EnableLogging;
         public bool LogAutoplay;
         public bool Logger_ShowAngle;
@@ -122,7 +116,6 @@ namespace TimingShow
         public int PercLog = 4;
         public int LogBufferSizeKB = 64;
 
-        public bool UseHookMode;
         public bool UseJsonWriter;
         public bool AutoReloadInEditor;
 
@@ -142,7 +135,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 1;
+        public const int CurrentSettingsVersion = 2;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -165,8 +158,7 @@ namespace TimingShow
                     {
                         if (settings.ConfigKey == KeyCode.None)
                             settings.ConfigKey = KeyCode.F9;
-                        bool isLegacyConfig = json.IndexOf("settingsVersion", StringComparison.OrdinalIgnoreCase) < 0;
-                        settings.Migrate(isLegacyConfig);
+                        settings.Migrate();
                         return settings;
                     }
                 }
@@ -182,20 +174,9 @@ namespace TimingShow
             };
         }
         
-        private void Migrate(bool isLegacyConfig)
+        private void Migrate()
         {
             bool migrated = false;
-
-            if (isLegacyConfig || SettingsVersion < CurrentSettingsVersion)
-            {
-                ReplacePerfectMinus = ReplacePerfect;
-                ReplacePerfectPlus = ReplacePerfect;
-                ReplaceXPerfect = Planet_EnableXPerfect;
-                ReplaceOverPress = ReplaceFailMiss;
-                ReplaceAuto = false;
-
-                migrated = true;
-            }
 
             if (SettingsVersion < CurrentSettingsVersion)
             {

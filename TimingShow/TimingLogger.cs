@@ -84,11 +84,11 @@ namespace TimingShow
             }
         }
         
-        public static void LogHit(double timing, double angle, int rawMarginCode, HitMan judge, bool isXP)
+        public static void LogHit(double timing, double angle, int rawMarginCode, HitMan judge)
         {
             int judgeCode = (int)judge;
-            
-            bool logXP = isXP && (HitMarginCompat.IsGame34 || ModContext.Settings.Logger_EnableXPerfect);
+
+            bool logXP = judge == HitMan.XPerfect;
 
             if (_isCurrentSessionBinary)
             {

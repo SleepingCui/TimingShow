@@ -72,7 +72,7 @@ namespace TimingShow
                     : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
-                    Color fColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.HUD_EnableXPerfect);
+                    Color fColor = JColors.GetColor(ModContext.LastJudge);
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
                 string format = ModContext.Settings.HUD_Format;

@@ -16,18 +16,14 @@ namespace TimingShow
         private static object _colors;
         private static bool _colorsResolved;
         
-        public static Color GetColor(HitMan judge, bool isXP, bool enableXP)
+        public static Color GetColor(HitMan judge)
         {
             if (judge == HitMan.Unknown) return Gray;
             if (judge == HitMan.XPerfect)
                 return GetXPerfectColor();
 
             if (HitMarginCompat.IsPerfectFamily(judge))
-            {
-                if (!HitMarginCompat.IsGame34 && enableXP && isXP)
-                    return GetXPerfectColor();
                 return GetPerfectFamilyColor(judge);
-            }
 
             if (HitMarginCompat.IsFailFamily(judge)) return GetGameColor("colourFail");
 
@@ -56,9 +52,7 @@ namespace TimingShow
             switch (judge)
             {
                 case HitMan.PerfectMinus:
-                    return HitMarginCompat.IsGame34
-                        ? GetGameColor("colourPerfectMinus", "colourPerfect")
-                        : GetGameColor("colourPerfect");
+                    return GetGameColor("colourPerfectMinus", "colourPerfect");
                 case HitMan.PerfectPlus:
                     return GetGameColor("colourPerfectPlus", "colourPerfect");
                 case HitMan.EarlyPerfect:

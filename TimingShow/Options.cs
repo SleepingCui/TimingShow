@@ -69,11 +69,6 @@ namespace TimingShow
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc1, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Title_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
-                if (ModContext.Settings.Title_UseJudgeColor)
-                {
-                    if (!HitMarginCompat.IsGame34)
-                        Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
-                }
                 Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
             }
         }
@@ -94,8 +89,6 @@ namespace TimingShow
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Planet_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
-                if (!HitMarginCompat.IsGame34)
-                    Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
                 string replaceArrow = _foldoutReplaceSettings ? "▲" : "▼";
                 GUILayout.BeginHorizontal();
@@ -119,16 +112,9 @@ namespace TimingShow
                         Toggle(ref ModContext.Settings.ReplaceEarlyPerfect, "Toggle_EarlyPerfect", 0);
 
 
-                        if (HitMarginCompat.IsGame34)
-                            Toggle(ref ModContext.Settings.ReplacePerfectMinus, "Toggle_PerfectMinus", 0);
-                        else
-                            Toggle(ref ModContext.Settings.ReplacePerfect, "Toggle_Perfect", 0);
-                        
-                        if (HitMarginCompat.HasNativeXPerfect)
-                        {
-                            Toggle(ref ModContext.Settings.ReplaceXPerfect, "Toggle_XPerfect", 0);
-                            Toggle(ref ModContext.Settings.ReplacePerfectPlus, "Toggle_PerfectPlus", 0);
-                        }
+                        Toggle(ref ModContext.Settings.ReplacePerfectMinus, "Toggle_PerfectMinus", 0);
+                        Toggle(ref ModContext.Settings.ReplaceXPerfect, "Toggle_XPerfect", 0);
+                        Toggle(ref ModContext.Settings.ReplacePerfectPlus, "Toggle_PerfectPlus", 0);
 
                         Toggle(ref ModContext.Settings.ReplaceLatePerfect, "Toggle_LatePerfect", 0);
                         Toggle(ref ModContext.Settings.ReplaceVeryLate, "Toggle_VeryLate", 0);
@@ -180,11 +166,6 @@ namespace TimingShow
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.HUD_UseCustomFont, ref ModContext.Settings.HUD_FontPath);
                 Toggle(ref ModContext.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
-                if (ModContext.Settings.HUD_UseJudgeColor)
-                {
-                    if (!HitMarginCompat.IsGame34)
-                        Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
-                }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
             }
         }
@@ -283,8 +264,6 @@ namespace TimingShow
                 if (ModContext.Settings.EnableLogging && _foldoutLogging)
                 {
                     SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
-                    if (!HitMarginCompat.IsGame34)
-                        Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
                     Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
                     Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
                     Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
@@ -373,48 +352,6 @@ namespace TimingShow
 
             GUILayout.BeginVertical();
             {
-                GUILayout.Space(5);
-                
-                // hookmode
-                XPerfectBridge.HookState currentState = XPerfectBridge.CurrentState;
-                string statusDisplayText;
-                switch (currentState)
-                {
-                    case XPerfectBridge.HookState.Success:
-                        statusDisplayText = $"<color=#55FF55> ({i18n.T("Status_HookSuccess")})</color>";
-                        break;
-                    case XPerfectBridge.HookState.Failed:
-                        statusDisplayText = $"<color=#FF5555> ({i18n.T("Status_HookFailed")}{XPerfectBridge.LastErrorMessage})</color>";
-                        break;
-                    case XPerfectBridge.HookState.NotApplicable:
-                        statusDisplayText = $"<color=#55CCFF> ({i18n.T("Status_HookNotApplicable")})</color>";
-                        break;
-                    case XPerfectBridge.HookState.Disabled:
-                    default:
-                        statusDisplayText = string.Empty;
-                        break;
-                }
-                
-                bool hookSupported = XPerfectBridge.IsSupported;
-                bool prevGuiEnabled = GUI.enabled;
-                GUI.enabled = hookSupported;
-
-                bool newHookMode = ToggleWithDescription(
-                    ModContext.Settings.UseHookMode,
-                    "Toggle_HookMode",
-                    "Desc_HookMode",
-                    extraLabelHtml: statusDisplayText
-                );
-
-                GUI.enabled = prevGuiEnabled;
-
-                if (hookSupported && newHookMode != ModContext.Settings.UseHookMode)
-                {
-                    ModContext.Settings.UseHookMode = newHookMode;
-                    if (newHookMode) XPerfectBridge.TryInit(force: true);
-                    else XPerfectBridge.UnloadHook();
-                }
-
                 GUILayout.Space(5);
 
                 //autoreload

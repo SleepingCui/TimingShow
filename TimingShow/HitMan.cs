@@ -12,7 +12,6 @@ namespace TimingShow
         VeryEarly = 1,
         EarlyPerfect = 2,
         PerfectMinus = 3,
-        LegacyPerfect = 3,
         XPerfect = 4,
         PerfectPlus = 5,
         LatePerfect = 6,
@@ -27,10 +26,10 @@ namespace TimingShow
         FailedFloor = 15
     }
 
+    
     public enum HitMarginVersion
     {
         Unknown = 0,
-        Legacy = 1,
         Game34 = 2
     }
 
@@ -50,13 +49,12 @@ namespace TimingShow
         public static HitMarginVersion Version { get; private set; } = HitMarginVersion.Unknown;
         public static bool IsInitialized { get; private set; }
 
+        
         public static bool IsGame34 => Version == HitMarginVersion.Game34;
-        public static bool IsLegacy => Version == HitMarginVersion.Legacy;
         public static int RawAutoCode { get; private set; } = -1;
         public static int RawXPerfectCode { get; private set; } = -1;
         public static int[] AllRawValues { get; private set; } = EmptyInts;
         public static int[] PerfectFamilyRawValues => _perfectFamilyRaw;
-        public static bool HasNativeXPerfect => IsGame34;
 
 
         
@@ -137,21 +135,15 @@ namespace TimingShow
             IsInitialized = true;
         }
 
+        
         private static HitMarginVersion DetectVersion(Dictionary<string, int> namesToRaw)
         {
-            // 3.4
             if (namesToRaw.ContainsKey("XPerfect") ||
                 namesToRaw.ContainsKey("PerfectMinus") ||
                 namesToRaw.ContainsKey("PerfectPlus") ||
                 namesToRaw.ContainsKey("Midspin") ||
                 namesToRaw.ContainsKey("FailedFloor"))
                 return HitMarginVersion.Game34;
-            
-            if (namesToRaw.ContainsKey("Perfect") &&
-                namesToRaw.ContainsKey("LatePerfect") &&
-                namesToRaw.ContainsKey("Auto") &&
-                namesToRaw.ContainsKey("OverPress"))
-                return HitMarginVersion.Legacy;
 
             return HitMarginVersion.Unknown;
         }
@@ -163,7 +155,6 @@ namespace TimingShow
                 case "TooEarly": return HitMan.TooEarly;
                 case "VeryEarly": return HitMan.VeryEarly;
                 case "EarlyPerfect": return HitMan.EarlyPerfect;
-                case "Perfect": return HitMan.LegacyPerfect;
                 case "PerfectMinus": return HitMan.PerfectMinus;
                 case "XPerfect": return HitMan.XPerfect;
                 case "PerfectPlus": return HitMan.PerfectPlus;
@@ -233,8 +224,7 @@ namespace TimingShow
 
         public static bool IsNormalPerfect(HitMan kind)
         {
-            if (kind == HitMan.LegacyPerfect) return true;
-            return IsGame34 && kind == HitMan.PerfectPlus;
+            return kind == HitMan.PerfectMinus || kind == HitMan.PerfectPlus;
         }
 
     }

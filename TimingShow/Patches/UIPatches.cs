@@ -22,7 +22,7 @@ namespace TimingShow.Patches
 
                 if (!ShouldReplace(judge)) return;
 
-                Color targetColor = JColors.GetColor(judge, ResolveIsXP(judge), ModContext.Settings.Planet_EnableXPerfect);
+                Color targetColor = JColors.GetColor(judge);
 
                 string timingText = ModContext.Settings.Planet_ShowAngle
                     ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc2)
@@ -85,7 +85,7 @@ namespace TimingShow.Patches
                     case HitMan.TooEarly: return s.ReplaceTooEarly;
                     case HitMan.VeryEarly: return s.ReplaceVeryEarly;
                     case HitMan.EarlyPerfect: return s.ReplaceEarlyPerfect;
-                    case HitMan.PerfectMinus: return HitMarginCompat.IsGame34 ? s.ReplacePerfectMinus : s.ReplacePerfect;
+                    case HitMan.PerfectMinus: return s.ReplacePerfectMinus;
                     case HitMan.XPerfect: return s.ReplaceXPerfect;
                     case HitMan.PerfectPlus: return s.ReplacePerfectPlus;
                     case HitMan.LatePerfect: return s.ReplaceLatePerfect;
@@ -98,12 +98,6 @@ namespace TimingShow.Patches
                     case HitMan.Auto: return s.ReplaceAuto;
                     default: return false;
                 }
-            }
-            
-            private static bool ResolveIsXP(HitMan judge)
-            {
-                if (HitMarginCompat.IsGame34) return judge == HitMan.XPerfect;
-                return ModContext.LastIsXP;
             }
         }
 
@@ -245,7 +239,7 @@ namespace TimingShow.Patches
                         string timing = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
                         if (ModContext.Settings.Title_UseJudgeColor)
                         {
-                            Color titleColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.Title_EnableXPerfect);
+                            Color titleColor = JColors.GetColor(ModContext.LastJudge);
                             timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
                         }
                         int fontSize = ModContext.Settings.Title_FontSize;
