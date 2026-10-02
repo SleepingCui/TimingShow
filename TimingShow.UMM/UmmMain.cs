@@ -1,4 +1,3 @@
-using System;
 using HarmonyLib;
 using UnityModManagerNet;
 
@@ -13,8 +12,6 @@ namespace TimingShow
             ModContext.Settings = Settings.Load(modEntry.Path);
 
             i18n.LoadLanguages(ModContext.ModPath);
-            if (!ModContext.InitializeJudgeCompat())
-                throw new NotSupportedException("requires ADOFAI 3.4 or newer");
 
             var harmony = new Harmony(modEntry.Info.Id);
             ModContext.HarmonyInstance = harmony;

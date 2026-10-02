@@ -8,15 +8,14 @@ namespace TimingShow
 {
     public static class TimingLogger
     {
-        public const int FormatVersion = 6;
-        public const int BinaryFormatVersion = 7;
+        public const int FormatVersion = 7;
+        public const int BinaryFormatVersion = 8;
 
         private static StreamWriter _writer;
         private static string _currentFilePath;
         private static bool _isFirstEntry = true;
         private static int _hitCount;
         private static bool _isCurrentSessionBinary;
-        private static bool _isCurrentSessionAngle;
 
         public static bool IsFileBeingWritten(string filePath)
         {
@@ -38,7 +37,6 @@ namespace TimingShow
 
             _isFirstEntry = true;
             _hitCount = 0;
-            _isCurrentSessionAngle = ModContext.Settings.Logger_ShowAngle;
 
             try
             {
@@ -68,10 +66,9 @@ namespace TimingShow
                 _writer.WriteLine($"  \"bpm\": {bpm.ToString("R", CultureInfo.InvariantCulture)},");
                 _writer.WriteLine($"  \"speed\": {speed.ToString("R", CultureInfo.InvariantCulture)},");
                 _writer.WriteLine($"  \"pitch\": {pitch.ToString("R", CultureInfo.InvariantCulture)},");
-                _writer.WriteLine($"  \"isAngle\": {(_isCurrentSessionAngle ? "true" : "false")},");
                 _writer.WriteLine($"  \"formatVersion\": {FormatVersion},");
-                _writer.WriteLine($"  \"hitMarginVersion\": \"{HitMarginCompat.Version}\",");
-                _writer.WriteLine($"  \"judgeCodeVersion\": {HitMarginCompat.JudgeCodeVersion},");
+                _writer.WriteLine($"  \"hitMarginVersion\": \"{HitMarginExt.MarginVersionName}\",");
+                _writer.WriteLine($"  \"judgeCodeVersion\": {HitMarginExt.JudgeCodeVersion},");
 
                 _writer.Write("  \"offsets\": [");
 
@@ -84,15 +81,15 @@ namespace TimingShow
             }
         }
         
-        public static void LogHit(double timing, double angle, int rawMarginCode, HitMan judge)
+        public static void LogHit(double timing, int rawMarginCode, HitMargin judge)
         {
             int judgeCode = (int)judge;
 
-            bool logXP = judge == HitMan.XPerfect;
+            bool logXP = judge == HitMargin.XPerfect;
 
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.LogHit(timing, angle, rawMarginCode, judgeCode, logXP);
+                TimingLoggerBinary.LogHit(timing, rawMarginCode, judgeCode, logXP);
                 return;
             }
 
@@ -102,7 +99,7 @@ namespace TimingShow
                 _hitCount++;
 
                 string fmt = "F" + Math.Max(0, ModContext.Settings.PercLog);
-                string formattedTiming = (_isCurrentSessionAngle ? angle : timing).ToString(fmt);
+                string formattedTiming = timing.ToString(fmt);
                 string formattedSongTime = double.IsNaN(ModContext.LastSongTimeMs) || double.IsInfinity(ModContext.LastSongTimeMs) || ModContext.LastSongTimeMs < 0
                     ? "null"
                     : ModContext.LastSongTimeMs.ToString("F3", CultureInfo.InvariantCulture);
@@ -167,7 +164,6 @@ namespace TimingShow
                 _writer?.Dispose();
                 _writer = null;
                 _currentFilePath = null;
-                _isCurrentSessionAngle = false;
             }
         }
 

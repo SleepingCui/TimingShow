@@ -69,7 +69,6 @@ namespace TimingShow
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc1, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Title_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
-                Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
             }
         }
 
@@ -88,7 +87,6 @@ namespace TimingShow
             {
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Planet_FontSize, 20, 200);
-                Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
 
                 string replaceArrow = _foldoutReplaceSettings ? "▲" : "▼";
                 GUILayout.BeginHorizontal();
@@ -166,7 +164,6 @@ namespace TimingShow
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.HUD_UseCustomFont, ref ModContext.Settings.HUD_FontPath);
                 Toggle(ref ModContext.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
-                Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
             }
         }
 
@@ -264,7 +261,6 @@ namespace TimingShow
                 if (ModContext.Settings.EnableLogging && _foldoutLogging)
                 {
                     SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
-                    Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
                     Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
                     Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
 
@@ -337,7 +333,6 @@ namespace TimingShow
                 ModContext.SessionOffsets.Clear();
                 ModContext.ResetJudgeState();
                 ModContext.LastTiming = 0;
-                ModContext.LastAngle = 0;
                 Patches.TimingCalcPatches.MarginTrackerAddHitPatch.ResetCounts();
             }
         }

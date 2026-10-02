@@ -1,6 +1,5 @@
 using BepInEx;
 using HarmonyLib;
-using System;
 using System.IO;
 using UnityEngine;
 
@@ -28,8 +27,6 @@ namespace TimingShow
             ModContext.Settings = Settings.Load(modPath);
 
             i18n.LoadLanguages(modPath);
-            if (!ModContext.InitializeJudgeCompat())
-                throw new NotSupportedException("requires ADOFAI 3.4 or newer");
 
             var harmony = new Harmony(Info.Metadata.GUID);
             ModContext.HarmonyInstance = harmony;

@@ -16,27 +16,29 @@ namespace TimingShow
         private static object _colors;
         private static bool _colorsResolved;
         
-        public static Color GetColor(HitMan judge)
+        public static Color GetColor(HitMargin? judge)
         {
-            if (judge == HitMan.Unknown) return Gray;
-            if (judge == HitMan.XPerfect)
+            if (judge == null) return Gray;
+
+            HitMargin m = judge.Value;
+            if (m == HitMargin.XPerfect)
                 return GetXPerfectColor();
 
-            if (HitMarginCompat.IsPerfectFamily(judge))
-                return GetPerfectFamilyColor(judge);
+            if (m.IsPerfectFamily())
+                return GetPerfectFamilyColor(m);
 
-            if (HitMarginCompat.IsFailFamily(judge)) return GetGameColor("colourFail");
+            if (m.IsFailFamily()) return GetGameColor("colourFail");
 
-            switch (judge)
+            switch (m)
             {
-                case HitMan.TooEarly: return GetGameColor("colourTooEarly");
-                case HitMan.VeryEarly: return GetGameColor("colourVeryEarly");
-                case HitMan.VeryLate: return GetGameColor("colourVeryLate");
-                case HitMan.TooLate: return GetGameColor("colourTooLate");
-                case HitMan.Multipress: return GetGameColor("colourMultipress");
-                case HitMan.Midspin: return GetGameColor("colourMidspin");
-                case HitMan.FailedFloor: return GetGameColor("colourFailedFloor");
-                case HitMan.Auto: return Gray;
+                case HitMargin.TooEarly: return GetGameColor("colourTooEarly");
+                case HitMargin.VeryEarly: return GetGameColor("colourVeryEarly");
+                case HitMargin.VeryLate: return GetGameColor("colourVeryLate");
+                case HitMargin.TooLate: return GetGameColor("colourTooLate");
+                case HitMargin.Multipress: return GetGameColor("colourMultipress");
+                case HitMargin.Midspin: return GetGameColor("colourMidspin");
+                case HitMargin.FailedFloor: return GetGameColor("colourFailedFloor");
+                case HitMargin.Auto: return Gray;
                 default: return Gray;
             }
         }
@@ -47,16 +49,16 @@ namespace TimingShow
             return XPerfectFallback;
         }
 
-        internal static Color GetPerfectFamilyColor(HitMan judge)
+        internal static Color GetPerfectFamilyColor(HitMargin judge)
         {
             switch (judge)
             {
-                case HitMan.PerfectMinus:
+                case HitMargin.PerfectMinus:
                     return GetGameColor("colourPerfectMinus", "colourPerfect");
-                case HitMan.PerfectPlus:
+                case HitMargin.PerfectPlus:
                     return GetGameColor("colourPerfectPlus", "colourPerfect");
-                case HitMan.EarlyPerfect:
-                case HitMan.LatePerfect:
+                case HitMargin.EarlyPerfect:
+                case HitMargin.LatePerfect:
                 default:
                     return GetGameColor("colourPerfect");
             }
