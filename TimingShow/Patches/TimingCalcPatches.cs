@@ -5,53 +5,68 @@ namespace TimingShow.Patches
 {
     public static class TimingCalcPatches
     {
-        // timing calc
+
+        [HarmonyPatch(typeof(scrMisc), "GetHitMarginInSec")]
+        public static class HitMarginInSecPatch
+        {
+            public static void Postfix(double timeDiff)
+            {
+                if (!ModContext.IsEnabled) return;
+                SetTiming(timeDiff * 1000.0);
+            }
+        }
+
+        [HarmonyPatch(typeof(scrMisc), "GetHitMarginInDeg")]
+        public static class HitMarginInDegPatch
+        {
+            public static void Postfix(float hitAngle, float refAngle, bool clockwise, float floorBpm, float conductorPitch)
+            {
+                if (!ModContext.IsEnabled) return;
+                if (floorBpm == 0f || conductorPitch == 0f) return;
+                
+                double deltaRad = (hitAngle - refAngle) * (clockwise ? 1.0 : -1.0);
+                SetTiming(deltaRad * 60000.0 / (Math.PI * floorBpm * conductorPitch));
+            }
+        }
+
+        private static void SetTiming(double timingMs)
+        {
+            ModContext.LastTiming = timingMs;
+            ModContext.LastSongTimeMs = PlayStatePatches.GetSessionTimeMs();
+            ModContext.UIDirty = true;
+        }
+
+
         [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
         public static class PlanetSwitchPatch
         {
-            public static void Prefix(scrPlanet __instance)
+            public static void Postfix(scrPlanet __instance)
             {
                 if (!ModContext.IsEnabled || scrController.instance == null) return;
-                if (__instance.conductor == null || __instance.conductor.song == null) return;
+                if (!ModContext.IsPlaying) return;
 
-                double bpm = __instance.conductor.bpm;
-                double speed = scrController.instance.planetarySystem.speed;
-                double pitch = __instance.conductor.song.pitch;
-                bool isCW = scrController.instance.planetarySystem.isCW;
-
-                if (bpm * speed * pitch == 0) return;
-                double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
-
-                ModContext.LastTiming = diff;
-                ModContext.LastSongTimeMs = PlayStatePatches.GetSessionTimeMs();
-                ModContext.LastAngle = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 180.0 / Math.PI;
-                ModContext.UIDirty = true;
-
+                double diff = ModContext.LastTiming;
                 bool isAuto = RDC.auto;
 
-                if (ModContext.IsPlaying)
+                bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;
+                if (needRecord && ModContext.SessionOffsets != null)
                 {
-                    bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;
-                    if (needRecord && ModContext.SessionOffsets != null)
-                    {
-                        ModContext.SessionOffsets.Add(diff);
-                        CalcUR.AddSample(diff);
-                    }
+                    ModContext.SessionOffsets.Add(diff);
+                    CalcUR.AddSample(diff);
+                }
 
-                    if (ModContext.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
-                    {
-                        float curXAcc = scrController.instance.playerOne.marginTracker.percentXAcc * 100f;
-                        ModContext.FullXAccHistory.Add(curXAcc);
-                        ModContext.XAccVersion++;
-                    }
-                    
-                    if (isAuto)
-                    {
-                        MarginTrackerAddHitPatch.ApplyAutoHit(diff, ModContext.LastAngle, ModContext.Settings.EnableLogging);
-                    }
+                if (ModContext.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
+                {
+                    float curXAcc = scrController.instance.playerOne.marginTracker.percentXAcc * 100f;
+                    ModContext.FullXAccHistory.Add(curXAcc);
+                    ModContext.XAccVersion++;
+                }
+
+                if (isAuto)
+                {
+                    MarginTrackerAddHitPatch.ApplyAutoHit(diff, ModContext.Settings.EnableLogging);
                 }
             }
-
         }
 
         // hit
@@ -66,37 +81,31 @@ namespace TimingShow.Patches
             public static void Prefix(HitMargin hit)
             {
                 if (!ModContext.IsEnabled || !ModContext.IsPlaying) return;
-                int raw = HitMarginCompat.ToRawCode(hit);
-                
-                ApplyHit(raw, allowLog: !RDC.auto);
+
+                ApplyHit(hit, allowLog: !RDC.auto);
             }
 
 
-            public static void ApplyAutoHit(double timing, double angle, bool allowLog)
+            public static void ApplyAutoHit(double timing, bool allowLog)
             {
-                int raw = HitMarginCompat.RawAutoCode;
-                ApplyHit(raw, allowLog: allowLog, countHit: false, timingOverride: timing, angleOverride: angle);
+                ApplyHit(HitMargin.Auto, allowLog: allowLog, countHit: false, timingOverride: timing);
             }
 
-            private static void ApplyHit(int rawMargin, bool allowLog, bool countHit = true, double? timingOverride = null, double? angleOverride = null)
+            private static void ApplyHit(HitMargin judge, bool allowLog, bool countHit = true, double? timingOverride = null)
             {
-                HitMan judge = HitMarginCompat.ToJudgeKind(rawMargin);
-                bool isXPerfect = judge == HitMan.XPerfect;
-
-                ModContext.LastRawMargin = rawMargin;
                 ModContext.LastJudge = judge;
 
                 if (countHit)
                 {
                     TotalHitsCount++;
-                    if (HitMarginCompat.IsPerfectFamily(judge)) PerfectFamilyCount++;
-                    if (HitMarginCompat.IsNormalPerfect(judge)) NormalPerfectCount++;
-                    if (isXPerfect) XPerfectCount++;
+                    if (judge.IsPerfectFamily()) PerfectFamilyCount++;
+                    if (judge.IsNormalPerfect()) NormalPerfectCount++;
+                    if (judge == HitMargin.XPerfect) XPerfectCount++;
                 }
 
                 if (allowLog)
                 {
-                    TimingLogger.LogHit(timingOverride ?? ModContext.LastTiming, angleOverride ?? ModContext.LastAngle, rawMargin, judge);
+                    TimingLogger.LogHit(timingOverride ?? ModContext.LastTiming, (int)judge, judge);
                 }
             }
 
@@ -111,31 +120,28 @@ namespace TimingShow.Patches
 
             public static void SyncFromTracker(scrMarginTracker tracker)
             {
-                if (tracker == null || !HitMarginCompat.IsInitialized) return;
+                if (tracker == null) return;
 
                 try
                 {
-                    int[] rawValues = HitMarginCompat.AllRawValues;
+                    HitMargin[] all = HitMarginExt.All;
                     int normalPerfect = 0;
                     int perfectFamily = 0;
 
-                    for (int i = 0; i < rawValues.Length; i++)
+                    for (int i = 0; i < all.Length; i++)
                     {
-                        int raw = rawValues[i];
-                        int count = tracker.GetHits(HitMarginCompat.FromRawCode(raw));
+                        HitMargin judge = all[i];
+                        int count = tracker.GetHits(judge);
                         if (count <= 0) continue;
 
-                        HitMan judge = HitMarginCompat.ToJudgeKind(raw);
-                        if (HitMarginCompat.IsPerfectFamily(judge)) perfectFamily += count;
-                        if (HitMarginCompat.IsNormalPerfect(judge)) normalPerfect += count;
+                        if (judge.IsPerfectFamily()) perfectFamily += count;
+                        if (judge.IsNormalPerfect()) normalPerfect += count;
                     }
 
                     NormalPerfectCount = normalPerfect;
                     PerfectFamilyCount = perfectFamily;
                     TotalHitsCount = (int)tracker.GetTotalHits();
-
-                    if (HitMarginCompat.RawXPerfectCode >= 0)
-                        XPerfectCount = tracker.GetHits(HitMarginCompat.FromRawCode(HitMarginCompat.RawXPerfectCode));
+                    XPerfectCount = tracker.GetHits(HitMargin.XPerfect);
                 }
                 catch (Exception e)
                 {

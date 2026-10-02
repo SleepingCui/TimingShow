@@ -98,7 +98,7 @@
     <Compile Include="ColorConverter.cs" />
     <Compile Include="CalcRatio.cs" />
     <Compile Include="CalcUR.cs" />
-    <Compile Include="HitMan.cs" />
+    <Compile Include="HitMarginExt.cs" />
     <Compile Include="JColors.cs" />
     <Compile Include="VarInt.cs" />
     <Compile Include="HUDMan.cs" />

@@ -18,15 +18,13 @@ namespace TimingShow.Patches
                 if (!ModContext.IsEnabled || !ModContext.Settings.ShowOnPlanet || !ModContext.IsPlaying) return;
                 if (__instance.text == null) return;
                 
-                HitMan judge = HitMarginCompat.ToJudgeKind((int)__instance.hitMargin);
+                HitMargin judge = __instance.hitMargin;
 
                 if (!ShouldReplace(judge)) return;
 
                 Color targetColor = JColors.GetColor(judge);
 
-                string timingText = ModContext.Settings.Planet_ShowAngle
-                    ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc2)
-                    : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
+                string timingText = ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
 
                 int fontSize = ModContext.Settings.Planet_FontSize;
                 __instance.text.richText = true;
@@ -34,7 +32,7 @@ namespace TimingShow.Patches
                 __instance.text.color = targetColor;
                 __instance.text.ForceMeshUpdate();
                 
-                if (judge == HitMan.XPerfect)
+                if (judge == HitMargin.XPerfect)
                     HideXPerfectBorder(__instance);
             }
 
@@ -77,25 +75,25 @@ namespace TimingShow.Patches
                 }
             }
 
-            private static bool ShouldReplace(HitMan judge)
+            private static bool ShouldReplace(HitMargin judge)
             {
                 Settings s = ModContext.Settings;
                 switch (judge)
                 {
-                    case HitMan.TooEarly: return s.ReplaceTooEarly;
-                    case HitMan.VeryEarly: return s.ReplaceVeryEarly;
-                    case HitMan.EarlyPerfect: return s.ReplaceEarlyPerfect;
-                    case HitMan.PerfectMinus: return s.ReplacePerfectMinus;
-                    case HitMan.XPerfect: return s.ReplaceXPerfect;
-                    case HitMan.PerfectPlus: return s.ReplacePerfectPlus;
-                    case HitMan.LatePerfect: return s.ReplaceLatePerfect;
-                    case HitMan.VeryLate: return s.ReplaceVeryLate;
-                    case HitMan.TooLate: return s.ReplaceTooLate;
-                    case HitMan.Multipress: return s.ReplaceMultipress;
-                    case HitMan.FailMiss: return s.ReplaceFailMiss;
-                    case HitMan.FailOverload: return s.ReplaceFailOverload;
-                    case HitMan.OverPress: return s.ReplaceOverPress;
-                    case HitMan.Auto: return s.ReplaceAuto;
+                    case HitMargin.TooEarly: return s.ReplaceTooEarly;
+                    case HitMargin.VeryEarly: return s.ReplaceVeryEarly;
+                    case HitMargin.EarlyPerfect: return s.ReplaceEarlyPerfect;
+                    case HitMargin.PerfectMinus: return s.ReplacePerfectMinus;
+                    case HitMargin.XPerfect: return s.ReplaceXPerfect;
+                    case HitMargin.PerfectPlus: return s.ReplacePerfectPlus;
+                    case HitMargin.LatePerfect: return s.ReplaceLatePerfect;
+                    case HitMargin.VeryLate: return s.ReplaceVeryLate;
+                    case HitMargin.TooLate: return s.ReplaceTooLate;
+                    case HitMargin.Multipress: return s.ReplaceMultipress;
+                    case HitMargin.FailMiss: return s.ReplaceFailMiss;
+                    case HitMargin.FailOverload: return s.ReplaceFailOverload;
+                    case HitMargin.OverPress: return s.ReplaceOverPress;
+                    case HitMargin.Auto: return s.ReplaceAuto;
                     default: return false;
                 }
             }
@@ -236,7 +234,7 @@ namespace TimingShow.Patches
                 {
                     if (ModContext.UIDirty)
                     {
-                        string timing = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
+                        string timing = ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
                         if (ModContext.Settings.Title_UseJudgeColor)
                         {
                             Color titleColor = JColors.GetColor(ModContext.LastJudge);

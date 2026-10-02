@@ -9,11 +9,9 @@ namespace TimingShow
     {
         public bool ShowInSongTitle;
         public bool Title_UseJudgeColor;
-        public bool Title_ShowAngle;
         public int Title_FontSize = 100;
 
         public bool ShowOnPlanet;
-        public bool Planet_ShowAngle;
         public int Planet_FontSize = 100;
         
         public bool ShowOnDeath;
@@ -60,7 +58,6 @@ namespace TimingShow
         public int PercHUD = 1;
         public string HUD_Format = "Timing - {0}ms";
         public bool HUD_UseJudgeColor;
-        public bool HUD_ShowAngle;
         public bool HUD_UseCustomFont;
         public string HUD_FontPath = "";
 
@@ -111,7 +108,6 @@ namespace TimingShow
 
         public bool EnableLogging;
         public bool LogAutoplay;
-        public bool Logger_ShowAngle;
         public string LogDirectory = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
         public int PercLog = 4;
         public int LogBufferSizeKB = 64;

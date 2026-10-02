@@ -67,16 +67,13 @@ namespace TimingShow
             // timing hud
             if (isTimingPlay)
             {
-                string timing = ModContext.Settings.HUD_ShowAngle
-                    ? ModContext.LastAngle.ToString("F" + ModContext.Settings.PercHUD)
-                    : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
+                string timing = ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
                     Color fColor = JColors.GetColor(ModContext.LastJudge);
                     timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
                 }
                 string format = ModContext.Settings.HUD_Format;
-                if (ModContext.Settings.HUD_ShowAngle) format = format.Replace("ms", "°");
                 UpdateTextHUD(_hudInstance, format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
             }
 

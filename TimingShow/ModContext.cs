@@ -12,10 +12,8 @@ namespace TimingShow
         public static bool IsEnabled;
         public static Settings Settings;
         public static double LastTiming;
-        public static double LastAngle;
         public static double LastSongTimeMs = -1.0;
-        public static HitMan LastJudge = HitMan.Unknown;
-        public static int LastRawMargin = -1;
+        public static HitMargin? LastJudge = null;
 
         public static List<double> SessionOffsets = new List<double>();
         public static List<float> FullXAccHistory = new List<float>();
@@ -35,22 +33,9 @@ namespace TimingShow
         }
         
 
-        public static bool InitializeJudgeCompat()
-        {
-            HitMarginCompat.Initialize();
-            if (HitMarginCompat.IsGame34)
-            {
-                Logger.Log($"Detected version: {HitMarginCompat.Version}");
-                return true;
-            }
-            
-            return false;
-        }
-        
         public static void ResetJudgeState()
         {
-            LastJudge = HitMan.Unknown;
-            LastRawMargin = -1;
+            LastJudge = null;
         }
 
         public static void Enable()
@@ -65,7 +50,6 @@ namespace TimingShow
             HarmonyInstance?.UnpatchAll(HarmonyInstance.Id);
             SessionOffsets.Clear();
             LastTiming = 0;
-            LastAngle = 0;
             LastSongTimeMs = -1.0;
             ResetJudgeState();
             HUDMan.Destroy();
@@ -89,11 +73,6 @@ namespace TimingShow
         public static string Format(double val, int precision)
         {
             return $"{val.ToString("F" + precision)}ms";
-        }
-
-        public static string FormatAngle(double val, int precision)
-        {
-            return $"{val.ToString("F" + precision)}°";
         }
     }
 }

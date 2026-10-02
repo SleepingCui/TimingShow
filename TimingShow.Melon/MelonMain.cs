@@ -1,5 +1,4 @@
 using MelonLoader;
-using System;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
@@ -24,8 +23,6 @@ namespace TimingShow
             ModContext.Settings = Settings.Load(modPath);
 
             i18n.LoadLanguages(modPath);
-            if (!ModContext.InitializeJudgeCompat())
-                throw new NotSupportedException("requires ADOFAI 3.4 or newer");
 
             var harmony = new HarmonyLib.Harmony("TimingShow.Melon");
             ModContext.HarmonyInstance = harmony;

@@ -50,7 +50,6 @@ namespace TimingShow.Patches
                 ModContext.IsPlaying = true;
                 ModContext.IsLevelFinished = false;
                 ModContext.LastTiming = 0;
-                ModContext.LastAngle = 0;
                 ModContext.ResetJudgeState();
                 ModContext.SessionOffsets.Clear();
                 CalcUR.Reset();
