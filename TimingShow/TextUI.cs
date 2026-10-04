@@ -65,7 +65,7 @@ namespace TimingShow
 
         public void SetSize(int size)
         {
-            if (text != null)
+            if (text != null && text.fontSize != size)
                 text.fontSize = size;
         }
 

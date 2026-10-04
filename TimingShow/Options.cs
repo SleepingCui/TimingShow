@@ -75,6 +75,7 @@ namespace TimingShow
                         Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
                 }
                 Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
+                Toggle(ref ModContext.Settings.Title_Bump, "Toggle_Bump");
             }
         }
 
@@ -186,6 +187,7 @@ namespace TimingShow
                         Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
                 }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
+                Toggle(ref ModContext.Settings.HUD_Bump, "Toggle_Bump");
             }
         }
 
@@ -200,6 +202,7 @@ namespace TimingShow
                     ref ModContext.Settings.PercURHUD
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.URHUD_UseCustomFont, ref ModContext.Settings.URHUD_FontPath);
+                Toggle(ref ModContext.Settings.URHUD_Bump, "Toggle_Bump");
             }
         }
 
@@ -214,6 +217,7 @@ namespace TimingShow
                     ref ModContext.Settings.PercRatioHUD
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.RatioHUD_UseCustomFont, ref ModContext.Settings.RatioHUD_FontPath);
+                Toggle(ref ModContext.Settings.RatioHUD_Bump, "Toggle_Bump");
                 RatioModeButtons();
             }
         }

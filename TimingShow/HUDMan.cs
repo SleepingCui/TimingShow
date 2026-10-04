@@ -62,10 +62,10 @@ namespace TimingShow
             }
             if (_xaccGraphObject != null && _xaccGraphObject.activeSelf != isXACCPlay) _xaccGraphObject.SetActive(isXACCPlay);
 
-            if (!ModContext.UIDirty) return; 
+            bool dirty = ModContext.UIDirty; 
 
             // timing hud
-            if (isTimingPlay)
+            if (isTimingPlay && dirty)
             {
                 string timing = ModContext.Settings.HUD_ShowAngle
                     ? ModContext.LastAngle.ToString("F" + ModContext.Settings.PercHUD)
@@ -81,20 +81,31 @@ namespace TimingShow
             }
 
             // ur hud
-            if (isURPlay)
+            if (isURPlay && dirty)
             {
                 string urStr = CalcUR.Calc().ToString("F" + ModContext.Settings.PercURHUD);
                 UpdateTextHUD(_urHudInstance, ModContext.Settings.URHUD_Format, urStr, ModContext.Settings.URHUD_x, ModContext.Settings.URHUD_y, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_align, ModContext.Settings.URHUD_bold);
             }
 
             // ratio hud
-            if (isRatioPlay)
+            if (isRatioPlay && dirty)
             {
                 string ratioStr = CalcRatio.GetRatioString();
                 UpdateTextHUD(_ratioHudInstance, ModContext.Settings.RatioHUD_Format, ratioStr, ModContext.Settings.RatioHUD_x, ModContext.Settings.RatioHUD_y, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_align, ModContext.Settings.RatioHUD_bold);
             }
 
-            ModContext.UIDirty = false;
+            if (dirty) ModContext.UIDirty = false;
+            
+            ApplyBumpSize(_hudInstance, isTimingPlay, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_Bump, HitBump.Timing);
+            ApplyBumpSize(_urHudInstance, isURPlay, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_Bump, HitBump.UR);
+            ApplyBumpSize(_ratioHudInstance, isRatioPlay, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_Bump, HitBump.Ratio);
+        }
+        
+        private static void ApplyBumpSize(TextUI instance, bool active, float scale, bool bump, BumpAnim anim)
+        {
+            if (!active || instance == null) return;
+            int baseSize = (int)(24 * scale);
+            instance.SetSize(bump ? BumpAnim.Scale(baseSize, anim.Ease) : baseSize);
         }
 
 

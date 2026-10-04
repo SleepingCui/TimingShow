@@ -85,6 +85,8 @@ namespace TimingShow.Patches
         internal static void RecordSample(double timing, double angle)
         {
             if (!ModContext.IsPlaying || ModContext.Settings == null) return;
+            
+            HitBump.OnHit();
 
             bool isAuto = RDC.auto;
             bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;

@@ -99,6 +99,7 @@
     <Compile Include="CalcRatio.cs" />
     <Compile Include="CalcUR.cs" />
     <Compile Include="CalcXP.cs" />
+    <Compile Include="BumpAnim.cs" />
     <Compile Include="HitMan.cs" />
     <Compile Include="JColors.cs" />
     <Compile Include="VarInt.cs" />

@@ -10,6 +10,7 @@ namespace TimingShow
         public bool ShowInSongTitle;
         public bool Title_UseJudgeColor;
         public bool Title_ShowAngle;
+        public bool Title_Bump;
         public int Title_FontSize = 100;
 
         public bool ShowOnPlanet;
@@ -62,6 +63,7 @@ namespace TimingShow
         public string HUD_Format = "Timing - {0}ms";
         public bool HUD_UseJudgeColor;
         public bool HUD_ShowAngle;
+        public bool HUD_Bump;
         public bool HUD_UseCustomFont;
         public string HUD_FontPath = "";
 
@@ -75,6 +77,7 @@ namespace TimingShow
         public string URHUD_Format = "UR - {0}";
         public bool URHUD_UseCustomFont;
         public string URHUD_FontPath = "";
+        public bool URHUD_Bump;
 
         public bool ShowRatioHUD;
         public float RatioHUD_x;
@@ -86,6 +89,7 @@ namespace TimingShow
         public string RatioHUD_Format = "Ratio - {0}:1";
         public bool RatioHUD_UseCustomFont;
         public string RatioHUD_FontPath = "";
+        public bool RatioHUD_Bump;
         
         public bool Ratio_UseXPerfect;
         
