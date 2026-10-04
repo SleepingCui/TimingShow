@@ -30,6 +30,11 @@ namespace TimingShow
             return Math.Sqrt(_s / _count) * 10.0;
         }
         
+        public static double Mean()
+        {
+            return _count == 0 ? 0.0 : _mean;
+        }
+        
         public static double calc(List<double> offsets)
         {
             if (offsets == null || offsets.Count == 0) return 0.0;

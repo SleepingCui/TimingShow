@@ -10,6 +10,9 @@ namespace TimingShow
         private static GameObject _hudObj;
         private static TextUI _hudInstance;
 
+        private static GameObject _avghudObj;
+        private static TextUI _avgHudInstance;
+
         private static GameObject _urhudObj;
         private static TextUI _urHudInstance;
 
@@ -22,6 +25,7 @@ namespace TimingShow
         public static void Destroy()
         {
             DestroyHUD(ref _hudObj, ref _hudInstance);
+            DestroyHUD(ref _avghudObj, ref _avgHudInstance);
             DestroyHUD(ref _urhudObj, ref _urHudInstance);
             DestroyHUD(ref _ratiohudObj, ref _ratioHudInstance);
             DestroyHUD(ref _xaccGraphObject, ref _xaccGraphInstance);
@@ -35,6 +39,11 @@ namespace TimingShow
             EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
             if (_hudInstance != null)
                 _hudInstance.ApplyFont(ModContext.Settings.HUD_UseCustomFont, ModContext.Settings.HUD_FontPath);
+
+            bool isAvgPlay = isPlayBase && ModContext.Settings.ShowAvgHUD;
+            EnsureUI(ref _avghudObj, ref _avgHudInstance, "TimingShow_AvgHUD", isAvgPlay);
+            if (_avgHudInstance != null)
+                _avgHudInstance.ApplyFont(ModContext.Settings.AvgHUD_UseCustomFont, ModContext.Settings.AvgHUD_FontPath);
 
             bool isURPlay = isPlayBase && ModContext.Settings.ShowURHUD;
             EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
@@ -81,6 +90,14 @@ namespace TimingShow
                 UpdateTextHUD(_hudInstance, format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
             }
 
+            // avg offset hud
+            if (isAvgPlay && dirty)
+            {
+                string avgStr = CalcUR.Mean().ToString("F" + ModContext.Settings.PercAvgHUD);
+                BumpTrigger.Avg(avgStr);
+                UpdateTextHUD(_avgHudInstance, ModContext.Settings.AvgHUD_Format, avgStr, ModContext.Settings.AvgHUD_x, ModContext.Settings.AvgHUD_y, ModContext.Settings.AvgHUD_scale, ModContext.Settings.AvgHUD_align, ModContext.Settings.AvgHUD_bold);
+            }
+
             // ur hud
             if (isURPlay && dirty)
             {
@@ -100,6 +117,7 @@ namespace TimingShow
             if (dirty) ModContext.UIDirty = false;
             
             ApplyBumpSize(_hudInstance, isTimingPlay, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_Bump, HitBump.Timing);
+            ApplyBumpSize(_avgHudInstance, isAvgPlay, ModContext.Settings.AvgHUD_scale, ModContext.Settings.AvgHUD_Bump, HitBump.Avg);
             ApplyBumpSize(_urHudInstance, isURPlay, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_Bump, HitBump.UR);
             ApplyBumpSize(_ratioHudInstance, isRatioPlay, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_Bump, HitBump.Ratio);
         }

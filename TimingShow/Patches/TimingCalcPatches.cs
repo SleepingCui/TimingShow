@@ -87,7 +87,7 @@ namespace TimingShow.Patches
             if (!ModContext.IsPlaying || ModContext.Settings == null) return;
             
             bool isAuto = RDC.auto;
-            bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;
+            bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowAvgHUD || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;
             if (needRecord && ModContext.SessionOffsets != null)
             {
                 ModContext.SessionOffsets.Add(timing);

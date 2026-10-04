@@ -67,6 +67,18 @@ namespace TimingShow
         public bool HUD_UseCustomFont;
         public string HUD_FontPath = "";
 
+        public bool ShowAvgHUD;
+        public float AvgHUD_x;
+        public float AvgHUD_y = -0.025f;
+        public float AvgHUD_scale = 1.0f;
+        public bool AvgHUD_bold;
+        public int AvgHUD_align;
+        public int PercAvgHUD = 1;
+        public string AvgHUD_Format = "Avg - {0}ms";
+        public bool AvgHUD_Bump;
+        public bool AvgHUD_UseCustomFont;
+        public string AvgHUD_FontPath = "";
+
         public bool ShowURHUD;
         public float URHUD_x;
         public float URHUD_y = -0.05f;

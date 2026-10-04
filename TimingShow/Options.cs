@@ -21,6 +21,7 @@ namespace TimingShow
         private static bool _foldoutDeathSettings; 
         private static bool _foldoutWinSettings;
         private static bool _foldoutTimingHUD;
+        private static bool _foldoutAvgHUD;
         private static bool _foldoutURHUD;
         private static bool _foldoutRatioHUD;
         private static bool _foldoutLogging;
@@ -39,6 +40,7 @@ namespace TimingShow
             DrawPlanetSettings();
             DrawDeathAndWinSettings();
             DrawTimingHUD();
+            DrawAvgHUD();
             DrawURHUD();
             DrawRatioHUD();
             DrawXACCGraphSettings();
@@ -188,6 +190,21 @@ namespace TimingShow
                 }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.HUD_Bump, "Toggle_Bump");
+            }
+        }
+
+        private static void DrawAvgHUD()
+        {
+            ToggleFold(i18n.T("Toggle_AvgHUD"), ref ModContext.Settings.ShowAvgHUD, ref _foldoutAvgHUD);
+            if (ModContext.Settings.ShowAvgHUD && _foldoutAvgHUD)
+            {
+                HUDBase(
+                    ref ModContext.Settings.AvgHUD_x, ref ModContext.Settings.AvgHUD_y, ref ModContext.Settings.AvgHUD_scale,
+                    ref ModContext.Settings.AvgHUD_bold, ref ModContext.Settings.AvgHUD_align, ref ModContext.Settings.AvgHUD_Format,
+                    ref ModContext.Settings.PercAvgHUD
+                );
+                DrawHUDFontSettings(ref ModContext.Settings.AvgHUD_UseCustomFont, ref ModContext.Settings.AvgHUD_FontPath);
+                Toggle(ref ModContext.Settings.AvgHUD_Bump, "Toggle_Bump");
             }
         }
 
@@ -360,6 +377,7 @@ namespace TimingShow
             if (GUILayout.Button(i18n.T("Btn_Reset"), GUILayout.Width(150)))
             {
                 ModContext.SessionOffsets.Clear();
+                CalcUR.Reset();
                 ModContext.ResetJudgeState();
                 ModContext.LastTiming = 0;
                 ModContext.LastAngle = 0;

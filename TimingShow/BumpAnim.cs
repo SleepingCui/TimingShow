@@ -62,6 +62,7 @@ namespace TimingShow
     public static class HitBump
     {
         public static readonly BumpAnim Timing = new BumpAnim();
+        public static readonly BumpAnim Avg = new BumpAnim();
         public static readonly BumpAnim UR = new BumpAnim();
         public static readonly BumpAnim Ratio = new BumpAnim();
         public static readonly BumpAnim Title = new BumpAnim();
@@ -69,6 +70,7 @@ namespace TimingShow
         public static void Tick(double deltaMs)
         {
             Timing.Advance(deltaMs);
+            Avg.Advance(deltaMs);
             UR.Advance(deltaMs);
             Ratio.Advance(deltaMs);
             Title.Advance(deltaMs);
@@ -77,6 +79,7 @@ namespace TimingShow
         public static void StopAll()
         {
             Timing.Stop();
+            Avg.Stop();
             UR.Stop();
             Ratio.Stop();
             Title.Stop();
@@ -86,11 +89,14 @@ namespace TimingShow
     public static class BumpTrigger
     {
         private static string _timing;
+        private static string _avg;
         private static string _ur;
         private static string _ratio;
         private static string _title;
 
         public static void Timing(string value) => Fire(HitBump.Timing, ref _timing, value);
+
+        public static void Avg(string value) => Fire(HitBump.Avg, ref _avg, value);
 
         public static void UR(string value) => Fire(HitBump.UR, ref _ur, value);
 
@@ -101,6 +107,7 @@ namespace TimingShow
         public static void Reset()
         {
             _timing = null;
+            _avg = null;
             _ur = null;
             _ratio = null;
             _title = null;

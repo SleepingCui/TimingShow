@@ -38,20 +38,51 @@ namespace TimingShow
             return GUILayout.Button(label, style, GUILayout.Width(width));
         }
 
+        private static GUIStyle _expandStyle;
+
+        private const string ArrowExpanded = "◢";
+        private const string ArrowCollapsed = "▶";
+
+        private static GUIStyle ExpandStyle
+        {
+            get
+            {
+                if (_expandStyle == null)
+                {
+                    _expandStyle = new GUIStyle
+                    {
+                        fixedWidth = 14f,
+                        fontSize = 14,
+                        alignment = TextAnchor.MiddleCenter,
+                        margin = new RectOffset(0, 4, 1, 1)
+                    };
+
+                    Color color = Color.white;
+                    _expandStyle.normal.textColor = color;
+                    _expandStyle.hover.textColor = color;
+                    _expandStyle.active.textColor = color;
+                    _expandStyle.focused.textColor = color;
+                    _expandStyle.onNormal.textColor = color;
+                    _expandStyle.onHover.textColor = color;
+                    _expandStyle.onActive.textColor = color;
+                    _expandStyle.onFocused.textColor = color;
+                }
+                return _expandStyle;
+            }
+        }
+
+        
         public static void FoldoutToggle(string label, ref bool toggle, ref bool foldout)
         {
             GUILayout.BeginHorizontal();
-            toggle = GUILayout.Toggle(toggle, label, GUILayout.ExpandWidth(false));
 
             if (toggle)
             {
-                GUILayout.Space(10);
-                string arrow = foldout ? "▲" : "▼";
-                if (GUILayout.Button(arrow, GUILayout.Width(28), GUILayout.Height(18)))
-                {
-                    foldout = !foldout;
-                }
+                bool expandedNext = GUILayout.Toggle(foldout, foldout ? ArrowExpanded : ArrowCollapsed, ExpandStyle);
+                if (expandedNext != foldout) foldout = expandedNext;
             }
+
+            toggle = GUILayout.Toggle(toggle, label, GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
         }
 
