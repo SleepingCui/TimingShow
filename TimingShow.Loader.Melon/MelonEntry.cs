@@ -3,9 +3,9 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-namespace TimingShow
+namespace TimingShow.Melon
 {
-    public class MelonMain : MelonMod
+    public class MelonEntry : MelonMod
     {
         private const float WindowWidth = 900f;
         private const float WindowHeight = 600f;
@@ -25,7 +25,7 @@ namespace TimingShow
             i18n.LoadLanguages(modPath);
             ModContext.InitializeJudgeCompat();
             XPerfectBridge.TryInit();
-            var harmony = new HarmonyLib.Harmony("TimingShow.Melon");
+            var harmony = new HarmonyLib.Harmony("TimingShow.Loader.Melon");
             ModContext.HarmonyInstance = harmony;
             ModContext.Enable();
         }

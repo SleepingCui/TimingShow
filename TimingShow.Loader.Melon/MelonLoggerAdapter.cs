@@ -1,6 +1,6 @@
 using MelonLoader;
 
-namespace TimingShow
+namespace TimingShow.Melon
 {
     public class MelonLoggerAdapter : IModLogger
     {

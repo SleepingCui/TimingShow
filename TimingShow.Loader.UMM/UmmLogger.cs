@@ -1,6 +1,6 @@
 using UnityModManagerNet;
 
-namespace TimingShow
+namespace TimingShow.UMM
 {
     public class UmmLogger : IModLogger
     {

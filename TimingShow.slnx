@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="TimingShow/TimingShow.csproj" />
-  <Project Path="TimingShow.Melon/TimingShow.Melon.csproj" />
-  <Project Path="TimingShow.UMM/TimingShow.UMM.csproj" />
+  <Project Path="TimingShow.Loader.Melon/TimingShow.Loader.Melon.csproj" />
+  <Project Path="TimingShow.Loader.UMM/TimingShow.Loader.UMM.csproj" />
 </Solution>

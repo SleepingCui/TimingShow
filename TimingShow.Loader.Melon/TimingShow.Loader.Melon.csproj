@@ -7,8 +7,8 @@
     <ProjectGuid>{BD86317D-26B5-43F4-9CFA-3761BD6863E2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TimingShow</RootNamespace>
-    <AssemblyName>TimingShow.Melon</AssemblyName>
+    <RootNamespace>TimingShow.Melon</RootNamespace>
+    <AssemblyName>TimingShow.Loader.Melon</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -65,7 +65,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MelonMain.cs" />
+    <Compile Include="MelonEntry.cs" />
     <Compile Include="MelonLoggerAdapter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
