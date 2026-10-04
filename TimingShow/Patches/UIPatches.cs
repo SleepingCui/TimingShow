@@ -257,6 +257,7 @@ namespace TimingShow.Patches
                 {
                     ModContext.UIDirty = false;
                     HitBump.StopAll();
+                    BumpTrigger.Reset();
                     _titleBase = null;
                     _titleAppliedSize = -1;
                 }
@@ -266,7 +267,10 @@ namespace TimingShow.Patches
             {
                 if (ModContext.UIDirty)
                 {
-                    string timing = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
+                    string titleValue = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
+                    BumpTrigger.Title(titleValue);
+
+                    string timing = titleValue;
                     if (ModContext.Settings.Title_UseJudgeColor)
                     {
                         Color titleColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.Title_EnableXPerfect);

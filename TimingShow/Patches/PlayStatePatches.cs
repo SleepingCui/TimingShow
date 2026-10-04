@@ -59,6 +59,8 @@ namespace TimingShow.Patches
                 ModContext.UIDirty = true;
                 JColors.ResetCache();
                 MarginTrackerAddHitPatch.ResetCounts();
+                HitBump.StopAll();
+                BumpTrigger.Reset();
 
                 bool isAuto = RDC.auto;
                 bool shouldLogAuto = isAuto && ModContext.Settings.LogAutoplay;

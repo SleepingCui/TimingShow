@@ -66,14 +66,6 @@ namespace TimingShow
         public static readonly BumpAnim Ratio = new BumpAnim();
         public static readonly BumpAnim Title = new BumpAnim();
         
-        public static void OnHit()
-        {
-            Timing.Trigger();
-            UR.Trigger();
-            Ratio.Trigger();
-            Title.Trigger();
-        }
-        
         public static void Tick(double deltaMs)
         {
             Timing.Advance(deltaMs);
@@ -88,6 +80,37 @@ namespace TimingShow
             UR.Stop();
             Ratio.Stop();
             Title.Stop();
+        }
+    }
+    
+    public static class BumpTrigger
+    {
+        private static string _timing;
+        private static string _ur;
+        private static string _ratio;
+        private static string _title;
+
+        public static void Timing(string value) => Fire(HitBump.Timing, ref _timing, value);
+
+        public static void UR(string value) => Fire(HitBump.UR, ref _ur, value);
+
+        public static void Ratio(string value) => Fire(HitBump.Ratio, ref _ratio, value);
+
+        public static void Title(string value) => Fire(HitBump.Title, ref _title, value);
+
+        public static void Reset()
+        {
+            _timing = null;
+            _ur = null;
+            _ratio = null;
+            _title = null;
+        }
+
+        private static void Fire(BumpAnim anim, ref string last, string value)
+        {
+            if (value == null || value == last) return;
+            last = value;
+            anim.Trigger();
         }
     }
 }

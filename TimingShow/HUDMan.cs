@@ -70,6 +70,7 @@ namespace TimingShow
                 string timing = ModContext.Settings.HUD_ShowAngle
                     ? ModContext.LastAngle.ToString("F" + ModContext.Settings.PercHUD)
                     : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
+                BumpTrigger.Timing(timing);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
                     Color fColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.HUD_EnableXPerfect);
@@ -84,6 +85,7 @@ namespace TimingShow
             if (isURPlay && dirty)
             {
                 string urStr = CalcUR.Calc().ToString("F" + ModContext.Settings.PercURHUD);
+                BumpTrigger.UR(urStr);
                 UpdateTextHUD(_urHudInstance, ModContext.Settings.URHUD_Format, urStr, ModContext.Settings.URHUD_x, ModContext.Settings.URHUD_y, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_align, ModContext.Settings.URHUD_bold);
             }
 
@@ -91,6 +93,7 @@ namespace TimingShow
             if (isRatioPlay && dirty)
             {
                 string ratioStr = CalcRatio.GetRatioString();
+                BumpTrigger.Ratio(ratioStr);
                 UpdateTextHUD(_ratioHudInstance, ModContext.Settings.RatioHUD_Format, ratioStr, ModContext.Settings.RatioHUD_x, ModContext.Settings.RatioHUD_y, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_align, ModContext.Settings.RatioHUD_bold);
             }
 
