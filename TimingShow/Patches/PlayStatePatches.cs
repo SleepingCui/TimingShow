@@ -112,6 +112,8 @@ namespace TimingShow.Patches
                 _isGamePaused = false;
                 ModContext.IsPlaying = false;
                 MarginTrackerAddHitPatch.ResetCounts();
+                ModContext.SessionOffsets.Clear();
+                CalcUR.Reset();
                 HUDMan.Destroy();
                 TimingLogger.CloseSession();
             }
@@ -127,6 +129,8 @@ namespace TimingShow.Patches
                 _isGamePaused = false;
                 ModContext.IsPlaying = false;
                 MarginTrackerAddHitPatch.ResetCounts();
+                ModContext.SessionOffsets.Clear();
+                CalcUR.Reset();
                 TimingLogger.CloseSession();
                 HUDMan.Destroy();
             }

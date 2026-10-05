@@ -165,8 +165,6 @@ namespace TimingShow.Patches
                 }
 
                 TimingLogger.CloseSession();
-                if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
             }
         }
 
@@ -226,8 +224,6 @@ namespace TimingShow.Patches
                         __instance.detailedResults.textComponent.text += info;
                     }
                 }
-                if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
             }
         }
 
