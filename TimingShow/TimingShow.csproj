@@ -107,6 +107,7 @@
     <Compile Include="HUD\JColors.cs" />
     <Compile Include="HUD\TextUI.cs" />
     <Compile Include="HUD\XACCGraphDrawer.cs" />
+    <Compile Include="HUD\TimingScatterDrawer.cs" />
     <Compile Include="Logging\ColorConverter.cs" />
     <Compile Include="Logging\TimingLogger.cs" />
     <Compile Include="Logging\TimingLoggerBinary.cs" />

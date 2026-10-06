@@ -1,11 +1,87 @@
 using HarmonyLib;
 using System;
+using UnityEngine;
 
 namespace TimingShow.Patches
 {
 
     public static class TimingCalcPatches
     {
+        private const int TimingScatterHardLimit = 100000;
+        private const int TimingScatterWarningLimit = 5;
+        private const float TimingScatterDedupeToleranceMs = 0.05f;
+
+        private static int _pendingScatterSampleIndex = -1;
+        private static int _pendingScatterSampleFrame = -1;
+        private static int _scatterUnresolvedWarnings;
+        private static int _scatterLimitWarnings;
+        
+        internal static void InvalidatePendingScatterSample()
+        {
+            _pendingScatterSampleIndex = -1;
+            _pendingScatterSampleFrame = -1;
+        }
+        
+        private static void AppendTimingScatterSample(double timing)
+        {
+            if (_pendingScatterSampleIndex >= 0 && _pendingScatterSampleIndex < ModContext.TimingScatterSamples.Count)
+            {
+                TimingScatterSample pending = ModContext.TimingScatterSamples[_pendingScatterSampleIndex];
+                bool sameFrame = _pendingScatterSampleFrame == Time.frameCount;
+                bool sameTiming = Mathf.Abs(pending.OffsetMs - (float)timing) <= TimingScatterDedupeToleranceMs;
+
+                if (sameFrame && sameTiming)
+                {
+                    return;
+                }
+
+                if (_scatterUnresolvedWarnings < TimingScatterWarningLimit)
+                {
+                    _scatterUnresolvedWarnings++;
+                    ModContext.Logger?.Log($"TimingScatter: sample #{_pendingScatterSampleIndex} was never resolved by a hit; judge backfill skipped ({_scatterUnresolvedWarnings}/{TimingScatterWarningLimit})");
+                }
+            }
+
+            if (ModContext.TimingScatterSamples.Count >= TimingScatterHardLimit)
+            {
+                InvalidatePendingScatterSample();
+                if (_scatterLimitWarnings < TimingScatterWarningLimit)
+                {
+                    _scatterLimitWarnings++;
+                    ModContext.Logger?.Log($"TimingScatter: sample limit {TimingScatterHardLimit} reached; further samples ignored ({_scatterLimitWarnings}/{TimingScatterWarningLimit})");
+                }
+                return;
+            }
+
+            ModContext.TimingScatterSamples.Add(new TimingScatterSample
+            {
+                TimeMs = (float)PlayStatePatches.GetSessionTimeMs(),
+                OffsetMs = (float)timing,
+                Judge = HitMan.Unknown,
+                IsXPerfect = false,
+                HasJudge = false
+            });
+
+            _pendingScatterSampleIndex = ModContext.TimingScatterSamples.Count - 1;
+            _pendingScatterSampleFrame = Time.frameCount;
+        }
+        
+        private static void MarkPendingTimingScatterSample(HitMan judge, bool isXPerfect)
+        {
+            int index = _pendingScatterSampleIndex;
+            InvalidatePendingScatterSample();
+            if (index < 0 || index >= ModContext.TimingScatterSamples.Count) return;
+
+            TimingScatterSample sample = ModContext.TimingScatterSamples[index];
+            if (sample.HasJudge) return;
+
+            sample.Judge = judge;
+            sample.IsXPerfect = isXPerfect;
+            sample.HasJudge = true;
+            ModContext.TimingScatterSamples[index] = sample;
+            ModContext.TimingScatterVersion++;
+        }
+
         // timing calc
         [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
         public static class PlanetSwitchPatch
@@ -87,11 +163,16 @@ namespace TimingShow.Patches
             if (!ModContext.IsPlaying || ModContext.Settings == null) return;
             
             bool isAuto = RDC.auto;
-            bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowAvgHUD || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;
-            if (needRecord && ModContext.SessionOffsets != null)
+            bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowAvgHUD || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph || ModContext.Settings.ShowTimingScatter;
+            if (needRecord)
             {
-                ModContext.SessionOffsets.Add(timing);
-                CalcUR.AddSample(timing);
+                if (ModContext.SessionOffsets != null)
+                {
+                    ModContext.SessionOffsets.Add(timing);
+                    CalcUR.AddSample(timing);
+                }
+
+                AppendTimingScatterSample(timing);
             }
 
             if (ModContext.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
@@ -138,6 +219,8 @@ namespace TimingShow.Patches
                 ModContext.LastRawMargin = rawMargin;
                 ModContext.LastJudge = judge;
                 ModContext.LastIsXP = DetermineIsXPerfect(judge);
+
+                MarkPendingTimingScatterSample(judge, ModContext.LastIsXP);
 
                 if (countHit)
                 {

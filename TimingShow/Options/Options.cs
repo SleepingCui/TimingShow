@@ -13,6 +13,8 @@ namespace TimingShow
         private static string _maxPointsText;
         private static string _analyzerPortText;
         private static string _analyzerTimeoutText;
+        private static string _scatterSampleCountText;
+        private static string _scatterMaxPointsText;
         private static bool _showAdvancedSettings;
 
         private static bool _foldoutTitleSettings;
@@ -26,6 +28,7 @@ namespace TimingShow
         private static bool _foldoutRatioHUD;
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
+        private static bool _foldoutTimingScatter;
 
         public static void OnGUI()
         {
@@ -44,6 +47,7 @@ namespace TimingShow
             DrawURHUD();
             DrawRatioHUD();
             DrawXACCGraphSettings();
+            DrawTimingScatterSettings();
             DrawLoggingSettings();
             DrawSessionControls();
             OptionLogList.Draw();
@@ -292,6 +296,36 @@ namespace TimingShow
                 ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor);
                 ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor);
                 ColorPicker(i18n.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor);
+            }
+        }
+
+        private static void DrawTimingScatterSettings()
+        {
+            ToggleFold(i18n.T("Toggle_TimingScatter"), ref ModContext.Settings.ShowTimingScatter, ref _foldoutTimingScatter);
+            if (ModContext.Settings.ShowTimingScatter && _foldoutTimingScatter)
+            {
+                Toggle(ref ModContext.Settings.TimingScatter_ShowEnd, "Toggle_ShowEnd");
+                SliderFloat("Label_XOffset", ref ModContext.Settings.TimingScatter_X, 0.0f, 1.0f);
+                SliderFloat("Label_YOffset", ref ModContext.Settings.TimingScatter_Y, 0.0f, 1.0f);
+                SliderFloat("Label_GraphWidth", ref ModContext.Settings.TimingScatter_Width, 80f, 1200f);
+                SliderFloat("Label_GraphHeight", ref ModContext.Settings.TimingScatter_Height, 40f, 600f);
+                SliderFloat("Label_Scale", ref ModContext.Settings.TimingScatter_Scale, 0.2f, 3.0f);
+                IntField("Label_SampleCount", ref _scatterSampleCountText, ref ModContext.Settings.TimingScatter_SampleCount, 10, 20000, 200);
+                IntField("Label_MaxRenderPoints", ref _scatterMaxPointsText, ref ModContext.Settings.TimingScatter_MaxRenderPoints, 20, 8000, 800);
+                SliderFloat("Label_PointSize", ref ModContext.Settings.TimingScatter_PointSize, 1.0f, 12.0f);
+
+                Toggle(ref ModContext.Settings.TimingScatter_UseHitAxis, "Toggle_UseHitAxis");
+                if (!ModContext.Settings.TimingScatter_UseHitAxis) Toggle(ref ModContext.Settings.TimingScatter_AutoScroll, "Toggle_AutoScroll");
+                Toggle(ref ModContext.Settings.TimingScatter_UseJudgeColor, "Toggle_UseJudgeColor");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowZeroLine, "Toggle_ShowZeroLine");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowAvgLine, "Toggle_ShowAvgLine");
+
+                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.TimingScatter_BgColor);
+                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.TimingScatter_GridColor);
+                ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.TimingScatter_PointColor);
+                ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.TimingScatter_ZeroLineColor);
+                ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.TimingScatter_AvgLineColor);
+                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.TimingScatter_AxisTextColor);
             }
         }
 
