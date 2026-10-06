@@ -22,6 +22,9 @@ namespace TimingShow
         private static GameObject _xaccGraphObject;
         private static XACCGraphDrawer _xaccGraphInstance;
 
+        private static GameObject _timingScatterObject;
+        private static TimingScatterDrawer _timingScatterInstance;
+
         public static void Destroy()
         {
             DestroyHUD(ref _hudObj, ref _hudInstance);
@@ -29,6 +32,7 @@ namespace TimingShow
             DestroyHUD(ref _urhudObj, ref _urHudInstance);
             DestroyHUD(ref _ratiohudObj, ref _ratioHudInstance);
             DestroyHUD(ref _xaccGraphObject, ref _xaccGraphInstance);
+            DestroyHUD(ref _timingScatterObject, ref _timingScatterInstance);
         }
 
         public static void Update()
@@ -70,6 +74,22 @@ namespace TimingShow
                 _xaccGraphInstance = drawerObj.AddComponent<XACCGraphDrawer>();
             }
             if (_xaccGraphObject != null && _xaccGraphObject.activeSelf != isXACCPlay) _xaccGraphObject.SetActive(isXACCPlay);
+
+            bool isScatterPlay = isPlayBase && ModContext.Settings.ShowTimingScatter;
+            if (ModContext.Settings.TimingScatter_ShowEnd) isScatterPlay = isScatterPlay && ModContext.IsLevelFinished;
+            if (isScatterPlay && _timingScatterObject == null)
+            {
+                _timingScatterObject = new GameObject("TimingShow_TimingScatterCanvas");
+                Canvas scatterCanvas = _timingScatterObject.AddComponent<Canvas>();
+                scatterCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                scatterCanvas.sortingOrder = 101;
+
+                GameObject scatterDrawerObj = new GameObject("TimingScatterDrawer");
+                scatterDrawerObj.transform.SetParent(_timingScatterObject.transform, false);
+
+                _timingScatterInstance = scatterDrawerObj.AddComponent<TimingScatterDrawer>();
+            }
+            if (_timingScatterObject != null && _timingScatterObject.activeSelf != isScatterPlay) _timingScatterObject.SetActive(isScatterPlay);
 
             bool dirty = ModContext.UIDirty; 
 

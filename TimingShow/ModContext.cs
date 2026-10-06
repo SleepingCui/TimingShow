@@ -4,6 +4,16 @@ using UnityEngine;
 
 namespace TimingShow
 {
+
+    public struct TimingScatterSample
+    {
+        public float TimeMs;
+        public float OffsetMs;
+        public HitMan Judge;
+        public bool IsXPerfect;
+        public bool HasJudge;
+    }
+
     public static class ModContext
     {
         public static IModLogger Logger;
@@ -28,6 +38,17 @@ namespace TimingShow
         
         public static bool UIDirty = true;
         public static int XAccVersion;
+        
+        public static readonly List<TimingScatterSample> TimingScatterSamples = new List<TimingScatterSample>(1024);
+        
+        public static int TimingScatterVersion;
+        
+        public static void ClearTimingScatterSamples()
+        {
+            TimingScatterSamples.Clear();
+            Patches.TimingCalcPatches.InvalidatePendingScatterSample();
+            TimingScatterVersion++;
+        }
         
         public static int LastConfigGuiFrame = -1;
         public static bool IsConfigOpen => LastConfigGuiFrame >= 0 && Time.frameCount - LastConfigGuiFrame <= 1;
@@ -68,6 +89,7 @@ namespace TimingShow
             LastAngle = 0;
             LastSongTimeMs = -1.0;
             ResetJudgeState();
+            ClearTimingScatterSamples();
             HUDMan.Destroy();
         }
 

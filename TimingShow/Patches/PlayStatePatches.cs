@@ -56,6 +56,7 @@ namespace TimingShow.Patches
                 CalcUR.Reset();
                 ModContext.FullXAccHistory.Clear();
                 ModContext.XAccVersion++;
+                ModContext.ClearTimingScatterSamples();
                 ModContext.UIDirty = true;
                 JColors.ResetCache();
                 MarginTrackerAddHitPatch.ResetCounts();
@@ -114,6 +115,7 @@ namespace TimingShow.Patches
                 MarginTrackerAddHitPatch.ResetCounts();
                 ModContext.SessionOffsets.Clear();
                 CalcUR.Reset();
+                ModContext.ClearTimingScatterSamples();
                 HUDMan.Destroy();
                 TimingLogger.CloseSession();
             }
@@ -131,6 +133,7 @@ namespace TimingShow.Patches
                 MarginTrackerAddHitPatch.ResetCounts();
                 ModContext.SessionOffsets.Clear();
                 CalcUR.Reset();
+                ModContext.ClearTimingScatterSamples();
                 TimingLogger.CloseSession();
                 HUDMan.Destroy();
             }
@@ -142,6 +145,7 @@ namespace TimingShow.Patches
         {
             public static void Postfix(scrMarginTracker __instance)
             {
+                ModContext.ClearTimingScatterSamples();
                 MarginTrackerAddHitPatch.SyncFromTracker(__instance);
             }
         }
@@ -154,6 +158,7 @@ namespace TimingShow.Patches
             {
                 ModContext.IsLevelFinished = true;
                 ModContext.XAccVersion++;
+                ModContext.TimingScatterVersion++;
                 ModContext.UIDirty = true;
             }
         }
@@ -166,6 +171,7 @@ namespace TimingShow.Patches
             {
                 ModContext.IsLevelFinished = true;
                 ModContext.XAccVersion++;
+                ModContext.TimingScatterVersion++;
                 ModContext.UIDirty = true;
             }
         }

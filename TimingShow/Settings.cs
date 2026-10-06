@@ -126,6 +126,29 @@ namespace TimingShow
         public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
 
+        public bool ShowTimingScatter = false;
+        public bool TimingScatter_ShowEnd = false;
+        public float TimingScatter_X = 0.05f;
+        public float TimingScatter_Y = 0.20f;
+        public float TimingScatter_Width = 320f;
+        public float TimingScatter_Height = 140f;
+        public float TimingScatter_Scale = 1.0f;
+        public int TimingScatter_SampleCount = 200;
+        public int TimingScatter_MaxRenderPoints = 800;
+        public float TimingScatter_PointSize = 3f;
+        public bool TimingScatter_UseHitAxis = false;
+        public bool TimingScatter_AutoScroll = false;
+        public bool TimingScatter_UseJudgeColor = true;
+        public bool TimingScatter_ShowZeroLine = true;
+        public bool TimingScatter_ShowAvgLine = true;
+
+        public Color TimingScatter_BgColor = new Color(0f, 0f, 0f, 0.60f);
+        public Color TimingScatter_GridColor = new Color(1f, 1f, 1f, 0.35f);
+        public Color TimingScatter_ZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
+        public Color TimingScatter_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
+        public Color TimingScatter_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
+        public Color TimingScatter_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+
         public bool Title_EnableXPerfect;
         public bool Planet_EnableXPerfect;
         public bool HUD_EnableXPerfect;
@@ -183,6 +206,7 @@ namespace TimingShow
                             settings.ConfigKey = KeyCode.F9;
                         bool isLegacyConfig = json.IndexOf("settingsVersion", StringComparison.OrdinalIgnoreCase) < 0;
                         settings.Migrate(isLegacyConfig);
+                        settings.Sanitize();
                         return settings;
                     }
                 }
@@ -229,6 +253,22 @@ namespace TimingShow
             {
                 ModContext.Logger?.Log("Settings migrated to ver " + CurrentSettingsVersion);
             }
+        }
+
+        /// <summary>
+        /// 防御性夹紧：Settings.json 可被手工编辑，且 IntField 只在文本变化时回写，
+        /// 因此越界值必须在加载后修正，绘制侧的夹紧只是第二道保险。
+        /// </summary>
+        public void Sanitize()
+        {
+            TimingScatter_X = Mathf.Clamp01(TimingScatter_X);
+            TimingScatter_Y = Mathf.Clamp01(TimingScatter_Y);
+            TimingScatter_Width = Mathf.Clamp(TimingScatter_Width, 80f, 1200f);
+            TimingScatter_Height = Mathf.Clamp(TimingScatter_Height, 40f, 600f);
+            TimingScatter_Scale = Mathf.Clamp(TimingScatter_Scale, 0.2f, 3f);
+            TimingScatter_SampleCount = Mathf.Clamp(TimingScatter_SampleCount, 10, 20000);
+            TimingScatter_MaxRenderPoints = Mathf.Clamp(TimingScatter_MaxRenderPoints, 20, 8000);
+            TimingScatter_PointSize = Mathf.Clamp(TimingScatter_PointSize, 1f, 12f);
         }
 
         public void Save(string modPath)

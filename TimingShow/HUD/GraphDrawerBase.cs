@@ -18,6 +18,7 @@ namespace TimingShow
         protected abstract Color LineColor { get; }
         protected abstract int MaxPoints { get; }
         public abstract string GraphName { get; }
+        protected virtual int DataVersion => ModContext.XAccVersion;
 
         protected abstract void UpdateData();
         protected abstract int GetDataCount();
@@ -25,10 +26,10 @@ namespace TimingShow
         protected abstract float GetMinY();
         protected abstract float GetMaxY();
 
-        private Text _titleText;
-        private Text _topLabelText;
-        private Text _tidLabelText;
-        private Text _botLabelText;
+        protected Text _titleText;
+        protected Text _topLabelText;
+        protected Text _tidLabelText;
+        protected Text _botLabelText;
         
         private int _lastDataVersion = -1;
         private int _lastSettingsHash = int.MinValue;
@@ -43,18 +44,18 @@ namespace TimingShow
             CreateTextComponents();
         }
 
-        private void CreateTextComponents()
+        protected virtual void CreateTextComponents()
         {
             Font font = Font.CreateDynamicFontFromOSFont("Arial", 12);
             if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 
-            _titleText = CreateSingleText("TitleText", font, TextAnchor.UpperLeft);
-            _topLabelText = CreateSingleText("TopLabel", font, TextAnchor.MiddleRight);
-            _tidLabelText = CreateSingleText("MidLabel", font, TextAnchor.MiddleRight);
-            _botLabelText = CreateSingleText("BotLabel", font, TextAnchor.MiddleRight);
+            _titleText = CreateText("TitleText", font, TextAnchor.UpperLeft);
+            _topLabelText = CreateText("TopLabel", font, TextAnchor.MiddleRight);
+            _tidLabelText = CreateText("MidLabel", font, TextAnchor.MiddleRight);
+            _botLabelText = CreateText("BotLabel", font, TextAnchor.MiddleRight);
         }
 
-        private Text CreateSingleText(string name, Font font, TextAnchor alignment)
+        protected Text CreateText(string name, Font font, TextAnchor alignment)
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(transform, false);
@@ -89,9 +90,10 @@ namespace TimingShow
             Rect rect = rectTransform.rect;
             bool rectChanged = rect.width != _lastRectWidth || rect.height != _lastRectHeight;
             int settingsHash = ComputeSettingsHash();
-            if (_lastDataVersion != ModContext.XAccVersion || rectChanged || settingsHash != _lastSettingsHash)
+            bool continuousRedraw = NeedsContinuousRedraw();
+            if (_lastDataVersion != DataVersion || rectChanged || settingsHash != _lastSettingsHash || continuousRedraw)
             {
-                _lastDataVersion = ModContext.XAccVersion;
+                _lastDataVersion = DataVersion;
                 _lastSettingsHash = settingsHash;
                 _lastRectWidth = rect.width;
                 _lastRectHeight = rect.height;
@@ -101,7 +103,9 @@ namespace TimingShow
             }
         }
         
-        private int ComputeSettingsHash()
+        protected virtual bool NeedsContinuousRedraw() => false;
+
+        protected virtual int ComputeSettingsHash()
         {
             unchecked
             {
@@ -119,7 +123,7 @@ namespace TimingShow
             }
         }
 
-        private void ToggleTexts(bool active)
+        protected virtual void ToggleTexts(bool active)
         {
             if (_titleText != null && _titleText.gameObject.activeSelf != active) _titleText.gameObject.SetActive(active);
             if (_topLabelText != null && _topLabelText.gameObject.activeSelf != active) _topLabelText.gameObject.SetActive(active);
@@ -143,6 +147,8 @@ namespace TimingShow
             float posY = Screen.height * (1.0f - PosY);
             rect.anchoredPosition = new Vector2(posX, posY);
         }
+        
+        protected virtual string FormatYLabel(float value) => $"{value:F1}%";
 
         protected virtual void UpdateTextLayoutAndValues()
         {
@@ -169,12 +175,12 @@ namespace TimingShow
             int scaleFontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
             Color scaleColor = new Color(1f, 1f, 1f, 0.8f);
             float leftMargin = -6f * scale;
-            SetupLeftScaleText(_topLabelText, $"{maxY:F1}%", new Vector2(leftMargin, h), scaleFontSize, scaleColor);
-            SetupLeftScaleText(_tidLabelText, $"{midY:F1}%", new Vector2(leftMargin, h * 0.5f), scaleFontSize, scaleColor);
-            SetupLeftScaleText(_botLabelText, $"{minY:F1}%", new Vector2(leftMargin, 0f), scaleFontSize, scaleColor);
+            SetupLeftScaleText(_topLabelText, FormatYLabel(maxY), new Vector2(leftMargin, h), scaleFontSize, scaleColor);
+            SetupLeftScaleText(_tidLabelText, FormatYLabel(midY), new Vector2(leftMargin, h * 0.5f), scaleFontSize, scaleColor);
+            SetupLeftScaleText(_botLabelText, FormatYLabel(minY), new Vector2(leftMargin, 0f), scaleFontSize, scaleColor);
         }
 
-        private void SetupLeftScaleText(Text t, string content, Vector2 localPos, int fontSize, Color color)
+        protected void SetupLeftScaleText(Text t, string content, Vector2 localPos, int fontSize, Color color)
         {
             if (t == null) return;
             t.fontSize = fontSize;
@@ -192,7 +198,6 @@ namespace TimingShow
         {
             vh.Clear();
 
-            int count = GetDataCount();
             float w = rectTransform.rect.width;
             float h = rectTransform.rect.height;
 
@@ -201,6 +206,17 @@ namespace TimingShow
             DrawQuad(vh, Vector2.zero, new Vector2(w, h), BgColor);
             DrawGridLines(vh, w, h);
 
+            DrawReferenceLines(vh, w, h);
+            DrawSeries(vh, w, h);
+        }
+        
+        protected virtual void DrawReferenceLines(VertexHelper vh, float w, float h)
+        {
+        }
+        
+        protected virtual void DrawSeries(VertexHelper vh, float w, float h)
+        {
+            int count = GetDataCount();
             if (count < 2) return;
 
             float minY = GetMinY();
@@ -222,7 +238,7 @@ namespace TimingShow
             }
         }
 
-        private void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
+        protected void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
         {
             int baseIdx = vh.currentVertCount;
             vh.AddVert(new Vector3(min.x, min.y), color, Vector2.zero);
@@ -233,7 +249,7 @@ namespace TimingShow
             vh.AddTriangle(baseIdx, baseIdx + 2, baseIdx + 3);
         }
 
-        private void DrawSegment(VertexHelper vh, Vector2 p1, Vector2 p2, float halfWidth, Color color)
+        protected void DrawSegment(VertexHelper vh, Vector2 p1, Vector2 p2, float halfWidth, Color color)
         {
             Vector2 dir = (p2 - p1).normalized;
             if (dir == Vector2.zero) return;
