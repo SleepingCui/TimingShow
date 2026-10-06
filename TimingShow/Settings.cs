@@ -141,6 +141,7 @@ namespace TimingShow
         public bool TimingScatter_UseJudgeColor = true;
         public bool TimingScatter_ShowZeroLine = true;
         public bool TimingScatter_ShowAvgLine = true;
+        public bool TimingScatter_IgnoreOutliers = false;
 
         public Color TimingScatter_BgColor = new Color(0f, 0f, 0f, 0.60f);
         public Color TimingScatter_GridColor = new Color(1f, 1f, 1f, 0.35f);

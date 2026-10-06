@@ -305,6 +305,7 @@ namespace TimingShow
             if (ModContext.Settings.ShowTimingScatter && _foldoutTimingScatter)
             {
                 Toggle(ref ModContext.Settings.TimingScatter_ShowEnd, "Toggle_ShowEnd");
+                Toggle(ref ModContext.Settings.TimingScatter_IgnoreOutliers, "Toggle_IgnoreOutliers");
                 SliderFloat("Label_XOffset", ref ModContext.Settings.TimingScatter_X, 0.0f, 1.0f);
                 SliderFloat("Label_YOffset", ref ModContext.Settings.TimingScatter_Y, 0.0f, 1.0f);
                 SliderFloat("Label_GraphWidth", ref ModContext.Settings.TimingScatter_Width, 80f, 1200f);

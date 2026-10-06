@@ -36,6 +36,7 @@ namespace TimingShow
 
         private readonly List<int> _visibleIndices = new List<int>(1024);
         private readonly List<RenderPoint> _renderPoints = new List<RenderPoint>(1024);
+        private readonly List<float> _outlierScratch = new List<float>(1024);
 
         private RenderPoint[] _bucketMinPoints = new RenderPoint[64];
         private RenderPoint[] _bucketMaxPoints = new RenderPoint[64];
@@ -130,6 +131,7 @@ namespace TimingShow
                 hash = hash * 31 + (settings.TimingScatter_UseJudgeColor ? 1 : 0);
                 hash = hash * 31 + (settings.TimingScatter_ShowZeroLine ? 1 : 0);
                 hash = hash * 31 + (settings.TimingScatter_ShowAvgLine ? 1 : 0);
+                hash = hash * 31 + (settings.TimingScatter_IgnoreOutliers ? 1 : 0);
                 hash = hash * 31 + settings.TimingScatter_PointSize.GetHashCode();
                 hash = hash * 31 + settings.TimingScatter_PointColor.GetHashCode();
                 hash = hash * 31 + settings.TimingScatter_ZeroLineColor.GetHashCode();
@@ -210,6 +212,11 @@ namespace TimingShow
             
             _visibleIndices.Reverse();
 
+            // 总览（关卡结束后展示整局数据）时可选地忽略离群点：用与网页分析器一致的 1.5×IQR 判定剔除极端偏移，
+            // 否则几个离群点会把纵轴撑开、让绝大多数点挤成一条线。剔除后纵轴/平均线随之只按剩余点自适应。
+            if (finished && settings != null && settings.TimingScatter_IgnoreOutliers)
+                collected = ApplyOutlierFilter(samples, collected);
+
             float minOffset = float.MaxValue;
             float maxOffset = float.MinValue;
             float minTime = float.MaxValue;
@@ -267,6 +274,43 @@ namespace TimingShow
             BuildRenderPoints(samples, collected);
         }
         
+
+        private int ApplyOutlierFilter(List<TimingScatterSample> samples, int count)
+        {
+            if (count < 4) return count;  
+
+            _outlierScratch.Clear();
+            for (int i = 0; i < count; i++)
+            {
+                float value = samples[_visibleIndices[i]].OffsetMs;
+                if (!float.IsNaN(value)) _outlierScratch.Add(value);
+            }
+            if (_outlierScratch.Count < 4) return count;
+
+            _outlierScratch.Sort();
+            float q1 = _outlierScratch[Mathf.FloorToInt(_outlierScratch.Count * 0.25f)];
+            float q3 = _outlierScratch[Mathf.FloorToInt(_outlierScratch.Count * 0.75f)];
+            float iqr = q3 - q1;
+            if (float.IsNaN(iqr) || float.IsInfinity(iqr)) return count;
+
+            float lowerBound = q1 - 1.5f * iqr;
+            float upperBound = q3 + 1.5f * iqr;
+
+            int kept = 0;
+            for (int i = 0; i < count; i++)
+            {
+                float value = samples[_visibleIndices[i]].OffsetMs;
+                if (value >= lowerBound && value <= upperBound)
+                {
+                    _visibleIndices[kept++] = _visibleIndices[i];
+                }
+            }
+            if (kept <= 0 || kept == count) return count;   
+
+            _visibleIndices.RemoveRange(kept, _visibleIndices.Count - kept);
+            return kept;
+        }
+
         private void UpdateLiveTimeWindow()
         {
             _liveLeftTimeMs = _minTimeMs;
