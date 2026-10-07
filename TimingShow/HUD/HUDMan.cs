@@ -75,7 +75,9 @@ namespace TimingShow
             }
             if (_xaccGraphObject != null && _xaccGraphObject.activeSelf != isXACCPlay) _xaccGraphObject.SetActive(isXACCPlay);
 
-            bool isScatterPlay = isPlayBase && ModContext.Settings.ShowTimingScatter;
+
+            bool isScatterBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld;
+            bool isScatterPlay = isScatterBase && ModContext.Settings.ShowTimingScatter;
             if (ModContext.Settings.TimingScatter_ShowEnd) isScatterPlay = isScatterPlay && ModContext.IsLevelFinished;
             if (isScatterPlay && _timingScatterObject == null)
             {

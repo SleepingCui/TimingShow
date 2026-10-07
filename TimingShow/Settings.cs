@@ -264,6 +264,12 @@ namespace TimingShow
         
         public void Sanitize()
         {
+            XACCGraph_X = Mathf.Clamp01(XACCGraph_X);
+            XACCGraph_Y = Mathf.Clamp01(XACCGraph_Y);
+            XACCGraph_Width = Mathf.Clamp(XACCGraph_Width, 80f, 1200f);
+            XACCGraph_Height = Mathf.Clamp(XACCGraph_Height, 40f, 600f);
+            XACCGraph_Scale = Mathf.Clamp(XACCGraph_Scale, 0.2f, 3f);
+
             TimingScatter_X = Mathf.Clamp01(TimingScatter_X);
             TimingScatter_Y = Mathf.Clamp01(TimingScatter_Y);
             TimingScatter_Width = Mathf.Clamp(TimingScatter_Width, 80f, 1200f);

@@ -57,6 +57,7 @@ namespace TimingShow
         {
             ModPath = modPath;
             Logger = logger;
+            Patches.PlayStatePatches.RegisterSceneHook();
         }
         
         public static void InitializeJudgeCompat()

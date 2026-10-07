@@ -1,6 +1,7 @@
 using HarmonyLib;
 using System;
 using System.Diagnostics;
+using UnityEngine.SceneManagement;
 using static TimingShow.Patches.TimingCalcPatches;
 
 namespace TimingShow.Patches
@@ -37,7 +38,37 @@ namespace TimingShow.Patches
             }
         }
 
+        
+        private const string GameplaySceneName = "scnGame";
+        
+        public static void EndSession()
+        {
+            SessionTimer.Stop();
+            _isGamePaused = false;
+            ModContext.IsPlaying = false;
+            MarginTrackerAddHitPatch.ResetCounts();
+            ModContext.SessionOffsets.Clear();
+            CalcUR.Reset();
+            ModContext.ClearTimingScatterSamples();
+            TimingLogger.CloseSession();
+            HUDMan.Destroy();
+        }
 
+        public static void RegisterSceneHook()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (!ModContext.IsEnabled)
+                return;
+            if (scene.name == GameplaySceneName)
+                return;
+
+            EndSession();
+        }
 
         // start playing
         [HarmonyPatch(typeof(scrController), "Start_Rewind")]
@@ -109,15 +140,7 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
-                SessionTimer.Stop();
-                _isGamePaused = false;
-                ModContext.IsPlaying = false;
-                MarginTrackerAddHitPatch.ResetCounts();
-                ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
-                ModContext.ClearTimingScatterSamples();
-                HUDMan.Destroy();
-                TimingLogger.CloseSession();
+                EndSession();
             }
         }
 
@@ -127,15 +150,7 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
-                SessionTimer.Stop();
-                _isGamePaused = false;
-                ModContext.IsPlaying = false;
-                MarginTrackerAddHitPatch.ResetCounts();
-                ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
-                ModContext.ClearTimingScatterSamples();
-                TimingLogger.CloseSession();
-                HUDMan.Destroy();
+                EndSession();
             }
         }
 

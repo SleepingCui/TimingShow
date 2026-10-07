@@ -289,6 +289,8 @@ namespace TimingShow
                 Toggle(ref ModContext.Settings.XACCGraph_ShowPerfInfo, "Toggle_ShowPerfInfo");
                 SliderFloat("Label_XOffset", ref ModContext.Settings.XACCGraph_X, 0.0f, 1.0f);
                 SliderFloat("Label_YOffset", ref ModContext.Settings.XACCGraph_Y, 0.0f, 1.0f);
+                SliderFloat("Label_GraphWidth", ref ModContext.Settings.XACCGraph_Width, 80f, 1200f);
+                SliderFloat("Label_GraphHeight", ref ModContext.Settings.XACCGraph_Height, 40f, 600f);
                 SliderFloat("Label_Scale", ref ModContext.Settings.XACCGraph_Scale, 0.2f, 3.0f);
                 IntField("Label_MaxPoints", ref _maxPointsText, ref ModContext.Settings.XACCGraph_MaxPoints, 20, 5000, 250);
 
