@@ -113,6 +113,7 @@ namespace TimingShow
 
         public bool ShowXACCGraph;
         public bool XACCGraph_ShowEnd;
+        public bool XACCGraph_ShowPerfInfo;
         public float XACCGraph_X = 0.05f;
         public float XACCGraph_Y = 0.50f;
         public float XACCGraph_Width = 260f;
@@ -125,9 +126,11 @@ namespace TimingShow
         public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 1f);
         public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
+        public bool XACCGraph_UseCustomFont;
+        public string XACCGraph_FontPath = "";
 
-        public bool ShowTimingScatter = false;
-        public bool TimingScatter_ShowEnd = false;
+        public bool ShowTimingScatter;
+        public bool TimingScatter_ShowEnd;
         public float TimingScatter_X = 0.05f;
         public float TimingScatter_Y = 0.20f;
         public float TimingScatter_Width = 320f;
@@ -136,12 +139,13 @@ namespace TimingShow
         public int TimingScatter_SampleCount = 200;
         public int TimingScatter_MaxRenderPoints = 800;
         public float TimingScatter_PointSize = 3f;
-        public bool TimingScatter_UseHitAxis = false;
-        public bool TimingScatter_AutoScroll = false;
+        public bool TimingScatter_UseHitAxis;
+        public bool TimingScatter_AutoScroll;
         public bool TimingScatter_UseJudgeColor = true;
         public bool TimingScatter_ShowZeroLine = true;
         public bool TimingScatter_ShowAvgLine = true;
-        public bool TimingScatter_IgnoreOutliers = false;
+        public bool TimingScatter_IgnoreOutliers;
+        public bool TimingScatter_ShowPerfInfo;
 
         public Color TimingScatter_BgColor = new Color(0f, 0f, 0f, 0.60f);
         public Color TimingScatter_GridColor = new Color(1f, 1f, 1f, 0.35f);
@@ -149,6 +153,8 @@ namespace TimingShow
         public Color TimingScatter_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
         public Color TimingScatter_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
         public Color TimingScatter_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public bool TimingScatter_UseCustomFont;
+        public string TimingScatter_FontPath = "";
 
         public bool Title_EnableXPerfect;
         public bool Planet_EnableXPerfect;
@@ -255,11 +261,7 @@ namespace TimingShow
                 ModContext.Logger?.Log("Settings migrated to ver " + CurrentSettingsVersion);
             }
         }
-
-        /// <summary>
-        /// 防御性夹紧：Settings.json 可被手工编辑，且 IntField 只在文本变化时回写，
-        /// 因此越界值必须在加载后修正，绘制侧的夹紧只是第二道保险。
-        /// </summary>
+        
         public void Sanitize()
         {
             TimingScatter_X = Mathf.Clamp01(TimingScatter_X);

@@ -38,7 +38,6 @@ namespace TimingShow.Patches
                 if (_scatterUnresolvedWarnings < TimingScatterWarningLimit)
                 {
                     _scatterUnresolvedWarnings++;
-                    ModContext.Logger?.Log($"TimingScatter: sample #{_pendingScatterSampleIndex} was never resolved by a hit; judge backfill skipped ({_scatterUnresolvedWarnings}/{TimingScatterWarningLimit})");
                 }
             }
 
@@ -48,7 +47,6 @@ namespace TimingShow.Patches
                 if (_scatterLimitWarnings < TimingScatterWarningLimit)
                 {
                     _scatterLimitWarnings++;
-                    ModContext.Logger?.Log($"TimingScatter: sample limit {TimingScatterHardLimit} reached; further samples ignored ({_scatterLimitWarnings}/{TimingScatterWarningLimit})");
                 }
                 return;
             }

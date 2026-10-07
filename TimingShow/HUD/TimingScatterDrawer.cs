@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace TimingShow
 {
@@ -22,6 +23,7 @@ namespace TimingShow
         private const float MinTimeAxisRangeMs = 1f;
         
         private const float ViewSmoothTauSeconds = 0.30f;
+        private const float AvgSmoothTauSeconds = 0.30f;   
 
         private static readonly Color DefaultPointColor = new Color(0.30f, 0.76f, 1f, 1f);
 
@@ -42,13 +44,15 @@ namespace TimingShow
         private RenderPoint[] _bucketMaxPoints = new RenderPoint[64];
         private bool[] _bucketFilled = new bool[64];
 
-        private Text _xStartText;
-        private Text _xEndText;
-        private Text _avgValueText;
+        private TMP_Text _xStartText;
+        private TMP_Text _xEndText;
+        private TMP_Text _avgValueText;
         
         private readonly List<float> _avgValues = new List<float>(1024);
         private bool _avgAvailable;
         private float _avgCurrent;
+        private float _avgSmoothValue;
+        private bool _avgSmoothValid;
         private bool _avgLabelVisible;
 
         private bool _hasData;
@@ -61,6 +65,7 @@ namespace TimingShow
         private float _maxTimeMs;
         private float _liveLeftTimeMs;
         private float _liveRightTimeMs;
+        private int _ignoredOutlierCount;
 
         private float _smoothMinY;
         private float _smoothMaxY;
@@ -82,6 +87,27 @@ namespace TimingShow
         public override string GraphName => "Timing";
 
         protected override int DataVersion => ModContext.TimingScatterVersion;
+        protected override bool UseCustomFont => ModContext.Settings != null && ModContext.Settings.TimingScatter_UseCustomFont;
+        protected override string FontPath => ModContext.Settings != null ? ModContext.Settings.TimingScatter_FontPath : "";
+
+        protected override bool ShowPerfInfo => ModContext.Settings != null && ModContext.Settings.TimingScatter_ShowPerfInfo;
+        protected override int PerfDataCount => _visibleIndices.Count;
+
+        protected override float PerfTextOffsetY(float scale, int fontSize)
+        {
+            return -3f * scale - 16f * (fontSize / 12f) - 1f * scale;
+        }
+
+        protected override string PerfExtraInfo
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                if (settings == null || !settings.TimingScatter_IgnoreOutliers) return null;
+                if (!ModContext.IsLevelFinished) return null;  
+                return "Ignored " + _ignoredOutlierCount;
+            }
+        }
 
         private int EffectivePointLimit
         {
@@ -99,12 +125,17 @@ namespace TimingShow
         {
             base.CreateTextComponents();
 
-            Font font = Font.CreateDynamicFontFromOSFont("Arial", 12);
-            if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _xStartText = CreateText("XStartLabel", CurrentFontAsset, TextAnchor.UpperLeft);
+            _xEndText = CreateText("XEndLabel", CurrentFontAsset, TextAnchor.UpperRight);
+            _avgValueText = CreateText("AvgValueLabel", CurrentFontAsset, TextAnchor.MiddleLeft);
+        }
 
-            _xStartText = CreateText("XStartLabel", font, TextAnchor.UpperLeft);
-            _xEndText = CreateText("XEndLabel", font, TextAnchor.UpperRight);
-            _avgValueText = CreateText("AvgValueLabel", font, TextAnchor.MiddleLeft);
+        protected override void ApplyFontToTexts(TMP_FontAsset font)
+        {
+            base.ApplyFontToTexts(font);
+            ApplyFontToText(_xStartText, font);
+            ApplyFontToText(_xEndText, font);
+            ApplyFontToText(_avgValueText, font);
         }
 
         protected override void ToggleTexts(bool active)
@@ -159,6 +190,34 @@ namespace TimingShow
 
         protected override bool NeedsContinuousRedraw() => LiveScrollActive;
 
+        protected override bool UpdateFrameAnimation()
+        {
+            if (!_avgAvailable)
+            {
+                _avgSmoothValid = false;
+                return false;
+            }
+
+            if (!_avgSmoothValid)
+            {
+                _avgSmoothValue = _avgCurrent;
+                _avgSmoothValid = true;
+                return false;
+            }
+
+            float target = _avgCurrent;
+            float dt = Time.unscaledDeltaTime;
+            if (dt <= 0f) return false;
+
+            float k = 1f - Mathf.Exp(-dt / AvgSmoothTauSeconds);
+            float next = Mathf.Lerp(_avgSmoothValue, target, k);
+            if (Mathf.Abs(next - target) < 0.005f) next = target;
+            if (next == _avgSmoothValue) return false;
+
+            _avgSmoothValue = next;
+            return true;
+        }
+
         protected override void UpdateData()
         {
             _visibleIndices.Clear();
@@ -176,6 +235,7 @@ namespace TimingShow
             _avgValues.Clear();
             _avgAvailable = false;
             _avgCurrent = 0f;
+            _ignoredOutlierCount = 0;
 
             List<TimingScatterSample> samples = ModContext.TimingScatterSamples;
             int total = samples.Count;
@@ -183,6 +243,7 @@ namespace TimingShow
             {
                 _smoothViewValid = false;
                 _smoothSpanValid = false;
+                _avgSmoothValid = false;
                 return;
             }
 
@@ -207,13 +268,12 @@ namespace TimingShow
             {
                 _smoothViewValid = false;
                 _smoothSpanValid = false;
+                _avgSmoothValid = false;
                 return;
             }
             
             _visibleIndices.Reverse();
-
-            // 总览（关卡结束后展示整局数据）时可选地忽略离群点：用与网页分析器一致的 1.5×IQR 判定剔除极端偏移，
-            // 否则几个离群点会把纵轴撑开、让绝大多数点挤成一条线。剔除后纵轴/平均线随之只按剩余点自适应。
+            
             if (finished && settings != null && settings.TimingScatter_IgnoreOutliers)
                 collected = ApplyOutlierFilter(samples, collected);
 
@@ -277,6 +337,7 @@ namespace TimingShow
 
         private int ApplyOutlierFilter(List<TimingScatterSample> samples, int count)
         {
+            _ignoredOutlierCount = 0;
             if (count < 4) return count;  
 
             _outlierScratch.Clear();
@@ -307,6 +368,7 @@ namespace TimingShow
             }
             if (kept <= 0 || kept == count) return count;   
 
+            _ignoredOutlierCount = count - kept;
             _visibleIndices.RemoveRange(kept, _visibleIndices.Count - kept);
             return kept;
         }
@@ -371,16 +433,34 @@ namespace TimingShow
             _maxY = _smoothMaxY;
         }
 
+
         private void BuildAverageSeries(List<TimingScatterSample> samples, int count)
         {
             Settings settings = ModContext.Settings;
             if (settings == null || !settings.TimingScatter_ShowAvgLine) return;
+            
+            bool dropOutliers = ModContext.IsLevelFinished && settings.TimingScatter_IgnoreOutliers;
 
+            int visible = 0;
             double sum = 0.0;
-            for (int i = 0; i < count; i++)
+            int judged = 0;
+
+            for (int i = 0; i < samples.Count && visible < count; i++)
             {
-                sum += samples[_visibleIndices[i]].OffsetMs;
-                _avgValues.Add((float)(sum / (i + 1)));
+                TimingScatterSample s = samples[i];
+                if (!s.HasJudge) continue;
+
+                if (dropOutliers && !(visible < count && _visibleIndices[visible] == i))
+                    continue;
+
+                sum += s.OffsetMs;
+                judged++;
+
+                if (_visibleIndices[visible] == i)
+                {
+                    _avgValues.Add((float)(sum / judged));
+                    visible++;
+                }
             }
 
             if (_avgValues.Count > 0)
@@ -527,7 +607,6 @@ namespace TimingShow
         protected override void DrawSeries(VertexHelper vh, float w, float h)
         {
             int count = _renderPoints.Count;
-            if (count == 0) return;
 
             Settings settings = ModContext.Settings;
             bool judgeColor = settings == null || settings.TimingScatter_UseJudgeColor;
@@ -535,9 +614,12 @@ namespace TimingShow
             float scale = Mathf.Max(0.01f, Scale);
             float radius = Mathf.Max(0.5f, (settings != null ? settings.TimingScatter_PointSize : 3f) * scale * 0.5f);
             float rangeY = Mathf.Max(0.01f, _maxY - _minY);
-            int circleSegments = CircleSegmentsFor(count);
-
+            
             DrawAverageLine(vh, w, h, settings, scale, rangeY);
+
+            if (count == 0) return;
+
+            int circleSegments = CircleSegmentsFor(count);
 
             for (int i = 0; i < count; i++)
             {
@@ -594,27 +676,42 @@ namespace TimingShow
                 RenderPoint point = _renderPoints[i];
                 while (cursor < _avgValues.Count - 1 && _visibleIndices[cursor] < point.SourceIndex) cursor++;
 
-                float avg = _avgValues[cursor];
+                // 末端点用缓动值，让曲线右端不是每个 hit 一跳，而是平滑移到新均值
+                float avg = i == count - 1 && _avgSmoothValid ? _avgSmoothValue : _avgValues[cursor];
                 float nx = NormalizedX(point);
-                if (nx < 0f)
-                {
-                    hasPrev = false;
-                    continue;
-                }
                 float ny = Mathf.Clamp01((avg - _minY) / rangeY);
                 Vector2 cur = new Vector2(nx * w, ny * h);
 
-                if (hasPrev) DrawSegment(vh, prev, cur, halfWidth, color);
+                if (hasPrev) DrawClippedSegment(vh, prev, cur, w, halfWidth, color);
                 prev = cur;
                 hasPrev = true;
             }
-            
+
+            float currentAvg = _avgSmoothValid ? _avgSmoothValue : _avgCurrent;
+            float tailNy = Mathf.Clamp01((currentAvg - _minY) / rangeY);
             if (hasPrev)
             {
-                float tailNy = Mathf.Clamp01((_avgCurrent - _minY) / rangeY);
                 Vector2 tail = new Vector2(w, tailNy * h);
-                if (tail.x > prev.x + 0.01f) DrawSegment(vh, prev, tail, halfWidth, color);
+                DrawClippedSegment(vh, prev, tail, w, halfWidth, color);
             }
+            else
+            {
+                DrawSegment(vh, new Vector2(0f, tailNy * h), new Vector2(w, tailNy * h), halfWidth, color);
+            }
+        }
+        
+        private void DrawClippedSegment(VertexHelper vh, Vector2 a, Vector2 b, float w, float halfWidth, Color color)
+        {
+            if (a.x > b.x) (a, b) = (b, a);
+            if (b.x <= 0f || a.x >= w) return;
+
+            float dx = b.x - a.x;
+            if (a.x < 0f && dx > 0.0001f) a = new Vector2(0f, Mathf.Lerp(a.y, b.y, (0f - a.x) / dx));
+            if (b.x > w && dx > 0.0001f) b = new Vector2(w, Mathf.Lerp(a.y, b.y, (w - a.x) / dx));
+
+            if (b.x - a.x < 0.01f) return;
+
+            DrawSegment(vh, a, b, halfWidth, color);
         }
 
         protected override void UpdateTextLayoutAndValues()
@@ -648,8 +745,8 @@ namespace TimingShow
                 }
             }
 
-            SetupXAxisText(_xStartText, startText, new Vector2(2f * scale, -3f * scale), new Vector2(0f, 1f), TextAnchor.UpperLeft, fontSize, labelHeight, color);
-            SetupXAxisText(_xEndText, endText, new Vector2(w - 2f * scale, -3f * scale), new Vector2(1f, 1f), TextAnchor.UpperRight, fontSize, labelHeight, color);
+            SetupXAxisText(_xStartText, startText, new Vector2(2f * scale, -3f * scale), new Vector2(0f, 1f), TextAlignmentOptions.TopLeft, fontSize, labelHeight, color);
+            SetupXAxisText(_xEndText, endText, new Vector2(w - 2f * scale, -3f * scale), new Vector2(1f, 1f), TextAlignmentOptions.TopRight, fontSize, labelHeight, color);
 
             bool showAvgLabel = _avgAvailable && settings != null && settings.TimingScatter_ShowAvgLine;
             UpdateAvgValueLabel(showAvgLabel, settings, scale, w, h);
@@ -664,13 +761,14 @@ namespace TimingShow
             if (!visible) return;
 
             float rangeY = Mathf.Max(0.01f, _maxY - _minY);
-            float ny = Mathf.Clamp01((_avgCurrent - _minY) / rangeY);
+            float currentAvg = _avgSmoothValid ? _avgSmoothValue : _avgCurrent;
+            float ny = Mathf.Clamp01((currentAvg - _minY) / rangeY);
 
             int fontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
             _avgValueText.fontSize = fontSize;
-            _avgValueText.text = "Avg: " + FormatYLabel(_avgCurrent);
+            _avgValueText.text = "Avg: " + FormatYLabel(currentAvg);
             _avgValueText.color = settings.TimingScatter_AvgLineColor;
-            _avgValueText.alignment = TextAnchor.MiddleLeft;
+            _avgValueText.alignment = TextAlignmentOptions.MidlineLeft;
 
             RectTransform rt = _avgValueText.rectTransform;
             rt.pivot = new Vector2(0f, 0.5f);
@@ -678,7 +776,7 @@ namespace TimingShow
             rt.sizeDelta = new Vector2(120f * (fontSize / 12f), 24f * (fontSize / 12f));
         }
 
-        private void SetupXAxisText(Text t, string content, Vector2 anchoredPosition, Vector2 pivot, TextAnchor alignment, int fontSize, float height, Color color)
+        private void SetupXAxisText(TMP_Text t, string content, Vector2 anchoredPosition, Vector2 pivot, TextAlignmentOptions alignment, int fontSize, float height, Color color)
         {
             if (t == null) return;
 

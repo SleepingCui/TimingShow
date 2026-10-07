@@ -1,5 +1,9 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace TimingShow
 {
@@ -19,6 +23,14 @@ namespace TimingShow
         protected abstract int MaxPoints { get; }
         public abstract string GraphName { get; }
         protected virtual int DataVersion => ModContext.XAccVersion;
+        
+        protected virtual bool UseCustomFont => false;
+        protected virtual string FontPath => "";
+        
+        protected virtual bool ShowPerfInfo => false;
+        protected virtual int PerfDataCount => GetDataCount();
+        protected virtual string PerfExtraInfo => null;
+        protected virtual Color PerfTextColor => new Color32(0, 255, 0, 255);   // #00FF00
 
         protected abstract void UpdateData();
         protected abstract int GetDataCount();
@@ -26,11 +38,24 @@ namespace TimingShow
         protected abstract float GetMinY();
         protected abstract float GetMaxY();
 
-        protected Text _titleText;
-        protected Text _topLabelText;
-        protected Text _tidLabelText;
-        protected Text _botLabelText;
-        
+        protected TMP_Text _titleText;
+        protected TMP_Text _topLabelText;
+        protected TMP_Text _tidLabelText;
+        protected TMP_Text _botLabelText;
+        protected TMP_Text _perfText;
+        protected TMP_FontAsset CurrentFontAsset { get; private set; }
+
+        private readonly System.Diagnostics.Stopwatch _perfStopwatch = new System.Diagnostics.Stopwatch();
+        private float _perfUpdateMs;
+        private int _perfVertexCount;
+        private float _perfFps;
+        private int _perfRedrawCount;
+        private float _perfRedrawWindow;
+        private float _perfRedrawsPerSec;
+
+        private static readonly Dictionary<string, TMP_FontAsset> FontCache = new Dictionary<string, TMP_FontAsset>();
+        private string _appliedFontKey;
+
         private int _lastDataVersion = -1;
         private int _lastSettingsHash = int.MinValue;
         private float _lastRectWidth = -1f;
@@ -46,30 +71,160 @@ namespace TimingShow
 
         protected virtual void CreateTextComponents()
         {
-            Font font = Font.CreateDynamicFontFromOSFont("Arial", 12);
-            if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            CurrentFontAsset = ResolveGraphFont();
 
-            _titleText = CreateText("TitleText", font, TextAnchor.UpperLeft);
-            _topLabelText = CreateText("TopLabel", font, TextAnchor.MiddleRight);
-            _tidLabelText = CreateText("MidLabel", font, TextAnchor.MiddleRight);
-            _botLabelText = CreateText("BotLabel", font, TextAnchor.MiddleRight);
+            _titleText = CreateText("TitleText", CurrentFontAsset, TextAnchor.UpperLeft);
+            _topLabelText = CreateText("TopLabel", CurrentFontAsset, TextAnchor.MiddleRight);
+            _tidLabelText = CreateText("MidLabel", CurrentFontAsset, TextAnchor.MiddleRight);
+            _botLabelText = CreateText("BotLabel", CurrentFontAsset, TextAnchor.MiddleRight);
+            _perfText = CreateText("PerfInfoLabel", CurrentFontAsset, TextAnchor.UpperLeft);
+        }
+        
+        protected TMP_FontAsset ResolveGraphFont()
+        {
+            string path = UseCustomFont ? (FontPath ?? "").Trim() : "";
+            string key = path.Length > 0 ? "custom:" + path : "game";
+
+            if (FontCache.TryGetValue(key, out TMP_FontAsset cached)) return cached;
+
+            TMP_FontAsset asset = path.Length > 0 ? LoadFontFromPath(path) : null;
+            if (asset == null) asset = FindGameFont();
+
+            FontCache[key] = asset;
+            return asset;
         }
 
-        protected Text CreateText(string name, Font font, TextAnchor alignment)
+        protected void ApplyGraphFont()
+        {
+            TMP_FontAsset asset = ResolveGraphFont();
+            if (asset != null) CurrentFontAsset = asset;
+
+            string path = UseCustomFont ? (FontPath ?? "").Trim() : "";
+            string key = path.Length > 0 ? "custom:" + path : "game";
+            if (_appliedFontKey == key) return;
+
+            _appliedFontKey = key;
+            ApplyFontToTexts(asset);
+        }
+        
+        protected virtual void ApplyFontToTexts(TMP_FontAsset font)
+        {
+            ApplyFontToText(_titleText, font);
+            ApplyFontToText(_topLabelText, font);
+            ApplyFontToText(_tidLabelText, font);
+            ApplyFontToText(_botLabelText, font);
+            ApplyFontToText(_perfText, font);
+        }
+        
+        protected static void ApplyFontToText(TMP_Text text, TMP_FontAsset font)
+        {
+            if (text == null || font == null) return;
+
+            text.font = font;
+            text.SetVerticesDirty();
+            text.SetLayoutDirty();
+        }
+        
+        private static TMP_FontAsset LoadFontFromPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                ModContext.Logger?.Log("Graph font file does not exist: " + path);
+                return null;
+            }
+
+            string extension = Path.GetExtension(path);
+            if (!string.Equals(extension, ".ttf", System.StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(extension, ".otf", System.StringComparison.OrdinalIgnoreCase))
+            {
+                ModContext.Logger?.Log("Unsupported graph font file: " + path);
+                return null;
+            }
+
+            try
+            {
+                Font sourceFont = new Font();
+                MethodInfo loadFromPath = typeof(Font).GetMethod("Internal_CreateFontFromPath", BindingFlags.Static | BindingFlags.NonPublic);
+                if (loadFromPath == null)
+                {
+                    ModContext.Logger?.Log("Unity does not expose font loading from path");
+                    return null;
+                }
+
+                loadFromPath.Invoke(null, new object[] { sourceFont, path });
+
+                TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(sourceFont);
+                if (fontAsset == null)
+                {
+                    ModContext.Logger?.Log("Failed to build graph font asset: " + path);
+                    return null;
+                }
+
+                fontAsset.name = "TimingShow_GraphFont_" + Path.GetFileNameWithoutExtension(path);
+                Object.DontDestroyOnLoad(fontAsset);
+                return fontAsset;
+            }
+            catch (System.Exception e)
+            {
+                ModContext.Logger?.Log("Failed to load graph font: " + e.Message);
+                return null;
+            }
+        }
+        
+        private static TMP_FontAsset FindGameFont()
+        {
+            try
+            {
+                scrHitTextMesh[] hitTexts = Resources.FindObjectsOfTypeAll<scrHitTextMesh>();
+                for (int i = 0; i < hitTexts.Length; i++)
+                {
+                    if (hitTexts[i] != null && hitTexts[i].text != null && hitTexts[i].text.font != null)
+                        return hitTexts[i].text.font;
+                }
+            }
+            catch (System.Exception e)
+            {
+                ModContext.Logger?.Log("Failed to find game graph font: " + e.Message);
+            }
+
+            return TMP_Settings.defaultFontAsset;
+        }
+        
+        private static TextAlignmentOptions ToTextAlignment(TextAnchor anchor)
+        {
+            switch (anchor)
+            {
+                case TextAnchor.UpperLeft: return TextAlignmentOptions.TopLeft;
+                case TextAnchor.UpperCenter: return TextAlignmentOptions.Top;
+                case TextAnchor.UpperRight: return TextAlignmentOptions.TopRight;
+                case TextAnchor.MiddleLeft: return TextAlignmentOptions.MidlineLeft;
+                case TextAnchor.MiddleCenter: return TextAlignmentOptions.Center;
+                case TextAnchor.MiddleRight: return TextAlignmentOptions.MidlineRight;
+                case TextAnchor.LowerLeft: return TextAlignmentOptions.BottomLeft;
+                case TextAnchor.LowerCenter: return TextAlignmentOptions.Bottom;
+                case TextAnchor.LowerRight: return TextAlignmentOptions.BottomRight;
+                default: return TextAlignmentOptions.MidlineRight;
+            }
+        }
+
+        protected TMP_Text CreateText(string name, TMP_FontAsset font, TextAnchor alignment)
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(transform, false);
 
-            Text t = go.AddComponent<Text>();
-            t.font = font;
-            t.alignment = alignment;
-            t.color = Color.white;
-            t.raycastTarget = false;
-
-            RectTransform rt = t.rectTransform;
+            RectTransform rt = go.AddComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.zero;
             rt.pivot = new Vector2(1f, 0.5f);
+
+            TextMeshProUGUI t = go.AddComponent<TextMeshProUGUI>();
+            t.font = font != null ? font : TMP_Settings.defaultFontAsset;
+            t.alignment = ToTextAlignment(alignment);
+            t.color = Color.white;
+            t.raycastTarget = false;
+            t.richText = false;
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.overflowMode = TextOverflowModes.Overflow;
 
             return t;
         }
@@ -97,12 +252,27 @@ namespace TimingShow
                 _lastSettingsHash = settingsHash;
                 _lastRectWidth = rect.width;
                 _lastRectHeight = rect.height;
+                _perfStopwatch.Restart();
                 UpdateData();
+                _perfStopwatch.Stop();
+                _perfUpdateMs = (float)_perfStopwatch.Elapsed.TotalMilliseconds;
+                UpdateTextLayoutAndValues();
+                SetVerticesDirty();
+            }
+            else if (ShowPerfInfo)
+            {
+                UpdatePerfText();
+            }
+
+            if (UpdateFrameAnimation())
+            {
                 UpdateTextLayoutAndValues();
                 SetVerticesDirty();
             }
         }
         
+        protected virtual bool UpdateFrameAnimation() => false;
+
         protected virtual bool NeedsContinuousRedraw() => false;
 
         protected virtual int ComputeSettingsHash()
@@ -119,6 +289,9 @@ namespace TimingShow
                 hash = hash * 31 + BgColor.GetHashCode();
                 hash = hash * 31 + GridColor.GetHashCode();
                 hash = hash * 31 + LineColor.GetHashCode();
+                hash = hash * 31 + (UseCustomFont ? 1 : 0);
+                hash = hash * 31 + (FontPath ?? "").GetHashCode();
+                hash = hash * 31 + (ShowPerfInfo ? 1 : 0);
                 return hash;
             }
         }
@@ -129,6 +302,9 @@ namespace TimingShow
             if (_topLabelText != null && _topLabelText.gameObject.activeSelf != active) _topLabelText.gameObject.SetActive(active);
             if (_tidLabelText != null && _tidLabelText.gameObject.activeSelf != active) _tidLabelText.gameObject.SetActive(active);
             if (_botLabelText != null && _botLabelText.gameObject.activeSelf != active) _botLabelText.gameObject.SetActive(active);
+
+            bool perfActive = active && ShowPerfInfo;
+            if (_perfText != null && _perfText.gameObject.activeSelf != perfActive) _perfText.gameObject.SetActive(perfActive);
         }
 
         private void UpdateTransform()
@@ -147,11 +323,13 @@ namespace TimingShow
             float posY = Screen.height * (1.0f - PosY);
             rect.anchoredPosition = new Vector2(posX, posY);
         }
-        
+
         protected virtual string FormatYLabel(float value) => $"{value:F1}%";
 
         protected virtual void UpdateTextLayoutAndValues()
         {
+            ApplyGraphFont();
+
             float scale = Mathf.Max(0.01f, Scale);
             float w = rectTransform.rect.width;
             float h = rectTransform.rect.height;
@@ -178,15 +356,74 @@ namespace TimingShow
             SetupLeftScaleText(_topLabelText, FormatYLabel(maxY), new Vector2(leftMargin, h), scaleFontSize, scaleColor);
             SetupLeftScaleText(_tidLabelText, FormatYLabel(midY), new Vector2(leftMargin, h * 0.5f), scaleFontSize, scaleColor);
             SetupLeftScaleText(_botLabelText, FormatYLabel(minY), new Vector2(leftMargin, 0f), scaleFontSize, scaleColor);
+
+            UpdatePerfText();
         }
 
-        protected void SetupLeftScaleText(Text t, string content, Vector2 localPos, int fontSize, Color color)
+        protected virtual float PerfTextOffsetY(float scale, int fontSize) => -3f * scale;
+
+        protected virtual string BuildPerfText()
+        {
+            string text = string.Format(
+                "Pts {0}/{1} | Vtx {2} | Upd {3:F2}ms | Rebuild {4:F0}/s | {5:F0} FPS",
+                PerfDataCount, GetDataCount(), _perfVertexCount, _perfUpdateMs, _perfRedrawsPerSec, _perfFps);
+
+            string extra = PerfExtraInfo;
+            if (!string.IsNullOrEmpty(extra)) text += " | " + extra;
+            return text;
+        }
+
+        private void UpdatePerfText()
+        {
+            if (_perfText == null) return;
+
+            if (!ShowPerfInfo)
+            {
+                if (_perfText.gameObject.activeSelf) _perfText.gameObject.SetActive(false);
+                return;
+            }
+
+            float dt = Time.unscaledDeltaTime;
+            if (dt > 0.0001f)
+            {
+                float instant = 1f / dt;
+                _perfFps = _perfFps <= 0f ? instant : Mathf.Lerp(_perfFps, instant, 0.05f);
+            }
+
+            _perfRedrawWindow += dt;
+            if (_perfRedrawWindow >= 0.5f)
+            {
+                _perfRedrawsPerSec = _perfRedrawCount / _perfRedrawWindow;
+                _perfRedrawCount = 0;
+                _perfRedrawWindow = 0f;
+            }
+
+            float scale = Mathf.Max(0.01f, Scale);
+            int fontSize = Mathf.Clamp(Mathf.RoundToInt(11 * scale), 8, 32);
+            float lineHeight = 16f * (fontSize / 12f);
+
+            _perfText.fontSize = fontSize;
+            _perfText.color = PerfTextColor;
+            _perfText.alignment = TextAlignmentOptions.TopLeft;
+
+            string text = BuildPerfText();
+            if (_perfText.text != text) _perfText.text = text;
+
+            RectTransform rt = _perfText.rectTransform;
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(2f * scale, PerfTextOffsetY(scale, fontSize));
+            rt.sizeDelta = new Vector2(560f * (fontSize / 12f), lineHeight);
+
+            if (!_perfText.gameObject.activeSelf) _perfText.gameObject.SetActive(true);
+        }
+
+        protected void SetupLeftScaleText(TMP_Text t, string content, Vector2 localPos, int fontSize, Color color)
         {
             if (t == null) return;
             t.fontSize = fontSize;
             t.text = content;
             t.color = color;
-            t.alignment = TextAnchor.MiddleRight;
+            t.alignment = TextAlignmentOptions.MidlineRight;
 
             RectTransform rt = t.rectTransform;
             rt.pivot = new Vector2(1f, 0.5f);
@@ -208,12 +445,15 @@ namespace TimingShow
 
             DrawReferenceLines(vh, w, h);
             DrawSeries(vh, w, h);
+
+            _perfVertexCount = vh.currentVertCount;
+            _perfRedrawCount++;
         }
-        
+
         protected virtual void DrawReferenceLines(VertexHelper vh, float w, float h)
         {
         }
-        
+
         protected virtual void DrawSeries(VertexHelper vh, float w, float h)
         {
             int count = GetDataCount();
