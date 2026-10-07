@@ -146,6 +146,10 @@ namespace TimingShow
         public bool TimingScatter_ShowAvgLine = true;
         public bool TimingScatter_IgnoreOutliers;
         public bool TimingScatter_ShowPerfInfo;
+        public bool TimingScatter_ShowJudgeBands = true;
+        public bool TimingScatter_ShowXpBand = true;
+        public bool TimingScatter_BandAutoWindow = true;
+        public float TimingScatter_BandThresholdBpm = 310f;
 
         public Color TimingScatter_BgColor = new Color(0f, 0f, 0f, 0.60f);
         public Color TimingScatter_GridColor = new Color(1f, 1f, 1f, 0.35f);
@@ -153,6 +157,11 @@ namespace TimingShow
         public Color TimingScatter_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
         public Color TimingScatter_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
         public Color TimingScatter_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public Color TimingScatter_BandPerfectColor = new Color(0.25f, 0.90f, 0.35f, 0.14f);
+        public Color TimingScatter_BandElPerfectColor = new Color(1f, 0.85f, 0.20f, 0.12f);
+        public Color TimingScatter_BandEarlyLateColor = new Color(0.95f, 0.40f, 0.30f, 0.10f);
+        // XPerfect 色带：RGB 取游戏 colourXPerfect 的回退值 Color32(77, 204, 255)，alpha 与判定色带一致
+        public Color TimingScatter_BandXpColor = new Color(77f / 255f, 204f / 255f, 1f, 0.14f);
         public bool TimingScatter_UseCustomFont;
         public string TimingScatter_FontPath = "";
 
@@ -188,7 +197,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 1;
+        public const int CurrentSettingsVersion = 2;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -233,13 +242,26 @@ namespace TimingShow
         {
             bool migrated = false;
 
-            if (isLegacyConfig || SettingsVersion < CurrentSettingsVersion)
+            if (isLegacyConfig || SettingsVersion < 1)
             {
                 ReplacePerfectMinus = ReplacePerfect;
                 ReplacePerfectPlus = ReplacePerfect;
                 ReplaceXPerfect = Planet_EnableXPerfect;
                 ReplaceOverPress = ReplaceFailMiss;
                 ReplaceAuto = false;
+
+                migrated = true;
+            }
+
+            if (SettingsVersion < 2)
+            {
+                if (Mathf.Approximately(TimingScatter_BandXpColor.r, 77f / 255f) &&
+                    Mathf.Approximately(TimingScatter_BandXpColor.g, 204f / 255f) &&
+                    Mathf.Approximately(TimingScatter_BandXpColor.b, 1f) &&
+                    Mathf.Approximately(TimingScatter_BandXpColor.a, 1f))
+                {
+                    TimingScatter_BandXpColor.a = TimingScatter_BandPerfectColor.a;
+                }
 
                 migrated = true;
             }
@@ -278,6 +300,7 @@ namespace TimingShow
             TimingScatter_SampleCount = Mathf.Clamp(TimingScatter_SampleCount, 10, 20000);
             TimingScatter_MaxRenderPoints = Mathf.Clamp(TimingScatter_MaxRenderPoints, 20, 8000);
             TimingScatter_PointSize = Mathf.Clamp(TimingScatter_PointSize, 1f, 12f);
+            TimingScatter_BandThresholdBpm = Mathf.Clamp(TimingScatter_BandThresholdBpm, 100f, 600f);
         }
 
         public void Save(string modPath)

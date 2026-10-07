@@ -1,11 +1,13 @@
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 
 namespace TimingShow
 {
-    public class TimingScatterDrawer : GraphDrawerBase
+    public class TimingScatterDrawer : GraphDrawerBase, IPointerDownHandler, IPointerUpHandler, IScrollHandler
     {
         private const int MinRenderPoints = 20;
         private const int MaxRenderPoints = 8000;
@@ -21,6 +23,15 @@ namespace TimingShow
         private const float MinYPadMs = 1.5f;
         private const float YPadRatio = 0.08f;
         private const float MinTimeAxisRangeMs = 1f;
+        
+        private const float GestureDragThreshold = 5f;
+        private const float WheelZoomSpeed = 0.08f;
+        private const float ViewMarginRatio = 0.05f;
+        private const float MinViewSpanRatio = 0.001f;
+        private const float MinYViewSpanMs = 0.05f;
+        private const float MaxYViewSpanRatio = 5f;
+        private const float YPanMarginRatio = 2f;
+        private const float HintShowSeconds = 8f;
         
         private const float ViewSmoothTauSeconds = 0.30f;
         private const float AvgSmoothTauSeconds = 0.30f;   
@@ -55,10 +66,10 @@ namespace TimingShow
         private TMP_Text _xEndText;
         private TMP_Text _avgValueText;
         private TMP_Text _detailText;
+        private TMP_Text _hintText;
 
         private bool _detailVisible;
         private int _hoverSourceIndex = -1;
-        private int _selectedSourceIndex = -1;
         private int _detailShownIndex = -1;
         private int _detailDataVersion = int.MinValue;
         private Vector2 _detailPanelPosition;
@@ -85,11 +96,41 @@ namespace TimingShow
         private float _liveRightTimeMs;
         private int _ignoredOutlierCount;
 
+        private float _autoXMin;
+        private float _autoXMax;
+        private float _autoYMin;
+        private float _autoYMax;
+        private float _dataXMin;
+        private float _dataXMax;
+        private float _viewXMin;
+        private float _viewXMax;
+        private bool _manualViewActive;
+        private int _viewAxisMode = -1;
+        
+        private bool _gestureActive;
+        private bool _gesturePanning;
+        private Vector2 _pointerDownScreen;
+        private Vector2 _lastPointerScreen;
+        private int _scrollEventFrame = -1;
+        
+        private float _lastViewRectWidth = -1f;
+        private float _lastViewRectHeight = -1f;
+        private int _lastViewScreenWidth = -1;
+        private int _lastViewScreenHeight = -1;
+        private bool _interactiveLastFrame;
+        private float _hintHideTime;
+
         private float _smoothMinY;
         private float _smoothMaxY;
         private bool _smoothViewValid;
         private float _smoothSpanMs;
         private bool _smoothSpanValid;
+
+        private bool _bandWindowValid;
+        private float _bandPerfectMs;
+        private float _bandElPerfectMs;
+        private float _bandPassMs;
+        private float _bandXpMs;
 
         protected override bool IsEnabled => ModContext.IsEnabled && ModContext.IsPlaying;
         protected override bool ShowGraph => ModContext.Settings != null && ModContext.Settings.ShowTimingScatter;
@@ -150,6 +191,12 @@ namespace TimingShow
             _detailText.richText = true;
             _detailText.overflowMode = TextOverflowModes.Overflow;
             _detailText.gameObject.SetActive(false);
+            _hintText = CreateText("GestureHintLabel", CurrentFontAsset, TextAnchor.LowerCenter);
+            _hintText.alignment = TextAlignmentOptions.Bottom;
+            _hintText.gameObject.SetActive(false);
+
+            TMP_Text[] children = GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < children.Length; i++) children[i].raycastTarget = false;
         }
 
         protected override void ApplyFontToTexts(TMP_FontAsset font)
@@ -159,6 +206,7 @@ namespace TimingShow
             ApplyFontToText(_xEndText, font);
             ApplyFontToText(_avgValueText, font);
             ApplyFontToText(_detailText, font);
+            ApplyFontToText(_hintText, font);
         }
 
         protected override void ToggleTexts(bool active)
@@ -200,11 +248,31 @@ namespace TimingShow
                 hash = hash * 31 + settings.TimingScatter_ZeroLineColor.GetHashCode();
                 hash = hash * 31 + settings.TimingScatter_AvgLineColor.GetHashCode();
                 hash = hash * 31 + settings.TimingScatter_AxisTextColor.GetHashCode();
+                hash = hash * 31 + (settings.TimingScatter_ShowJudgeBands ? 1 : 0);
+                hash = hash * 31 + (settings.TimingScatter_ShowXpBand ? 1 : 0);
+                hash = hash * 31 + (settings.TimingScatter_BandAutoWindow ? 1 : 0);
+                hash = hash * 31 + settings.TimingScatter_BandThresholdBpm.GetHashCode();
+                hash = hash * 31 + settings.TimingScatter_BandPerfectColor.GetHashCode();
+                hash = hash * 31 + settings.TimingScatter_BandElPerfectColor.GetHashCode();
+                hash = hash * 31 + settings.TimingScatter_BandEarlyLateColor.GetHashCode();
+                hash = hash * 31 + settings.TimingScatter_BandXpColor.GetHashCode();
+                hash = hash * 31 + (FullRangeMode ? 1 : 0);
                 return hash;
             }
         }
 
         protected override string FormatYLabel(float value) => $"{value:+0.0;-0.0;0.0}ms";
+
+        private static bool IsGamePaused
+        {
+            get
+            {
+                scrController controller = scrController.instance;
+                return controller != null && controller.paused;
+            }
+        }
+        
+        private static bool FullRangeMode => ModContext.IsLevelFinished || IsGamePaused;
         
         private bool LiveScrollActive
         {
@@ -212,15 +280,18 @@ namespace TimingShow
             {
                 if (!_hasData || !_useTimeAxis) return false;
                 if (ModContext.IsLevelFinished) return false;
+                if (_manualViewActive) return false;   
 
                 Settings settings = ModContext.Settings;
                 if (settings == null || !settings.TimingScatter_AutoScroll) return false;
+                
+                if (IsGamePaused) return false;
 
                 return Patches.PlayStatePatches.GetSessionTimeMs() > 0.0;
             }
         }
 
-        protected override bool NeedsContinuousRedraw() => LiveScrollActive;
+        protected override bool NeedsContinuousRedraw() => LiveScrollActive || _gesturePanning;
 
         protected override bool UpdateFrameAnimation()
         {
@@ -252,12 +323,17 @@ namespace TimingShow
 
         protected override void UpdateData()
         {
+            ResetViewOnLayoutChange();
+
             _visibleIndices.Clear();
             _renderPoints.Clear();
             _hasData = false;
             _useTimeAxis = false;
-            _minY = 0f;
-            _maxY = 0f;
+            if (!_manualViewActive)
+            {
+                _minY = 0f;
+                _maxY = 0f;
+            }
             _firstSourceIndex = 0;
             _lastSourceIndex = 0;
             _minTimeMs = 0f;
@@ -276,14 +352,21 @@ namespace TimingShow
                 _smoothViewValid = false;
                 _smoothSpanValid = false;
                 _avgSmoothValid = false;
+                ResetManualView();
+                _autoXMin = 0f;
+                _autoXMax = 0f;
+                _dataXMin = 0f;
+                _dataXMax = 0f;
+                _autoYMin = 0f;
+                _autoYMax = 0f;
                 return;
             }
 
             Settings settings = ModContext.Settings;
             bool finished = ModContext.IsLevelFinished;
-            
+
             int take = int.MaxValue;
-            if (!finished)
+            if (!FullRangeMode)
             {
                 int window = settings != null ? Mathf.Clamp(settings.TimingScatter_SampleCount, 1, 100000) : 200;
                 take = window;
@@ -301,6 +384,13 @@ namespace TimingShow
                 _smoothViewValid = false;
                 _smoothSpanValid = false;
                 _avgSmoothValid = false;
+                ResetManualView();
+                _autoXMin = 0f;
+                _autoXMax = 0f;
+                _dataXMin = 0f;
+                _dataXMax = 0f;
+                _autoYMin = 0f;
+                _autoYMax = 0f;
                 return;
             }
             
@@ -343,6 +433,28 @@ namespace TimingShow
             _useTimeAxis = !wantHitAxis && timeValid && (maxTime - minTime) >= MinTimeAxisRangeMs;
 
             UpdateLiveTimeWindow();
+            
+            if (_useTimeAxis)
+            {
+                _dataXMin = minTime;
+                _dataXMax = maxTime;
+                _autoXMin = Mathf.Min(_liveLeftTimeMs, _liveRightTimeMs);
+                _autoXMax = Mathf.Max(_liveLeftTimeMs, _liveRightTimeMs);
+            }
+            else
+            {
+                _dataXMin = _firstSourceIndex;
+                _dataXMax = _lastSourceIndex;
+                _autoXMin = _firstSourceIndex;
+                _autoXMax = _lastSourceIndex;
+            }
+
+            int axisMode = _useTimeAxis ? 1 : 0;
+            if (axisMode != _viewAxisMode)
+            {
+                _viewAxisMode = axisMode;
+                ResetManualView();
+            }
 
             float range = maxOffset - minOffset;
             float targetMinY;
@@ -361,6 +473,12 @@ namespace TimingShow
             }
 
             ApplyViewScaling(targetMinY, targetMaxY, minOffset, maxOffset);
+
+            if (!_manualViewActive)
+            {
+                _viewXMin = _autoXMin;
+                _viewXMax = _autoXMax;
+            }
 
             BuildAverageSeries(samples, collected);
             BuildRenderPoints(samples, collected);
@@ -440,29 +558,43 @@ namespace TimingShow
             if (!LiveScrollActive)
             {
                 _smoothViewValid = false;
-                _minY = targetMinY;
-                _maxY = targetMaxY;
-                return;
-            }
-
-            if (!_smoothViewValid)
-            {
-                _smoothMinY = targetMinY;
-                _smoothMaxY = targetMaxY;
-                _smoothViewValid = true;
+                _autoYMin = targetMinY;
+                _autoYMax = targetMaxY;
             }
             else
             {
-                float k = 1f - Mathf.Exp(-Time.unscaledDeltaTime / ViewSmoothTauSeconds);
-                _smoothMinY = Mathf.Lerp(_smoothMinY, targetMinY, k);
-                _smoothMaxY = Mathf.Lerp(_smoothMaxY, targetMaxY, k);
+                if (!_smoothViewValid)
+                {
+                    _smoothMinY = targetMinY;
+                    _smoothMaxY = targetMaxY;
+                    _smoothViewValid = true;
+                }
+                else
+                {
+                    float k = 1f - Mathf.Exp(-Time.unscaledDeltaTime / ViewSmoothTauSeconds);
+                    _smoothMinY = Mathf.Lerp(_smoothMinY, targetMinY, k);
+                    _smoothMaxY = Mathf.Lerp(_smoothMaxY, targetMaxY, k);
+                }
+
+                _smoothMinY = Mathf.Min(_smoothMinY, dataMinY);
+                _smoothMaxY = Mathf.Max(_smoothMaxY, dataMaxY);
+
+                _autoYMin = _smoothMinY;
+                _autoYMax = _smoothMaxY;
+            }
+
+            if (!_manualViewActive)
+            {
+                _minY = _autoYMin;
+                _maxY = _autoYMax;
+                return;
             }
             
-            _smoothMinY = Mathf.Min(_smoothMinY, dataMinY);
-            _smoothMaxY = Mathf.Max(_smoothMaxY, dataMaxY);
-
-            _minY = _smoothMinY;
-            _maxY = _smoothMaxY;
+            if (_maxY < dataMinY || _minY > dataMaxY)
+            {
+                _minY = Mathf.Min(_minY, dataMinY);
+                _maxY = Mathf.Max(_maxY, dataMaxY);
+            }
         }
 
 
@@ -504,12 +636,20 @@ namespace TimingShow
         
         private void BuildRenderPoints(List<TimingScatterSample> samples, int count)
         {
+            _renderPoints.Clear();
+
             int limit = EffectivePointLimit;
+            float viewSpan = _viewXMax - _viewXMin;
+            bool viewValid = viewSpan > 0f;
 
             if (count <= limit)
             {
                 for (int i = 0; i < count; i++)
-                    _renderPoints.Add(ToRenderPoint(samples, _visibleIndices[i]));
+                {
+                    int sourceIndex = _visibleIndices[i];
+                    if (!IsInsideViewX(samples[sourceIndex], sourceIndex, viewValid, viewSpan)) continue;
+                    _renderPoints.Add(ToRenderPoint(samples, sourceIndex));
+                }
                 return;
             }
 
@@ -520,23 +660,17 @@ namespace TimingShow
             EnsureBucketCapacity(bucketCount);
             for (int i = 0; i < bucketCount; i++) _bucketFilled[i] = false;
 
-            int indexSpan = _lastSourceIndex - _firstSourceIndex;
-
             for (int i = 0; i < count; i++)
             {
                 int sourceIndex = _visibleIndices[i];
                 TimingScatterSample s = samples[sourceIndex];
 
-                float nx;
-                if (_useTimeAxis)
-                {
-                    float liveSpan = _liveRightTimeMs - _liveLeftTimeMs;
-                    nx = liveSpan > 0f ? (s.TimeMs - _liveLeftTimeMs) / liveSpan : 0.5f;
-                    if (nx < 0f) continue;
-                }
-                else nx = indexSpan > 0 ? (sourceIndex - _firstSourceIndex) / (float)indexSpan : 0.5f;
+                if (!IsInsideViewX(s, sourceIndex, viewValid, viewSpan)) continue;
 
-                int bucket = (int)(Mathf.Clamp01(nx) * bucketCount);
+                float nx = (DataX(s, sourceIndex) - _viewXMin) / viewSpan;
+
+                int bucket = (int)(nx * bucketCount);
+                if (bucket < 0) bucket = 0;
                 if (bucket >= bucketCount) bucket = bucketCount - 1;
 
                 RenderPoint point = ToRenderPoint(samples, sourceIndex);
@@ -609,31 +743,213 @@ namespace TimingShow
         protected override float GetMinY() => _minY;
 
         protected override float GetMaxY() => _maxY;
+        
+        private float DataX(TimingScatterSample sample, int sourceIndex)
+        {
+            return _useTimeAxis ? sample.TimeMs : sourceIndex;
+        }
+
+        private bool IsInsideViewX(TimingScatterSample sample, int sourceIndex, bool viewValid, float viewSpan)
+        {
+            if (!viewValid) return true;
+            float x = DataX(sample, sourceIndex);
+            return x >= _viewXMin && x <= _viewXMax;
+        }
 
         private float NormalizedX(RenderPoint point)
         {
-            if (_useTimeAxis)
-            {
-                float timeSpan = _liveRightTimeMs - _liveLeftTimeMs;
-                if (timeSpan <= 0f) return 0.5f;
-                return (point.TimeMs - _liveLeftTimeMs) / timeSpan;
-            }
+            float span = _viewXMax - _viewXMin;
+            if (!(span > 0f)) return 0.5f;
 
-            int indexSpan = _lastSourceIndex - _firstSourceIndex;
-            if (indexSpan <= 0) return 0.5f;
-            return Mathf.Clamp01((point.SourceIndex - _firstSourceIndex) / (float)indexSpan);
+            float x = _useTimeAxis ? point.TimeMs : point.SourceIndex;
+            return (x - _viewXMin) / span;
         }
 
         protected override void DrawReferenceLines(VertexHelper vh, float w, float h)
         {
             Settings settings = ModContext.Settings;
-            if (settings == null || !settings.TimingScatter_ShowZeroLine) return;
+            if (settings == null) return;
+
+            DrawJudgeBands(vh, w, h, settings);
+
+            if (!settings.TimingScatter_ShowZeroLine) return;
             if (_minY > 0f || _maxY < 0f) return;
 
             float rangeY = Mathf.Max(0.01f, _maxY - _minY);
             float y = Mathf.Clamp01((0f - _minY) / rangeY) * h;
             float halfWidth = Mathf.Max(0.5f, 1.5f * Mathf.Max(0.01f, Scale) * 0.5f);
             DrawSegment(vh, new Vector2(0f, y), new Vector2(w, y), halfWidth, settings.TimingScatter_ZeroLineColor);
+        }
+
+
+        private void DrawJudgeBands(VertexHelper vh, float w, float h, Settings settings)
+        {
+            float rangeY = Mathf.Max(0.01f, _maxY - _minY);
+
+            if (settings.TimingScatter_ShowJudgeBands)
+            {
+                float perfectMs, elPerfectMs, passMs;
+                GetJudgeWindowMs(settings, out perfectMs, out elPerfectMs, out passMs);
+                if (passMs > 0f)
+                {
+                    //45-60
+                    DrawBand(vh, w, h, rangeY, -passMs, -elPerfectMs, settings.TimingScatter_BandEarlyLateColor);
+                    DrawBand(vh, w, h, rangeY, elPerfectMs, passMs, settings.TimingScatter_BandEarlyLateColor);
+                    //30-45
+                    DrawBand(vh, w, h, rangeY, -elPerfectMs, -perfectMs, settings.TimingScatter_BandElPerfectColor);
+                    DrawBand(vh, w, h, rangeY, perfectMs, elPerfectMs, settings.TimingScatter_BandElPerfectColor);
+                    //0-30
+                    DrawBand(vh, w, h, rangeY, -perfectMs, perfectMs, settings.TimingScatter_BandPerfectColor);
+                }
+            }
+            
+            if (settings.TimingScatter_ShowXpBand)
+            {
+                float xpMs = GetXpWindowMs();
+                if (xpMs > 0f) DrawBand(vh, w, h, rangeY, -xpMs, xpMs, settings.TimingScatter_BandXpColor);
+            }
+        }
+        
+        private void RefreshBandWindow()
+        {
+            Settings settings = ModContext.Settings;
+            if (settings == null || (!settings.TimingScatter_ShowJudgeBands && !settings.TimingScatter_ShowXpBand))
+            {
+                _bandWindowValid = false;
+                return;
+            }
+
+            float perfectMs = 0f, elPerfectMs = 0f, passMs = 0f;
+            if (settings.TimingScatter_ShowJudgeBands) GetJudgeWindowMs(settings, out perfectMs, out elPerfectMs, out passMs);
+            float xpMs = settings.TimingScatter_ShowXpBand ? GetXpWindowMs() : 0f;
+
+            bool changed = !_bandWindowValid
+                || Mathf.Abs(perfectMs - _bandPerfectMs) > 0.01f
+                || Mathf.Abs(elPerfectMs - _bandElPerfectMs) > 0.01f
+                || Mathf.Abs(passMs - _bandPassMs) > 0.01f
+                || Mathf.Abs(xpMs - _bandXpMs) > 0.01f;
+            if (!changed) return;
+
+            _bandPerfectMs = perfectMs;
+            _bandElPerfectMs = elPerfectMs;
+            _bandPassMs = passMs;
+            _bandXpMs = xpMs;
+            _bandWindowValid = true;
+            SetVerticesDirty();
+        }
+
+        private void DrawBand(VertexHelper vh, float w, float h, float rangeY, float fromMs, float toMs, Color color)
+        {
+            float y0 = Mathf.Clamp01((fromMs - _minY) / rangeY) * h;
+            float y1 = Mathf.Clamp01((toMs - _minY) / rangeY) * h;
+            if (y1 - y0 < 0.5f) return;
+
+            DrawQuad(vh, new Vector2(0f, y0), new Vector2(w, y1), color);
+        }
+        
+        internal const float ThresholdLenientBpm = 220f;
+        internal const float ThresholdNormalBpm = 310f;
+        internal const float ThresholdStrictBpm = 500f;
+        private const float PerfectAngleMsScale = 10000f;
+        private const float ElPerfectAngleMsScale = 15000f;
+        private const float PassAngleMsScale = 20000f;
+
+        private static FieldInfo _gameDifficultyField;
+        private static bool _gameDifficultySearched;
+
+        internal static float GetThresholdBpm(Settings settings)
+        {
+            if (settings != null && !settings.TimingScatter_BandAutoWindow)
+                return Mathf.Clamp(settings.TimingScatter_BandThresholdBpm, 100f, 600f);
+
+            switch (ReadGameDifficulty())
+            {
+                case 0: return ThresholdLenientBpm;
+                case 1: return ThresholdNormalBpm;
+                case 2: return ThresholdStrictBpm;
+                default: return ThresholdNormalBpm;
+            }
+        }
+        
+        internal static string GetGameDifficultyLabel()
+        {
+            switch (ReadGameDifficulty())
+            {
+                case 0: return "Lenient";
+                case 1: return "Normal";
+                case 2: return "Strict";
+                default: return "Unknown";
+            }
+        }
+        
+        private static int ReadGameDifficulty()
+        {
+            try
+            {
+                if (!_gameDifficultySearched)
+                {
+                    _gameDifficultySearched = true;
+                    System.Type type = System.Type.GetType("GCS, Assembly-CSharp");
+                    if (type != null)
+                        _gameDifficultyField = type.GetField("difficulty", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                }
+
+                if (_gameDifficultyField == null) return -1;
+                object value = _gameDifficultyField.GetValue(null);
+                return value == null ? -1 : System.Convert.ToInt32(value);
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+        
+        internal static float GetEffectiveTempoBpm()
+        {
+            try
+            {
+                scrController controller = scrController.instance;
+                scrConductor conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);
+                double bpm = conductor != null ? conductor.bpm : 0.0;
+                double speed = controller != null && controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
+                double pitch = conductor != null && conductor.song != null ? conductor.song.pitch : 1.0;
+                double tempo = bpm * speed * pitch;
+                if (!double.IsNaN(tempo) && tempo > 0.0) return (float)tempo;
+            }
+            catch
+            {
+                // 场景切换途中实例可能已被销毁，走下面的缓存值
+            }
+
+            double fallback = ModContext.LastBpm * ModContext.LastSpeed * ModContext.LastPitch;
+            if (double.IsNaN(fallback) || fallback <= 0.0) return 0f;
+            return (float)fallback;
+        }
+        
+        internal static void GetJudgeWindowMs(Settings settings, out float perfectMs, out float elPerfectMs, out float passMs)
+        {
+            float threshold = GetThresholdBpm(settings);
+            if (threshold <= 0f) threshold = ThresholdNormalBpm;
+
+            float tempo = GetEffectiveTempoBpm();
+            if (tempo <= 0f) tempo = threshold;
+
+            float bpm = Mathf.Min(tempo, threshold);
+            if (bpm <= 0f) bpm = ThresholdNormalBpm;
+
+            perfectMs = PerfectAngleMsScale / bpm;
+            elPerfectMs = ElPerfectAngleMsScale / bpm;
+            passMs = PassAngleMsScale / bpm;
+        }
+        
+        internal static float GetXpWindowMs()
+        {
+            float tempo = GetEffectiveTempoBpm();
+            if (tempo <= 0f) return 0f;
+
+            double xpMs = CalcXP.GetBoundaryMs(tempo);
+            if (double.IsNaN(xpMs) || xpMs <= 0.0) return 0f;
+            return (float)xpMs;
         }
 
         protected override void DrawSeries(VertexHelper vh, float w, float h)
@@ -763,13 +1079,14 @@ namespace TimingShow
             {
                 if (_useTimeAxis)
                 {
-                    startText = $"{_liveLeftTimeMs / 1000f:F1}s";
-                    endText = $"{_liveRightTimeMs / 1000f:F1}s";
+                    // 手动缩放/平移后显示更精细的 mm:ss.fff，自动视图保持原有秒读数
+                    startText = _manualViewActive ? FormatDetailTime(_viewXMin) : $"{_viewXMin / 1000f:F1}s";
+                    endText = _manualViewActive ? FormatDetailTime(_viewXMax) : $"{_viewXMax / 1000f:F1}s";
                 }
                 else
                 {
-                    startText = $"#{_firstSourceIndex + 1}";
-                    endText = $"#{_lastSourceIndex + 1}";
+                    startText = $"#{Mathf.Max(0, Mathf.RoundToInt(_viewXMin)) + 1}";
+                    endText = $"#{Mathf.Max(0, Mathf.RoundToInt(_viewXMax)) + 1}";
                 }
             }
 
@@ -826,12 +1143,15 @@ namespace TimingShow
         {
             base.Update();
             UpdateInteraction();
+            RefreshBandWindow();
         }
 
         protected override void OnDisable()
         {
             base.OnDisable();
             ClearDetailInteraction();
+            _gestureActive = false;
+            _gesturePanning = false;
         }
 
         private bool DetailInteractive
@@ -840,21 +1160,28 @@ namespace TimingShow
             {
                 if (!IsEnabled || !ShowGraph) return false;
                 if (ModContext.IsLevelFinished) return true;
-                return scrController.instance != null && scrController.instance.paused;
+                return IsGamePaused;
             }
         }
 
         private bool TryGetPointLocalPosition(RenderPoint point, float w, float h, out Vector2 local)
         {
-            float nx = NormalizedX(point);
-            if (nx < 0f)
+            float rangeY = _maxY - _minY;
+            if (!(rangeY > 0f))
             {
                 local = Vector2.zero;
                 return false;
             }
 
-            float rangeY = Mathf.Max(0.01f, _maxY - _minY);
-            float ny = Mathf.Clamp01((point.OffsetMs - _minY) / rangeY);
+            float nx = NormalizedX(point);
+            float ny = (point.OffsetMs - _minY) / rangeY;
+            
+            if (nx < 0f || nx > 1f || ny < 0f || ny > 1f)
+            {
+                local = Vector2.zero;
+                return false;
+            }
+
             local = new Vector2(nx * w, ny * h);
             return true;
         }
@@ -865,11 +1192,27 @@ namespace TimingShow
             {
                 _detailDataVersion = ModContext.TimingScatterVersion;
                 ClearDetailInteraction();
+                
+                if (ModContext.TimingScatterSamples.Count == 0) ResetManualView();
             }
 
-            if (!DetailInteractive)
+            bool interactive = DetailInteractive;
+            
+            raycastTarget = interactive;
+
+            if (interactive && !_interactiveLastFrame)
+            {
+                _hintHideTime = Time.unscaledTime + HintShowSeconds;
+            }
+            _interactiveLastFrame = interactive;
+
+            UpdateGesture();
+
+            if (!interactive)
             {
                 ClearDetailInteraction();
+                ResetManualView();
+                UpdateHintText();
                 return;
             }
 
@@ -879,6 +1222,8 @@ namespace TimingShow
             {
                 _hoverSourceIndex = -1;
                 RefreshDetailPanel();
+                UpdateHintText();
+                UpdateScrollFallback(false);
                 return;
             }
 
@@ -890,14 +1235,371 @@ namespace TimingShow
                 insideRect = localMouse.x >= 0f && localMouse.x <= w && localMouse.y >= 0f && localMouse.y <= h;
             }
 
-            _hoverSourceIndex = insideRect ? FindNearestRenderPoint(localMouse, w, h) : -1;
-
-            if (insideRect && _hoverSourceIndex >= 0 && Input.GetMouseButtonDown(0))
+            if (_gesturePanning)
             {
-                _selectedSourceIndex = _hoverSourceIndex == _selectedSourceIndex ? -1 : _hoverSourceIndex;
+                _hoverSourceIndex = -1;
+                HideDetailPanel();
+            }
+            else
+            {
+                _hoverSourceIndex = insideRect ? FindNearestRenderPoint(localMouse, w, h) : -1;
+                RefreshDetailPanel();
             }
 
-            RefreshDetailPanel();
+            UpdateScrollFallback(insideRect);
+            UpdateHintText();
+        }
+
+        //gesture handling
+
+        private void UpdateGesture()
+        {
+            if (!DetailInteractive)
+            {
+                _gestureActive = false;
+                _gesturePanning = false;
+                return;
+            }
+
+            if (!_gestureActive)
+            {
+                if (EventSystem.current == null && Input.GetMouseButtonDown(0)
+                    && IsPointerInsideRect(Input.mousePosition))
+                {
+                    BeginGesture(Input.mousePosition);
+                }
+                return;
+            }
+            
+            if (!Input.GetMouseButton(0))
+            {
+                EndGesture();
+                return;
+            }
+
+            Vector2 current = Input.mousePosition;
+            if (!_gesturePanning)
+            {
+                if ((current - _pointerDownScreen).sqrMagnitude < GestureDragThreshold * GestureDragThreshold)
+                    return;
+
+                _gesturePanning = true;
+                _hintHideTime = 0f;
+                _hoverSourceIndex = -1;
+                HideDetailPanel();
+                _lastPointerScreen = current;
+                SetVerticesDirty();
+                return;
+            }
+
+            ApplyPan(_lastPointerScreen, current);
+            _lastPointerScreen = current;
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (eventData != null && eventData.button != PointerEventData.InputButton.Left) return;
+            if (!DetailInteractive) return;
+
+            BeginGesture(eventData != null ? eventData.position : (Vector2)Input.mousePosition);
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            if (eventData != null && eventData.button != PointerEventData.InputButton.Left) return;
+            EndGesture();
+        }
+
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (eventData == null || !DetailInteractive) return;
+
+            _scrollEventFrame = Time.frameCount;
+            Vector2 position = eventData.position;
+            if (position == Vector2.zero) position = Input.mousePosition;
+            ApplyZoom(eventData.scrollDelta.y, position);
+        }
+
+        private void BeginGesture(Vector2 screenPosition)
+        {
+            if (!IsPointerInsideRect(screenPosition)) return;
+
+            _gestureActive = true;
+            _gesturePanning = false;
+            _pointerDownScreen = screenPosition;
+            _lastPointerScreen = screenPosition;
+        }
+
+        private void EndGesture()
+        {
+            if (!_gestureActive && !_gesturePanning) return;
+
+            _gestureActive = false;
+            _gesturePanning = false;
+            SetVerticesDirty();
+        }
+
+        private bool IsPointerInsideRect(Vector2 screenPosition)
+        {
+            Rect rect = rectTransform.rect;
+            if (rect.width <= 0f || rect.height <= 0f) return false;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPosition, null, out Vector2 local)) return false;
+
+            return local.x >= 0f && local.x <= rect.width && local.y >= 0f && local.y <= rect.height;
+        }
+        
+        private void ApplyPan(Vector2 previousScreen, Vector2 currentScreen)
+        {
+            Rect rect = rectTransform.rect;
+            float w = rect.width;
+            float h = rect.height;
+            if (w <= 0f || h <= 0f) return;
+
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, previousScreen, null, out Vector2 previousLocal)) return;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, currentScreen, null, out Vector2 currentLocal)) return;
+
+            float dx = currentLocal.x - previousLocal.x;
+            float dy = currentLocal.y - previousLocal.y;
+            if (Mathf.Approximately(dx, 0f) && Mathf.Approximately(dy, 0f)) return;
+
+            float spanX = _viewXMax - _viewXMin;
+            float spanY = _maxY - _minY;
+            if (!(spanX > 0f) && !(spanY > 0f)) return;
+
+            _manualViewActive = true;
+            _hintHideTime = 0f;
+            
+            if (spanX > 0f)
+            {
+                _viewXMin -= dx / w * spanX;
+                _viewXMax = _viewXMin + spanX;
+            }
+            if (spanY > 0f)
+            {
+                _minY -= dy / h * spanY;
+                _maxY = _minY + spanY;
+            }
+
+            ClampViewX();
+            ClampViewY();
+
+            RefreshViewGeometry();
+        }
+        
+        private void ApplyZoom(float scrollDelta, Vector2 screenPosition)
+        {
+            if (Mathf.Approximately(scrollDelta, 0f)) return;
+            if (!_hasData || !DetailInteractive) return;
+
+            Rect rect = rectTransform.rect;
+            if (rect.width <= 0f || rect.height <= 0f) return;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPosition, null, out Vector2 local)) return;
+
+            float factor = Mathf.Exp(-scrollDelta * WheelZoomSpeed);
+            if (float.IsNaN(factor) || float.IsInfinity(factor) || factor <= 0f) return;
+
+            float tx = Mathf.Clamp01(local.x / rect.width);
+            float ty = Mathf.Clamp01(local.y / rect.height);
+
+            _manualViewActive = true;
+            _hintHideTime = 0f;
+
+            float hardXMin, hardXMax, minXSpan, maxXSpan;
+            float hardYMin, hardYMax, minYSpan, maxYSpan;
+            GetXViewLimits(out hardXMin, out hardXMax, out minXSpan, out maxXSpan);
+            GetYViewLimits(out hardYMin, out hardYMax, out minYSpan, out maxYSpan);
+
+            ZoomAxis(ref _viewXMin, ref _viewXMax, tx, factor, hardXMin, hardXMax, minXSpan, maxXSpan);
+            ZoomAxis(ref _minY, ref _maxY, ty, factor, hardYMin, hardYMax, minYSpan, maxYSpan);
+
+            RefreshViewGeometry();
+        }
+        
+        private void UpdateScrollFallback(bool insideRect)
+        {
+            if (!insideRect || _scrollEventFrame == Time.frameCount) return;
+
+            float delta = Input.mouseScrollDelta.y;
+            if (Mathf.Approximately(delta, 0f)) return;
+
+            ApplyZoom(delta, Input.mousePosition);
+        }
+
+        private static void ZoomAxis(ref float min, ref float max, float anchorRatio, float factor,
+            float hardMin, float hardMax, float minSpan, float maxSpan)
+        {
+            float span = max - min;
+            if (float.IsNaN(span) || float.IsInfinity(span) || span <= 0f) return;
+
+            float anchor = min + Mathf.Clamp01(anchorRatio) * span;
+            float newSpan = Mathf.Clamp(span * factor, minSpan, Mathf.Max(minSpan, maxSpan));
+
+            min = anchor - Mathf.Clamp01(anchorRatio) * newSpan;
+            max = min + newSpan;
+
+            ClampViewRange(ref min, ref max, hardMin, hardMax, minSpan, maxSpan);
+        }
+        
+        private void GetXViewLimits(out float hardMin, out float hardMax, out float minSpan, out float maxSpan)
+        {
+            float dataMin = Mathf.Min(_dataXMin, _dataXMax);
+            float dataMax = Mathf.Max(_dataXMin, _dataXMax);
+            float dataSpan = Mathf.Max(1e-4f, dataMax - dataMin);
+            float margin = dataSpan * ViewMarginRatio;
+
+            hardMin = dataMin - margin;
+            hardMax = dataMax + margin;
+            maxSpan = hardMax - hardMin;
+            minSpan = _useTimeAxis
+                ? Mathf.Max(MinTimeAxisRangeMs, dataSpan * MinViewSpanRatio)
+                : Mathf.Max(1f, dataSpan * MinViewSpanRatio);
+        }
+        
+        private void GetYViewLimits(out float hardMin, out float hardMax, out float minSpan, out float maxSpan)
+        {
+            float autoSpan = Mathf.Max(1e-4f, _autoYMax - _autoYMin);
+            float margin = autoSpan * YPanMarginRatio;
+
+            hardMin = _autoYMin - margin;
+            hardMax = _autoYMax + margin;
+            maxSpan = autoSpan * MaxYViewSpanRatio;
+            minSpan = Mathf.Max(MinYViewSpanMs, autoSpan * MinViewSpanRatio);
+        }
+
+        private void ClampViewX()
+        {
+            float hardMin, hardMax, minSpan, maxSpan;
+            GetXViewLimits(out hardMin, out hardMax, out minSpan, out maxSpan);
+            ClampViewRange(ref _viewXMin, ref _viewXMax, hardMin, hardMax, minSpan, maxSpan);
+        }
+
+        private void ClampViewY()
+        {
+            float hardMin, hardMax, minSpan, maxSpan;
+            GetYViewLimits(out hardMin, out hardMax, out minSpan, out maxSpan);
+            ClampViewRange(ref _minY, ref _maxY, hardMin, hardMax, minSpan, maxSpan);
+        }
+        
+        private static void ClampViewRange(ref float min, ref float max, float hardMin, float hardMax, float minSpan, float maxSpan)
+        {
+            if (float.IsNaN(min) || float.IsNaN(max) || float.IsInfinity(min) || float.IsInfinity(max))
+            {
+                min = hardMin;
+                max = hardMin + Mathf.Max(minSpan, Mathf.Min(maxSpan, hardMax - hardMin));
+                return;
+            }
+
+            if (min > max) (min, max) = (max, min);
+            
+            if (!(hardMax > hardMin)) return;
+
+            float span = max - min;
+            if (!(span > 0f))
+            {
+                float center = (min + max) * 0.5f;
+                span = Mathf.Max(minSpan, Mathf.Min(maxSpan, hardMax - hardMin));
+                min = center - span * 0.5f;
+                max = min + span;
+            }
+
+            float clampedSpan = Mathf.Clamp(max - min, minSpan, Mathf.Max(minSpan, maxSpan));
+            if (clampedSpan != max - min)
+            {
+                float center = (min + max) * 0.5f;
+                min = center - clampedSpan * 0.5f;
+                max = min + clampedSpan;
+            }
+
+            float finalSpan = max - min;
+            if (finalSpan >= hardMax - hardMin)
+            {
+                min = hardMin;
+                max = hardMax;
+                return;
+            }
+
+            if (min < hardMin)
+            {
+                min = hardMin;
+                max = min + finalSpan;
+            }
+            else if (max > hardMax)
+            {
+                max = hardMax;
+                min = max - finalSpan;
+            }
+        }
+
+        private void RefreshViewGeometry()
+        {
+            if (!_hasData)
+            {
+                SetVerticesDirty();
+                return;
+            }
+
+            BuildRenderPoints(ModContext.TimingScatterSamples, _visibleIndices.Count);
+            UpdateTextLayoutAndValues();
+            SetVerticesDirty();
+        }
+        
+        private void ResetManualView()
+        {
+            bool wasManual = _manualViewActive;
+            _manualViewActive = false;
+            _gestureActive = false;
+            _gesturePanning = false;
+            _viewXMin = _autoXMin;
+            _viewXMax = _autoXMax;
+            _minY = _autoYMin;
+            _maxY = _autoYMax;
+            
+            if (wasManual) SetVerticesDirty();
+        }
+        
+        private void ResetViewOnLayoutChange()
+        {
+            Rect rect = rectTransform.rect;
+            if (rect.width == _lastViewRectWidth && rect.height == _lastViewRectHeight
+                && Screen.width == _lastViewScreenWidth && Screen.height == _lastViewScreenHeight)
+            {
+                return;
+            }
+
+            _lastViewRectWidth = rect.width;
+            _lastViewRectHeight = rect.height;
+            _lastViewScreenWidth = Screen.width;
+            _lastViewScreenHeight = Screen.height;
+            ResetManualView();
+        }
+        
+        private void UpdateHintText()
+        {
+            if (_hintText == null) return;
+
+            bool visible = DetailInteractive && Time.unscaledTime < _hintHideTime;
+            if (_hintText.gameObject.activeSelf != visible) _hintText.gameObject.SetActive(visible);
+            if (!visible) return;
+
+            Settings settings = ModContext.Settings;
+            float scale = Mathf.Max(0.01f, Scale);
+            float w = rectTransform.rect.width;
+            int fontSize = Mathf.Clamp(Mathf.RoundToInt(10 * scale), 8, 32);
+            Color color = settings != null ? settings.TimingScatter_AxisTextColor : Color.white;
+            color.a *= 0.6f;
+
+            string content = i18n.T("Hint_GraphGesture");
+            if (_hintText.text != content) _hintText.text = content;
+            if (_hintText.fontSize != fontSize) _hintText.fontSize = fontSize;
+            if (_hintText.color != color) _hintText.color = color;
+            _hintText.alignment = TextAlignmentOptions.Bottom;
+
+            RectTransform rt = _hintText.rectTransform;
+            Vector2 position = new Vector2(w * 0.5f, 3f * scale);
+            Vector2 size = new Vector2(280f * (fontSize / 12f), 16f * (fontSize / 12f));
+            if (rt.pivot != new Vector2(0.5f, 0f)) rt.pivot = new Vector2(0.5f, 0f);
+            if (rt.anchoredPosition != position) rt.anchoredPosition = position;
+            if (rt.sizeDelta != size) rt.sizeDelta = size;
         }
 
         private int FindNearestRenderPoint(Vector2 localMouse, float w, float h)
@@ -926,8 +1628,7 @@ namespace TimingShow
 
         private void RefreshDetailPanel()
         {
-            int index = _selectedSourceIndex;
-            if (index < 0 || !IsRenderableSourceIndex(index)) index = _hoverSourceIndex;
+            int index = _hoverSourceIndex;
             if (index >= 0 && !IsRenderableSourceIndex(index)) index = -1;
 
             if (index < 0)
@@ -985,7 +1686,6 @@ namespace TimingShow
         private void ClearDetailInteraction()
         {
             _hoverSourceIndex = -1;
-            _selectedSourceIndex = -1;
             HideDetailPanel();
         }
 

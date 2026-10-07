@@ -326,6 +326,30 @@ namespace TimingShow
                 Toggle(ref ModContext.Settings.TimingScatter_UseJudgeColor, "Toggle_UseJudgeColor");
                 Toggle(ref ModContext.Settings.TimingScatter_ShowZeroLine, "Toggle_ShowZeroLine");
                 Toggle(ref ModContext.Settings.TimingScatter_ShowAvgLine, "Toggle_ShowAvgLine");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowJudgeBands, "Toggle_ShowJudgeBands");
+                if (ModContext.Settings.TimingScatter_ShowJudgeBands)
+                {
+                    Toggle(ref ModContext.Settings.TimingScatter_BandAutoWindow, "Toggle_BandAutoWindow");
+                    if (!ModContext.Settings.TimingScatter_BandAutoWindow)
+                        SliderFloat("Label_BandThresholdBpm", ref ModContext.Settings.TimingScatter_BandThresholdBpm, 100f, 600f);
+
+                    ColorPicker(i18n.T("Label_BandPerfectColor"), ref ModContext.Settings.TimingScatter_BandPerfectColor);
+                    ColorPicker(i18n.T("Label_BandElPerfectColor"), ref ModContext.Settings.TimingScatter_BandElPerfectColor);
+                    ColorPicker(i18n.T("Label_BandEarlyLateColor"), ref ModContext.Settings.TimingScatter_BandEarlyLateColor);
+
+                    float perfectMs, elPerfectMs, passMs;
+                    TimingScatterDrawer.GetJudgeWindowMs(ModContext.Settings, out perfectMs, out elPerfectMs, out passMs);
+                    IndentedLabel(string.Format(i18n.T("Label_BandWindowInfo"), perfectMs, elPerfectMs, passMs));
+                    string bandDifficulty = ModContext.Settings.TimingScatter_BandAutoWindow ? TimingScatterDrawer.GetGameDifficultyLabel() : "-";
+                    IndentedLabel(string.Format(i18n.T("Label_BandTempoInfo"), TimingScatterDrawer.GetEffectiveTempoBpm(), TimingScatterDrawer.GetThresholdBpm(ModContext.Settings), bandDifficulty));
+                }
+
+                Toggle(ref ModContext.Settings.TimingScatter_ShowXpBand, "Toggle_ShowXpBand");
+                if (ModContext.Settings.TimingScatter_ShowXpBand)
+                {
+                    ColorPicker(i18n.T("Label_BandXpColor"), ref ModContext.Settings.TimingScatter_BandXpColor);
+                    IndentedLabel(string.Format(i18n.T("Label_XpWindowInfo"), TimingScatterDrawer.GetXpWindowMs()));
+                }
 
                 ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.TimingScatter_BgColor);
                 ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.TimingScatter_GridColor);

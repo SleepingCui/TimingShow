@@ -112,8 +112,7 @@ namespace TimingShow
                     LogListEntry entry = _logEntries[i];
                     GUILayout.BeginHorizontal(GUI.skin.box);
                     _measureContent.text = entry.FileName;
-                    Rect nameRect = GUILayoutUtility.GetRect(_measureContent, _logNameLabelStyle,
-                        GUILayout.MinWidth(190), GUILayout.ExpandWidth(true));
+                    Rect nameRect = GUILayoutUtility.GetRect(_measureContent, _logNameLabelStyle, GUILayout.MinWidth(190), GUILayout.ExpandWidth(true));
                     GUI.Label(nameRect, TruncateToWidth(entry.FileName, _logNameLabelStyle, nameRect.width), _logNameLabelStyle);
                     GUILayout.Label(FormatFileSize(entry.Length), GUILayout.Width(78));
                     GUILayout.Label(FormatTimestamp(entry.Timestamp), GUILayout.Width(145));

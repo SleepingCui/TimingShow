@@ -97,21 +97,27 @@ namespace TimingShow
 
             return Compute(diff, bpm, speed, pitch);
         }
-
-        private static bool Compute(double diff, double bpm, double speed, double pitch)
+        
+        // from https://github.com/8100print/XPerfect
+        // Licensed under the MIT License.
+        public static double GetBoundaryMs(double effectiveBpm)
         {
-            double denominator = Math.PI * bpm * speed * pitch;
-            if (denominator == 0) return false;
+            double denominator = Math.PI * effectiveBpm;
+            if (denominator == 0.0) return 0.0;
 
-            // from https://github.com/8100print/XPerfect
-            // Licensed under the MIT License.
-            double absDiff = Math.Abs(diff);
             double angleR = 0.01667 * (denominator / 60.0);
             double angleD = angleR * 57.295780181884766;
             double fBoundaryD = Math.Max(15.0, angleD);
-            double fBoundary = (fBoundaryD * 60000.0) / (57.295780181884766 * denominator);
 
-            return absDiff <= fBoundary;
+            return (fBoundaryD * 60000.0) / (57.295780181884766 * denominator);
+        }
+
+        private static bool Compute(double diff, double bpm, double speed, double pitch)
+        {
+            double fBoundary = GetBoundaryMs(bpm * speed * pitch);
+            if (fBoundary == 0.0) return false;
+
+            return Math.Abs(diff) <= fBoundary;
         }
     }
 }

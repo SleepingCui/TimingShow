@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace TimingShow
 {
@@ -85,6 +86,7 @@ namespace TimingShow
                 Canvas scatterCanvas = _timingScatterObject.AddComponent<Canvas>();
                 scatterCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 scatterCanvas.sortingOrder = 101;
+                _timingScatterObject.AddComponent<GraphicRaycaster>();
 
                 GameObject scatterDrawerObj = new GameObject("TimingScatterDrawer");
                 scatterDrawerObj.transform.SetParent(_timingScatterObject.transform, false);
