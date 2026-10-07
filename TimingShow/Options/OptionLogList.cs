@@ -122,12 +122,9 @@ namespace TimingShow.Options
                     string analyzeLabel = i18n.T("Btn_AnalyzeLog");
                     if (GUILayout.Button(analyzeLabel, GUILayout.Width(MeasureButtonWidth(analyzeLabel, 70f))))
                         OpenLogInAnalyzer(entry.FullPath);
-                    if (ModContext.Settings.LogGraph_Enabled)
-                    {
-                        string graphLabel = i18n.T("Btn_ViewLogGraph");
-                        if (GUILayout.Button(graphLabel, GUILayout.Width(MeasureButtonWidth(graphLabel, 70f))))
-                            OpenLogGraphWindow(entry.FullPath);
-                    }
+                    string graphLabel = i18n.T("Btn_ViewLogGraph");
+                    if (GUILayout.Button(graphLabel, GUILayout.Width(MeasureButtonWidth(graphLabel, 70f))))
+                        OpenLogGraphWindow(entry.FullPath);
                     string openFileLabel = i18n.T("Btn_OpenLogFile");
                     if (GUILayout.Button(openFileLabel, GUILayout.Width(MeasureButtonWidth(openFileLabel, 70f))))
                         OpenLogFile(entry.FullPath);

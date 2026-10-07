@@ -19,6 +19,7 @@ namespace TimingShow.Options
         private static string _scatterMaxPointsText;
         private static string _logGraphMaxPointsText;
         private static bool _showAdvancedSettings;
+        private static bool _showLogGraphSettings;
 
         private static bool _foldoutTitleSettings;
         private static bool _foldoutPlanetSettings;
@@ -32,7 +33,6 @@ namespace TimingShow.Options
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
         private static bool _foldoutTimingScatter;
-        private static bool _foldoutLogGraph;
 
         public static void OnGUI()
         {
@@ -52,10 +52,10 @@ namespace TimingShow.Options
             DrawRatioHUD();
             DrawXACCGraphSettings();
             DrawTimingScatterSettings();
-            DrawLogGraphSettings();
             DrawLoggingSettings();
             DrawSessionControls();
             OptionLogList.Draw();
+            DrawLogGraphSettings();
             DrawAdvancedSettings();
         }
 
@@ -359,36 +359,35 @@ namespace TimingShow.Options
                 DrawHUDFontSettings(ref ModContext.Settings.TimingScatter_UseCustomFont, ref ModContext.Settings.TimingScatter_FontPath);
             }
         }
-
-        /// <summary>
-        /// 日志散点图窗口（LogGraphWindow）自己的图表设置：全部走 LogGraph_*，与游戏内散点图的
-        /// TimingScatter_* 完全独立（改一边不影响另一边）。开关同时决定日志列表里“查看散点图”按钮是否出现。
-        /// </summary>
+        
         private static void DrawLogGraphSettings()
         {
+            string foldoutArrow = _showLogGraphSettings ? "▲" : "▼";
+            if (GUILayout.Button($"{i18n.T("Toggle_LogGraph")} {foldoutArrow}", GUILayout.Width(150)))
+                _showLogGraphSettings = !_showLogGraphSettings;
+
+            if (!_showLogGraphSettings) return;
+
             GUILayout.BeginVertical();
             {
-                ToggleFold(i18n.T("Toggle_LogGraph"), ref ModContext.Settings.LogGraph_Enabled, ref _foldoutLogGraph);
-                if (ModContext.Settings.LogGraph_Enabled && _foldoutLogGraph)
-                {
-                    SliderFloat("LogGraph_UiScale", ref ModContext.Settings.LogGraph_UIScale, 0.75f, 3.0f);
-                    Toggle(ref ModContext.Settings.LogGraph_IgnoreOutliers, "Toggle_IgnoreOutliers");
-                    Toggle(ref ModContext.Settings.LogGraph_UseHitAxis, "Toggle_UseHitAxis");
-                    Toggle(ref ModContext.Settings.LogGraph_UseJudgeColor, "Toggle_UseJudgeColor");
-                    Toggle(ref ModContext.Settings.LogGraph_ShowZeroLine, "Toggle_ShowZeroLine");
-                    Toggle(ref ModContext.Settings.LogGraph_ShowAvgLine, "Toggle_ShowAvgLine");
-                    IntField("Label_MaxRenderPoints", ref _logGraphMaxPointsText, ref ModContext.Settings.LogGraph_MaxRenderPoints, 20, 8000, 800);
-                    SliderFloat("Label_PointSize", ref ModContext.Settings.LogGraph_PointSize, 1.0f, 12.0f);
+                GUILayout.Space(5);
+                SliderFloat("LogGraph_UiScale", ref ModContext.Settings.LogGraph_UIScale, 0.75f, 3.0f);
+                Toggle(ref ModContext.Settings.LogGraph_IgnoreOutliers, "Toggle_IgnoreOutliers");
+                Toggle(ref ModContext.Settings.LogGraph_UseHitAxis, "Toggle_UseHitAxis");
+                Toggle(ref ModContext.Settings.LogGraph_UseJudgeColor, "Toggle_UseJudgeColor");
+                Toggle(ref ModContext.Settings.LogGraph_ShowZeroLine, "Toggle_ShowZeroLine");
+                Toggle(ref ModContext.Settings.LogGraph_ShowAvgLine, "Toggle_ShowAvgLine");
+                IntField("Label_MaxRenderPoints", ref _logGraphMaxPointsText, ref ModContext.Settings.LogGraph_MaxRenderPoints, 20, 8000, 800);
+                SliderFloat("Label_PointSize", ref ModContext.Settings.LogGraph_PointSize, 1.0f, 12.0f);
 
-                    ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.LogGraph_BgColor);
-                    ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.LogGraph_GridColor);
-                    ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.LogGraph_PointColor);
-                    ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.LogGraph_ZeroLineColor);
-                    ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.LogGraph_AvgLineColor);
-                    ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.LogGraph_AxisTextColor);
+                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.LogGraph_BgColor);
+                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.LogGraph_GridColor);
+                ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.LogGraph_PointColor);
+                ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.LogGraph_ZeroLineColor);
+                ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.LogGraph_AvgLineColor);
+                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.LogGraph_AxisTextColor);
 
-                    DrawHUDFontSettings(ref ModContext.Settings.LogGraph_UseCustomFont, ref ModContext.Settings.LogGraph_FontPath);
-                }
+                DrawHUDFontSettings(ref ModContext.Settings.LogGraph_UseCustomFont, ref ModContext.Settings.LogGraph_FontPath);
             }
             GUILayout.EndVertical();
         }
@@ -401,69 +400,69 @@ namespace TimingShow.Options
 
                 if (ModContext.Settings.EnableLogging && _foldoutLogging)
                 {
-                    SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
-                    if (!HitMarginCompat.IsGame34)
-                        Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
-                    Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
-                    Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
-                    Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
+                SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
+                if (!HitMarginCompat.IsGame34)
+                    Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
+                Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
+                Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
+                Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
 
-                    // logdir
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Space(20);
-                    GUILayout.Label(i18n.T("Label_LogDir"), GUILayout.Width(140));
-                    string absolutePath = OptionLogList.AbsLogPath(ModContext.Settings.LogDirectory);
-                    string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "None" : absolutePath;
-                    GUILayout.Label(displayPath, GUILayout.MinWidth(280), GUILayout.MaxWidth(480));
-                    
-                    if (GUILayout.Button(i18n.T("Btn_Browse"), GUILayout.Width(70)))
+                // logdir
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(i18n.T("Label_LogDir"), GUILayout.Width(140));
+                string absolutePath = OptionLogList.AbsLogPath(ModContext.Settings.LogDirectory);
+                string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "None" : absolutePath;
+                GUILayout.Label(displayPath, GUILayout.MinWidth(280), GUILayout.MaxWidth(480));
+                
+                if (GUILayout.Button(i18n.T("Btn_Browse"), GUILayout.Width(70)))
+                {
+                    string defaultDir = OptionLogList.GetLogDirectory();
+                    string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], i18n.T("Label_LogDir"));
+                    if (!string.IsNullOrEmpty(selectedFolder))
                     {
-                        string defaultDir = OptionLogList.GetLogDirectory();
-                        string selectedFolder = FileBrowser.PickFolder(defaultDir, "Folder", new string[0], i18n.T("Label_LogDir"));
-                        if (!string.IsNullOrEmpty(selectedFolder))
-                        {
-                            ModContext.Settings.LogDirectory = Path.GetFullPath(selectedFolder);
-                        }
+                        ModContext.Settings.LogDirectory = Path.GetFullPath(selectedFolder);
                     }
-                    GUILayout.EndHorizontal();
-                    
-                    // lbl buffersize
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Space(20);
-                    GUILayout.Label(i18n.T("Label_BufferSize"), GUILayout.Width(140));
+                }
+                GUILayout.EndHorizontal();
+                
+                // lbl buffersize
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.Label(i18n.T("Label_BufferSize"), GUILayout.Width(140));
 
-                    if (_bufferSizeText == null) _bufferSizeText = ModContext.Settings.LogBufferSizeKB.ToString();
-                    string newBufferSizeText = GUILayout.TextField(_bufferSizeText, GUILayout.Width(80));
-                    if (newBufferSizeText != _bufferSizeText)
+                if (_bufferSizeText == null) _bufferSizeText = ModContext.Settings.LogBufferSizeKB.ToString();
+                string newBufferSizeText = GUILayout.TextField(_bufferSizeText, GUILayout.Width(80));
+                if (newBufferSizeText != _bufferSizeText)
+                {
+                    if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal >= 8 && parsedVal <= 102400)
                     {
-                        if (int.TryParse(newBufferSizeText, out int parsedVal) && parsedVal >= 8 && parsedVal <= 102400)
-                        {
-                            _bufferSizeText = newBufferSizeText;
-                            ModContext.Settings.LogBufferSizeKB = parsedVal;
-                        }
-                        else
-                        {
-                            _bufferSizeText = "64";
-                            ModContext.Settings.LogBufferSizeKB = 64;
-                        }
+                        _bufferSizeText = newBufferSizeText;
+                        ModContext.Settings.LogBufferSizeKB = parsedVal;
                     }
-                    GUILayout.EndHorizontal();
+                    else
+                    {
+                        _bufferSizeText = "64";
+                        ModContext.Settings.LogBufferSizeKB = 64;
+                    }
+                }
+                GUILayout.EndHorizontal();
                 }
 
                 // btn openlogs
                 GUILayout.Space(10);
                 if (GUILayout.Button(i18n.T("Btn_OpenLogs"), GUILayout.Width(150)))
                 {
-                    try
-                    {
-                        string logDir = OptionLogList.GetLogDirectory();
-                        if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
-                        Process.Start(new ProcessStartInfo() { FileName = logDir, UseShellExecute = true, Verb = "open" });
-                    }
-                    catch (Exception e)
-                    {
-                        ModContext.Logger.Error(e.Message);
-                    }
+                try
+                {
+                    string logDir = OptionLogList.GetLogDirectory();
+                    if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+                    Process.Start(new ProcessStartInfo() { FileName = logDir, UseShellExecute = true, Verb = "open" });
+                }
+                catch (Exception e)
+                {
+                    ModContext.Logger.Error(e.Message);
+                }
                 }
 
             }
@@ -500,19 +499,19 @@ namespace TimingShow.Options
                 string statusDisplayText;
                 switch (currentState)
                 {
-                    case XPerfectBridge.HookState.Success:
-                        statusDisplayText = $"<color=#55FF55> ({i18n.T("Status_HookSuccess")})</color>";
-                        break;
-                    case XPerfectBridge.HookState.Failed:
-                        statusDisplayText = $"<color=#FF5555> ({i18n.T("Status_HookFailed")}{XPerfectBridge.LastErrorMessage})</color>";
-                        break;
-                    case XPerfectBridge.HookState.NotApplicable:
-                        statusDisplayText = $"<color=#55CCFF> ({i18n.T("Status_HookNotApplicable")})</color>";
-                        break;
-                    case XPerfectBridge.HookState.Disabled:
-                    default:
-                        statusDisplayText = string.Empty;
-                        break;
+                case XPerfectBridge.HookState.Success:
+                    statusDisplayText = $"<color=#55FF55> ({i18n.T("Status_HookSuccess")})</color>";
+                    break;
+                case XPerfectBridge.HookState.Failed:
+                    statusDisplayText = $"<color=#FF5555> ({i18n.T("Status_HookFailed")}{XPerfectBridge.LastErrorMessage})</color>";
+                    break;
+                case XPerfectBridge.HookState.NotApplicable:
+                    statusDisplayText = $"<color=#55CCFF> ({i18n.T("Status_HookNotApplicable")})</color>";
+                    break;
+                case XPerfectBridge.HookState.Disabled:
+                default:
+                    statusDisplayText = string.Empty;
+                    break;
                 }
                 
                 bool hookSupported = XPerfectBridge.IsSupported;
@@ -520,47 +519,47 @@ namespace TimingShow.Options
                 GUI.enabled = hookSupported;
 
                 bool newHookMode = ToggleWithDescription(
-                    ModContext.Settings.UseHookMode,
-                    "Toggle_HookMode",
-                    "Desc_HookMode",
-                    extraLabelHtml: statusDisplayText
+                ModContext.Settings.UseHookMode,
+                "Toggle_HookMode",
+                "Desc_HookMode",
+                extraLabelHtml: statusDisplayText
                 );
 
                 GUI.enabled = prevGuiEnabled;
 
                 if (hookSupported && newHookMode != ModContext.Settings.UseHookMode)
                 {
-                    ModContext.Settings.UseHookMode = newHookMode;
-                    if (newHookMode) XPerfectBridge.TryInit(force: true);
-                    else XPerfectBridge.UnloadHook();
+                ModContext.Settings.UseHookMode = newHookMode;
+                if (newHookMode) XPerfectBridge.TryInit(force: true);
+                else XPerfectBridge.UnloadHook();
                 }
 
                 GUILayout.Space(5);
 
                 //autoreload
                 ModContext.Settings.AutoReloadInEditor = ToggleWithDescription(
-                    ModContext.Settings.AutoReloadInEditor,
-                    "Toggle_AutoReloadInEditor",
-                    "Desc_AutoReloadInEditor"
+                ModContext.Settings.AutoReloadInEditor,
+                "Toggle_AutoReloadInEditor",
+                "Desc_AutoReloadInEditor"
                 );
 
                 GUILayout.Space(5);
 
                 bool previousAnalyzerEnabled = ModContext.Settings.AnalyzerBridgeEnabled;
                 bool analyzerEnabled = ToggleWithDescription(
-                    ModContext.Settings.AnalyzerBridgeEnabled,
-                    "Toggle_AnalyzerBridge",
-                    "Desc_AnalyzerBridge"
+                ModContext.Settings.AnalyzerBridgeEnabled,
+                "Toggle_AnalyzerBridge",
+                "Desc_AnalyzerBridge"
                 );
                 ModContext.Settings.AnalyzerBridgeEnabled = analyzerEnabled;
                 if (previousAnalyzerEnabled && !analyzerEnabled)
-                    LogAnalyzerBridge.Stop();
+                LogAnalyzerBridge.Stop();
 
                 if (analyzerEnabled)
                 {
-                    IntField("Label_AnalyzerPort", ref _analyzerPortText, ref ModContext.Settings.AnalyzerBridgePort, 0, 65535, 0, 160);
-                    IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, ref ModContext.Settings.AnalyzerBridgeTimeoutSec,
-                        LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds, LogAnalyzerBridge.DefaultTimeoutSeconds, 160);
+                IntField("Label_AnalyzerPort", ref _analyzerPortText, ref ModContext.Settings.AnalyzerBridgePort, 0, 65535, 0, 160);
+                IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, ref ModContext.Settings.AnalyzerBridgeTimeoutSec,
+                    LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds, LogAnalyzerBridge.DefaultTimeoutSeconds, 160);
                 }
             }
             GUILayout.EndVertical();
