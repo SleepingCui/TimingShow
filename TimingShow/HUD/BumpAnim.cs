@@ -1,6 +1,6 @@
 using System;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
 
     public sealed class BumpAnim

@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 
-namespace TimingShow
+namespace TimingShow.Bridge
 {
     public static class XPerfectBridge
     {

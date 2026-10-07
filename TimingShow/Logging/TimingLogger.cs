@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 
-namespace TimingShow
+namespace TimingShow.Logging
 {
     public static class TimingLogger
     {

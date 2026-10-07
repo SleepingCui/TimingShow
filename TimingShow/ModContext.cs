@@ -1,6 +1,8 @@
 using HarmonyLib;
 using System.Collections.Generic;
 using UnityEngine;
+using TimingShow.HUD;
+using OptionsPage = TimingShow.Options.Options;
 
 namespace TimingShow
 {
@@ -96,7 +98,7 @@ namespace TimingShow
 
         public static void OnGUI()
         {
-            Options.OnGUI();
+            OptionsPage.OnGUI();
         }
 
         public static void SaveSettings()

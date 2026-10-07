@@ -2,6 +2,8 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine;
 using System.IO;
+using TimingShow.Bridge;
+using TimingShow.Logging;
 
 namespace TimingShow
 {

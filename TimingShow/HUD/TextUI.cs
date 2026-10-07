@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     public class TextUI : MonoBehaviour
     {

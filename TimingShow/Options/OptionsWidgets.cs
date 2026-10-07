@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace TimingShow
+namespace TimingShow.Options
 {
     internal static class OptionsWidgets
     {

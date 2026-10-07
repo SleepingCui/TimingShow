@@ -1,6 +1,7 @@
 using HarmonyLib;
 using System;
 using UnityEngine;
+using TimingShow.Logging;
 
 namespace TimingShow.Patches
 {

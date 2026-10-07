@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using TimingShow.Logging;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     public class LogScatterDrawer : ScatterDrawerBase
     {

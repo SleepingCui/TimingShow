@@ -5,8 +5,9 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
+using TimingShow.Logging;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     public class LogGraphWindow : MonoBehaviour, LogGraphWindow.ILogGraphPanelInteraction, IPointerExitHandler, ILogGraphSettingsHost
     {

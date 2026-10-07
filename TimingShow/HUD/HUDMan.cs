@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     public static class HUDMan
     {

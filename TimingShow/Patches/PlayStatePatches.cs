@@ -3,6 +3,8 @@ using System;
 using System.Diagnostics;
 using UnityEngine.SceneManagement;
 using static TimingShow.Patches.TimingCalcPatches;
+using TimingShow.HUD;
+using TimingShow.Logging;
 
 namespace TimingShow.Patches
 {

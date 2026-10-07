@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     public class XACCGraphDrawer : GraphDrawerBase
     {

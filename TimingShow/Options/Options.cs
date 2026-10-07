@@ -3,9 +3,11 @@ using System.IO;
 using System.Diagnostics;
 using UnityEngine;
 using UnityFileDialog;
-using static TimingShow.OptionsWidgets;
+using static TimingShow.Options.OptionsWidgets;
+using TimingShow.Bridge;
+using TimingShow.HUD;
 
-namespace TimingShow
+namespace TimingShow.Options
 {
     public static class Options
     {

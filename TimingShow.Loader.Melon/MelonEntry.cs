@@ -2,6 +2,8 @@ using MelonLoader;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
+using TimingShow.Bridge;
+using OptionsPage = TimingShow.Options.Options;
 
 namespace TimingShow.Melon
 {
@@ -50,7 +52,7 @@ namespace TimingShow.Melon
             _settingsWindowRect = GUILayout.Window(GetHashCode(), _settingsWindowRect, (id) =>
                 {
                     _scrollPos = GUILayout.BeginScrollView( _scrollPos, GUILayout.Width(WindowWidth - 20), GUILayout.Height(WindowHeight - 60));
-                    Options.OnGUI();
+                    OptionsPage.OnGUI();
                     GUILayout.EndScrollView();
 
                     // keybind

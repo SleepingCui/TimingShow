@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace TimingShow
+namespace TimingShow.Logging
 {
     
     public static class VarInt

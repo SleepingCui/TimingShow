@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     
     internal static class LogGraphFont

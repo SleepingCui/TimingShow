@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     [RequireComponent(typeof(CanvasRenderer))]
     public abstract class GraphDrawerBase : MaskableGraphic

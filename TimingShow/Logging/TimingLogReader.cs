@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Text;
 using Newtonsoft.Json;
 
-namespace TimingShow
+namespace TimingShow.Logging
 {
 
     public sealed class TimingLogData

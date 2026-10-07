@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace TimingShow
+namespace TimingShow.Logging
 {
     public class ColorConverter : JsonConverter<Color>
     {

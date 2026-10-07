@@ -4,7 +4,7 @@ using System.IO.Compression;
 using System.Text;
 using UnityEngine;
 
-namespace TimingShow
+namespace TimingShow.Logging
 {
 
     public static class TimingLoggerBinary

@@ -6,8 +6,11 @@ using System.IO.Compression;
 using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
+using TimingShow.Bridge;
+using TimingShow.HUD;
+using TimingShow.Logging;
 
-namespace TimingShow
+namespace TimingShow.Options
 {
     internal static class OptionLogList
     {

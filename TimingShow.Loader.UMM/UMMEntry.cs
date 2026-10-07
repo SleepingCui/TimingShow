@@ -1,5 +1,6 @@
 using HarmonyLib;
 using UnityModManagerNet;
+using TimingShow.Bridge;
 
 namespace TimingShow.UMM
 {

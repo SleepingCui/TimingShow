@@ -3,7 +3,7 @@ using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace TimingShow
+namespace TimingShow.HUD
 {
     public class TimingScatterDrawer : ScatterDrawerBase
     {
