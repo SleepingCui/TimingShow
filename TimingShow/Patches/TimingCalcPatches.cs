@@ -1,10 +1,85 @@
 using HarmonyLib;
 using System;
+using UnityEngine;
 
 namespace TimingShow.Patches
 {
+
     public static class TimingCalcPatches
     {
+        private const int TimingScatterHardLimit = 100000;
+        private const int TimingScatterWarningLimit = 5;
+        private const float TimingScatterDedupeToleranceMs = 0.05f;
+
+        private static int _pendingScatterSampleIndex = -1;
+        private static int _pendingScatterSampleFrame = -1;
+        private static int _scatterUnresolvedWarnings;
+        private static int _scatterLimitWarnings;
+        
+        internal static void InvalidatePendingScatterSample()
+        {
+            _pendingScatterSampleIndex = -1;
+            _pendingScatterSampleFrame = -1;
+        }
+        
+        private static void AppendTimingScatterSample(double timing)
+        {
+            if (_pendingScatterSampleIndex >= 0 && _pendingScatterSampleIndex < ModContext.TimingScatterSamples.Count)
+            {
+                TimingScatterSample pending = ModContext.TimingScatterSamples[_pendingScatterSampleIndex];
+                bool sameFrame = _pendingScatterSampleFrame == Time.frameCount;
+                bool sameTiming = Mathf.Abs(pending.OffsetMs - (float)timing) <= TimingScatterDedupeToleranceMs;
+
+                if (sameFrame && sameTiming)
+                {
+                    return;
+                }
+
+                if (_scatterUnresolvedWarnings < TimingScatterWarningLimit)
+                {
+                    _scatterUnresolvedWarnings++;
+                }
+            }
+
+            if (ModContext.TimingScatterSamples.Count >= TimingScatterHardLimit)
+            {
+                InvalidatePendingScatterSample();
+                if (_scatterLimitWarnings < TimingScatterWarningLimit)
+                {
+                    _scatterLimitWarnings++;
+                }
+                return;
+            }
+
+            ModContext.TimingScatterSamples.Add(new TimingScatterSample
+            {
+                TimeMs = (float)PlayStatePatches.GetSessionTimeMs(),
+                OffsetMs = (float)timing,
+                Judge = HitMan.Unknown,
+                IsXPerfect = false,
+                HasJudge = false
+            });
+
+            _pendingScatterSampleIndex = ModContext.TimingScatterSamples.Count - 1;
+            _pendingScatterSampleFrame = Time.frameCount;
+        }
+        
+        private static void MarkPendingTimingScatterSample(HitMan judge, bool isXPerfect)
+        {
+            int index = _pendingScatterSampleIndex;
+            InvalidatePendingScatterSample();
+            if (index < 0 || index >= ModContext.TimingScatterSamples.Count) return;
+
+            TimingScatterSample sample = ModContext.TimingScatterSamples[index];
+            if (sample.HasJudge) return;
+
+            sample.Judge = judge;
+            sample.IsXPerfect = isXPerfect;
+            sample.HasJudge = true;
+            ModContext.TimingScatterSamples[index] = sample;
+            ModContext.TimingScatterVersion++;
+        }
+
         // timing calc
         [HarmonyPatch(typeof(scrPlanet), "SwitchChosen")]
         public static class PlanetSwitchPatch
@@ -29,35 +104,86 @@ namespace TimingShow.Patches
                 ModContext.LastSpeed = speed;
                 ModContext.LastPitch = pitch;
                 ModContext.UIDirty = true;
-                
-                if (HitMarginCompat.IsLegacy)
-                    ModContext.LastIsXP = CalcXP.IsLegacyXPerfect(diff, bpm, speed, pitch);
 
-                bool isAuto = RDC.auto;
 
-                if (ModContext.IsPlaying)
+                if (!HitMarginCompat.IsGame34)
                 {
-                    bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph;
-                    if (needRecord && ModContext.SessionOffsets != null)
-                    {
-                        ModContext.SessionOffsets.Add(diff);
-                        CalcUR.AddSample(diff);
-                    }
-
-                    if (ModContext.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
-                    {
-                        float curXAcc = scrController.instance.playerOne.marginTracker.percentXAcc * 100f;
-                        ModContext.FullXAccHistory.Add(curXAcc);
-                        ModContext.XAccVersion++;
-                    }
-                    
-                    if (isAuto)
-                    {
-                        MarginTrackerAddHitPatch.ApplyAutoHit(diff, ModContext.LastAngle, ModContext.Settings.EnableLogging);
-                    }
+                    ModContext.LastIsXP = CalcXP.IsLegacyXPerfect(diff, bpm, speed, pitch);
+                    RecordSample(diff, ModContext.LastAngle);
                 }
             }
+        }
 
+        // r150
+        [HarmonyPatch(typeof(scrMisc), "GetHitMarginInDeg")]
+        public static class ScrMiscGetHitMarginInDegPatch
+        {
+            public static bool Prepare() => HitMarginCompat.IsGame34;
+
+            public static void Postfix(float hitAngle, float refAngle, bool clockwise, float floorBpm, float conductorPitch)
+            {
+                if (!ModContext.IsEnabled) return;
+                if (floorBpm == 0f || conductorPitch == 0f) return;
+
+                double deg = (hitAngle - refAngle) * (clockwise ? 1.0 : -1.0) * 57.29578;
+                double timing = deg / 180.0 / floorBpm / conductorPitch * 60000.0;
+                OnGame34Timing(timing, deg);
+            }
+        }
+        
+        [HarmonyPatch(typeof(scrMisc), "GetHitMarginInSec")]
+        public static class ScrMiscGetHitMarginInSecPatch
+        {
+            public static bool Prepare() => HitMarginCompat.IsGame34;
+
+            public static void Postfix(double timeDiff, float floorBpm, float conductorPitch)
+            {
+                if (!ModContext.IsEnabled) return;
+                if (floorBpm == 0f || conductorPitch == 0f) return;
+
+                double timing = timeDiff * 1000.0;
+                double deg = timeDiff * 3.0 * floorBpm * conductorPitch;
+                OnGame34Timing(timing, deg);
+            }
+        }
+
+
+        private static void OnGame34Timing(double timing, double angle)
+        {
+            ModContext.LastTiming = timing;
+            ModContext.LastAngle = angle;
+            ModContext.UIDirty = true;
+            RecordSample(timing, angle);
+        }
+        
+        internal static void RecordSample(double timing, double angle)
+        {
+            if (!ModContext.IsPlaying || ModContext.Settings == null) return;
+            
+            bool isAuto = RDC.auto;
+            bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowAvgHUD || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph || ModContext.Settings.ShowTimingScatter;
+            if (needRecord)
+            {
+                if (ModContext.SessionOffsets != null)
+                {
+                    ModContext.SessionOffsets.Add(timing);
+                    CalcUR.AddSample(timing);
+                }
+
+                AppendTimingScatterSample(timing);
+            }
+
+            if (ModContext.FullXAccHistory != null && scrController.instance?.playerOne?.marginTracker != null)
+            {
+                float curXAcc = scrController.instance.playerOne.marginTracker.percentXAcc * 100f;
+                ModContext.FullXAccHistory.Add(curXAcc);
+                ModContext.XAccVersion++;
+            }
+
+            if (isAuto)
+            {
+                MarginTrackerAddHitPatch.ApplyAutoHit(timing, angle, ModContext.Settings.EnableLogging);
+            }
         }
 
         // hit
@@ -91,6 +217,8 @@ namespace TimingShow.Patches
                 ModContext.LastRawMargin = rawMargin;
                 ModContext.LastJudge = judge;
                 ModContext.LastIsXP = DetermineIsXPerfect(judge);
+
+                MarkPendingTimingScatterSample(judge, ModContext.LastIsXP);
 
                 if (countHit)
                 {

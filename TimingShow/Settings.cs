@@ -10,6 +10,7 @@ namespace TimingShow
         public bool ShowInSongTitle;
         public bool Title_UseJudgeColor;
         public bool Title_ShowAngle;
+        public bool Title_Bump;
         public int Title_FontSize = 100;
 
         public bool ShowOnPlanet;
@@ -62,8 +63,21 @@ namespace TimingShow
         public string HUD_Format = "Timing - {0}ms";
         public bool HUD_UseJudgeColor;
         public bool HUD_ShowAngle;
+        public bool HUD_Bump;
         public bool HUD_UseCustomFont;
         public string HUD_FontPath = "";
+
+        public bool ShowAvgHUD;
+        public float AvgHUD_x;
+        public float AvgHUD_y = -0.025f;
+        public float AvgHUD_scale = 1.0f;
+        public bool AvgHUD_bold;
+        public int AvgHUD_align;
+        public int PercAvgHUD = 1;
+        public string AvgHUD_Format = "Avg - {0}ms";
+        public bool AvgHUD_Bump;
+        public bool AvgHUD_UseCustomFont;
+        public string AvgHUD_FontPath = "";
 
         public bool ShowURHUD;
         public float URHUD_x;
@@ -75,6 +89,7 @@ namespace TimingShow
         public string URHUD_Format = "UR - {0}";
         public bool URHUD_UseCustomFont;
         public string URHUD_FontPath = "";
+        public bool URHUD_Bump;
 
         public bool ShowRatioHUD;
         public float RatioHUD_x;
@@ -86,6 +101,7 @@ namespace TimingShow
         public string RatioHUD_Format = "Ratio - {0}:1";
         public bool RatioHUD_UseCustomFont;
         public string RatioHUD_FontPath = "";
+        public bool RatioHUD_Bump;
         
         public bool Ratio_UseXPerfect;
         
@@ -97,6 +113,7 @@ namespace TimingShow
 
         public bool ShowXACCGraph;
         public bool XACCGraph_ShowEnd;
+        public bool XACCGraph_ShowPerfInfo;
         public float XACCGraph_X = 0.05f;
         public float XACCGraph_Y = 0.50f;
         public float XACCGraph_Width = 260f;
@@ -109,6 +126,63 @@ namespace TimingShow
         public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 1f);
         public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
+        public bool XACCGraph_UseCustomFont;
+        public string XACCGraph_FontPath = "";
+
+        public bool ShowTimingScatter;
+        public bool TimingScatter_ShowEnd;
+        public float TimingScatter_X = 0.05f;
+        public float TimingScatter_Y = 0.20f;
+        public float TimingScatter_Width = 320f;
+        public float TimingScatter_Height = 140f;
+        public float TimingScatter_Scale = 1.0f;
+        public int TimingScatter_SampleCount = 200;
+        public int TimingScatter_MaxRenderPoints = 800;
+        public float TimingScatter_PointSize = 3f;
+        public bool TimingScatter_UseHitAxis;
+        public bool TimingScatter_AutoScroll;
+        public bool TimingScatter_UseJudgeColor = true;
+        public bool TimingScatter_ShowZeroLine = true;
+        public bool TimingScatter_ShowAvgLine = true;
+        public bool TimingScatter_IgnoreOutliers;
+        public bool TimingScatter_ShowPerfInfo;
+        public bool TimingScatter_ShowJudgeBands = true;
+        public bool TimingScatter_ShowXpBand = true;
+        public bool TimingScatter_BandAutoWindow = true;
+        public float TimingScatter_BandThresholdBpm = 310f;
+
+        public Color TimingScatter_BgColor = new Color(0f, 0f, 0f, 0.60f);
+        public Color TimingScatter_GridColor = new Color(1f, 1f, 1f, 0.35f);
+        public Color TimingScatter_ZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
+        public Color TimingScatter_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
+        public Color TimingScatter_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
+        public Color TimingScatter_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public Color TimingScatter_BandPerfectColor = new Color(0.25f, 0.90f, 0.35f, 0.14f);
+        public Color TimingScatter_BandElPerfectColor = new Color(1f, 0.85f, 0.20f, 0.12f);
+        public Color TimingScatter_BandEarlyLateColor = new Color(0.95f, 0.40f, 0.30f, 0.10f);
+        public Color TimingScatter_BandXpColor = new Color(77f / 255f, 204f / 255f, 1f, 0.14f);
+        public bool TimingScatter_UseCustomFont;
+        public string TimingScatter_FontPath = "";
+        
+        public bool LogGraph_Enabled = true;
+        public float LogGraph_UIScale = 1.25f;
+        public float LogGraph_WindowWidth = 1440f;
+        public float LogGraph_WindowHeight = 670f;
+        public bool LogGraph_UseHitAxis;
+        public bool LogGraph_UseJudgeColor = true;
+        public bool LogGraph_ShowZeroLine = true;
+        public bool LogGraph_ShowAvgLine = true;
+        public bool LogGraph_IgnoreOutliers;
+        public int LogGraph_MaxRenderPoints = 800;
+        public float LogGraph_PointSize = 3f;
+        public Color LogGraph_BgColor = new Color(0f, 0f, 0f, 0.60f);
+        public Color LogGraph_GridColor = new Color(1f, 1f, 1f, 0.16f);
+        public Color LogGraph_ZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
+        public Color LogGraph_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
+        public Color LogGraph_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
+        public Color LogGraph_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public bool LogGraph_UseCustomFont;
+        public string LogGraph_FontPath = "";
 
         public bool Title_EnableXPerfect;
         public bool Planet_EnableXPerfect;
@@ -142,7 +216,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 1;
+        public const int CurrentSettingsVersion = 2;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -167,6 +241,7 @@ namespace TimingShow
                             settings.ConfigKey = KeyCode.F9;
                         bool isLegacyConfig = json.IndexOf("settingsVersion", StringComparison.OrdinalIgnoreCase) < 0;
                         settings.Migrate(isLegacyConfig);
+                        settings.Sanitize();
                         return settings;
                     }
                 }
@@ -186,13 +261,26 @@ namespace TimingShow
         {
             bool migrated = false;
 
-            if (isLegacyConfig || SettingsVersion < CurrentSettingsVersion)
+            if (isLegacyConfig || SettingsVersion < 1)
             {
                 ReplacePerfectMinus = ReplacePerfect;
                 ReplacePerfectPlus = ReplacePerfect;
                 ReplaceXPerfect = Planet_EnableXPerfect;
                 ReplaceOverPress = ReplaceFailMiss;
                 ReplaceAuto = false;
+
+                migrated = true;
+            }
+
+            if (SettingsVersion < 2)
+            {
+                if (Mathf.Approximately(TimingScatter_BandXpColor.r, 77f / 255f) &&
+                    Mathf.Approximately(TimingScatter_BandXpColor.g, 204f / 255f) &&
+                    Mathf.Approximately(TimingScatter_BandXpColor.b, 1f) &&
+                    Mathf.Approximately(TimingScatter_BandXpColor.a, 1f))
+                {
+                    TimingScatter_BandXpColor.a = TimingScatter_BandPerfectColor.a;
+                }
 
                 migrated = true;
             }
@@ -213,6 +301,32 @@ namespace TimingShow
             {
                 ModContext.Logger?.Log("Settings migrated to ver " + CurrentSettingsVersion);
             }
+        }
+        
+        public void Sanitize()
+        {
+            XACCGraph_X = Mathf.Clamp01(XACCGraph_X);
+            XACCGraph_Y = Mathf.Clamp01(XACCGraph_Y);
+            XACCGraph_Width = Mathf.Clamp(XACCGraph_Width, 80f, 1200f);
+            XACCGraph_Height = Mathf.Clamp(XACCGraph_Height, 40f, 600f);
+            XACCGraph_Scale = Mathf.Clamp(XACCGraph_Scale, 0.2f, 3f);
+
+            TimingScatter_X = Mathf.Clamp01(TimingScatter_X);
+            TimingScatter_Y = Mathf.Clamp01(TimingScatter_Y);
+            TimingScatter_Width = Mathf.Clamp(TimingScatter_Width, 80f, 1200f);
+            TimingScatter_Height = Mathf.Clamp(TimingScatter_Height, 40f, 600f);
+            TimingScatter_Scale = Mathf.Clamp(TimingScatter_Scale, 0.2f, 3f);
+            TimingScatter_SampleCount = Mathf.Clamp(TimingScatter_SampleCount, 10, 20000);
+            TimingScatter_MaxRenderPoints = Mathf.Clamp(TimingScatter_MaxRenderPoints, 20, 8000);
+            TimingScatter_PointSize = Mathf.Clamp(TimingScatter_PointSize, 1f, 12f);
+            TimingScatter_BandThresholdBpm = Mathf.Clamp(TimingScatter_BandThresholdBpm, 100f, 600f);
+
+            LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
+            LogGraph_PointSize = Mathf.Clamp(LogGraph_PointSize, 1f, 12f);
+            LogGraph_UIScale = Mathf.Clamp(LogGraph_UIScale, 0.75f, 3f);
+            
+            if (LogGraph_WindowWidth > 0f) LogGraph_WindowWidth = Mathf.Clamp(LogGraph_WindowWidth, 480f, 1920f);
+            if (LogGraph_WindowHeight > 0f) LogGraph_WindowHeight = Mathf.Clamp(LogGraph_WindowHeight, 260f, 1080f);
         }
 
         public void Save(string modPath)

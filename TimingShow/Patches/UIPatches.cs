@@ -165,8 +165,6 @@ namespace TimingShow.Patches
                 }
 
                 TimingLogger.CloseSession();
-                if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
             }
         }
 
@@ -226,8 +224,6 @@ namespace TimingShow.Patches
                         __instance.detailedResults.textComponent.text += info;
                     }
                 }
-                if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
             }
         }
 
@@ -235,36 +231,63 @@ namespace TimingShow.Patches
         [HarmonyPatch(typeof(scrUIController), "Update")]
         public static class UIReplacePatch
         {
+            private static string _titleBase;
+            private static int _titleBaseSize = 100;
+            private static int _titleAppliedSize = -1;
+
             public static void Postfix(scrUIController __instance)
             {
                 if (!ModContext.IsEnabled) return;
-                if (ModContext.IsPlaying && ModContext.Settings.ShowInSongTitle && __instance.txtLevelName != null)
-                {
-                    if (ModContext.UIDirty)
-                    {
-                        string timing = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
-                        if (ModContext.Settings.Title_UseJudgeColor)
-                        {
-                            Color titleColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.Title_EnableXPerfect);
-                            timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
-                        }
-                        int fontSize = ModContext.Settings.Title_FontSize;
-                        if (fontSize != 100) timing = $"<size={fontSize}%>{timing}</size>";
-
-                        __instance.txtLevelName.supportRichText = true;
-                        __instance.txtLevelName.text = timing;
-                    }
-                }
 
                 if (ModContext.IsPlaying)
                 {
+                    HitBump.Tick(Time.deltaTime * 1000.0);
+
+                    if (ModContext.Settings.ShowInSongTitle && __instance.txtLevelName != null)
+                        ApplyTitleText(__instance);
+
                     PlayStatePatches.SyncPauseState();
                     HUDMan.Update();
                 }
                 else
                 {
                     ModContext.UIDirty = false;
+                    HitBump.StopAll();
+                    BumpTrigger.Reset();
+                    _titleBase = null;
+                    _titleAppliedSize = -1;
                 }
+            }
+            
+            private static void ApplyTitleText(scrUIController ui)
+            {
+                if (ModContext.UIDirty)
+                {
+                    string titleValue = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
+                    BumpTrigger.Title(titleValue);
+
+                    string timing = titleValue;
+                    if (ModContext.Settings.Title_UseJudgeColor)
+                    {
+                        Color titleColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.Title_EnableXPerfect);
+                        timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
+                    }
+
+                    _titleBase = timing;
+                    _titleBaseSize = ModContext.Settings.Title_FontSize;
+                    _titleAppliedSize = -1;
+                }
+
+                if (_titleBase == null) return;
+
+                int size = ModContext.Settings.Title_Bump
+                    ? BumpAnim.Scale(_titleBaseSize, HitBump.Title.Ease)
+                    : _titleBaseSize;
+                if (size == _titleAppliedSize) return;
+
+                ui.txtLevelName.supportRichText = true;
+                ui.txtLevelName.text = size == 100 ? _titleBase : $"<size={size}%>{_titleBase}</size>";
+                _titleAppliedSize = size;
             }
         }
     }

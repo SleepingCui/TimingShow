@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace TimingShow
 {
@@ -10,6 +11,9 @@ namespace TimingShow
         private static GameObject _hudObj;
         private static TextUI _hudInstance;
 
+        private static GameObject _avghudObj;
+        private static TextUI _avgHudInstance;
+
         private static GameObject _urhudObj;
         private static TextUI _urHudInstance;
 
@@ -19,12 +23,17 @@ namespace TimingShow
         private static GameObject _xaccGraphObject;
         private static XACCGraphDrawer _xaccGraphInstance;
 
+        private static GameObject _timingScatterObject;
+        private static TimingScatterDrawer _timingScatterInstance;
+
         public static void Destroy()
         {
             DestroyHUD(ref _hudObj, ref _hudInstance);
+            DestroyHUD(ref _avghudObj, ref _avgHudInstance);
             DestroyHUD(ref _urhudObj, ref _urHudInstance);
             DestroyHUD(ref _ratiohudObj, ref _ratioHudInstance);
             DestroyHUD(ref _xaccGraphObject, ref _xaccGraphInstance);
+            DestroyHUD(ref _timingScatterObject, ref _timingScatterInstance);
         }
 
         public static void Update()
@@ -35,6 +44,11 @@ namespace TimingShow
             EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
             if (_hudInstance != null)
                 _hudInstance.ApplyFont(ModContext.Settings.HUD_UseCustomFont, ModContext.Settings.HUD_FontPath);
+
+            bool isAvgPlay = isPlayBase && ModContext.Settings.ShowAvgHUD;
+            EnsureUI(ref _avghudObj, ref _avgHudInstance, "TimingShow_AvgHUD", isAvgPlay);
+            if (_avgHudInstance != null)
+                _avgHudInstance.ApplyFont(ModContext.Settings.AvgHUD_UseCustomFont, ModContext.Settings.AvgHUD_FontPath);
 
             bool isURPlay = isPlayBase && ModContext.Settings.ShowURHUD;
             EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
@@ -62,14 +76,34 @@ namespace TimingShow
             }
             if (_xaccGraphObject != null && _xaccGraphObject.activeSelf != isXACCPlay) _xaccGraphObject.SetActive(isXACCPlay);
 
-            if (!ModContext.UIDirty) return; 
+
+            bool isScatterBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld;
+            bool isScatterPlay = isScatterBase && ModContext.Settings.ShowTimingScatter;
+            if (ModContext.Settings.TimingScatter_ShowEnd) isScatterPlay = isScatterPlay && ModContext.IsLevelFinished;
+            if (isScatterPlay && _timingScatterObject == null)
+            {
+                _timingScatterObject = new GameObject("TimingShow_TimingScatterCanvas");
+                Canvas scatterCanvas = _timingScatterObject.AddComponent<Canvas>();
+                scatterCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                scatterCanvas.sortingOrder = 101;
+                _timingScatterObject.AddComponent<GraphicRaycaster>();
+
+                GameObject scatterDrawerObj = new GameObject("TimingScatterDrawer");
+                scatterDrawerObj.transform.SetParent(_timingScatterObject.transform, false);
+
+                _timingScatterInstance = scatterDrawerObj.AddComponent<TimingScatterDrawer>();
+            }
+            if (_timingScatterObject != null && _timingScatterObject.activeSelf != isScatterPlay) _timingScatterObject.SetActive(isScatterPlay);
+
+            bool dirty = ModContext.UIDirty; 
 
             // timing hud
-            if (isTimingPlay)
+            if (isTimingPlay && dirty)
             {
                 string timing = ModContext.Settings.HUD_ShowAngle
                     ? ModContext.LastAngle.ToString("F" + ModContext.Settings.PercHUD)
                     : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
+                BumpTrigger.Timing(timing);
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
                     Color fColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.HUD_EnableXPerfect);
@@ -80,21 +114,43 @@ namespace TimingShow
                 UpdateTextHUD(_hudInstance, format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
             }
 
+            // avg offset hud
+            if (isAvgPlay && dirty)
+            {
+                string avgStr = CalcUR.Mean().ToString("F" + ModContext.Settings.PercAvgHUD);
+                BumpTrigger.Avg(avgStr);
+                UpdateTextHUD(_avgHudInstance, ModContext.Settings.AvgHUD_Format, avgStr, ModContext.Settings.AvgHUD_x, ModContext.Settings.AvgHUD_y, ModContext.Settings.AvgHUD_scale, ModContext.Settings.AvgHUD_align, ModContext.Settings.AvgHUD_bold);
+            }
+
             // ur hud
-            if (isURPlay)
+            if (isURPlay && dirty)
             {
                 string urStr = CalcUR.Calc().ToString("F" + ModContext.Settings.PercURHUD);
+                BumpTrigger.UR(urStr);
                 UpdateTextHUD(_urHudInstance, ModContext.Settings.URHUD_Format, urStr, ModContext.Settings.URHUD_x, ModContext.Settings.URHUD_y, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_align, ModContext.Settings.URHUD_bold);
             }
 
             // ratio hud
-            if (isRatioPlay)
+            if (isRatioPlay && dirty)
             {
                 string ratioStr = CalcRatio.GetRatioString();
+                BumpTrigger.Ratio(ratioStr);
                 UpdateTextHUD(_ratioHudInstance, ModContext.Settings.RatioHUD_Format, ratioStr, ModContext.Settings.RatioHUD_x, ModContext.Settings.RatioHUD_y, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_align, ModContext.Settings.RatioHUD_bold);
             }
 
-            ModContext.UIDirty = false;
+            if (dirty) ModContext.UIDirty = false;
+            
+            ApplyBumpSize(_hudInstance, isTimingPlay, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_Bump, HitBump.Timing);
+            ApplyBumpSize(_avgHudInstance, isAvgPlay, ModContext.Settings.AvgHUD_scale, ModContext.Settings.AvgHUD_Bump, HitBump.Avg);
+            ApplyBumpSize(_urHudInstance, isURPlay, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_Bump, HitBump.UR);
+            ApplyBumpSize(_ratioHudInstance, isRatioPlay, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_Bump, HitBump.Ratio);
+        }
+        
+        private static void ApplyBumpSize(TextUI instance, bool active, float scale, bool bump, BumpAnim anim)
+        {
+            if (!active || instance == null) return;
+            int baseSize = (int)(24 * scale);
+            instance.SetSize(bump ? BumpAnim.Scale(baseSize, anim.Ease) : baseSize);
         }
 
 

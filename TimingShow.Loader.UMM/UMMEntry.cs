@@ -1,9 +1,9 @@
 using HarmonyLib;
 using UnityModManagerNet;
 
-namespace TimingShow
+namespace TimingShow.UMM
 {
-    public static class Main
+    public static class UMMEntry
     {
         public static bool Load(UnityModManager.ModEntry modEntry)
         {

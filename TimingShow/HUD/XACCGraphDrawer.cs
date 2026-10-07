@@ -23,6 +23,12 @@ namespace TimingShow
         protected override int MaxPoints => ModContext.Settings.XACCGraph_MaxPoints > 0 ? ModContext.Settings.XACCGraph_MaxPoints : 250;
         public override string GraphName => "XACC";
 
+        protected override bool UseCustomFont => ModContext.Settings != null && ModContext.Settings.XACCGraph_UseCustomFont;
+        protected override string FontPath => ModContext.Settings != null ? ModContext.Settings.XACCGraph_FontPath : "";
+
+        protected override bool ShowPerfInfo => ModContext.Settings != null && ModContext.Settings.XACCGraph_ShowPerfInfo;
+        protected override int PerfDataCount => ModContext.FullXAccHistory != null ? ModContext.FullXAccHistory.Count : 0;
+
         private const float MinYRange = 0.1f;
 
         private float _cachedMinY;

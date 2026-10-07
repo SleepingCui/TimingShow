@@ -13,6 +13,9 @@ namespace TimingShow
         private static string _maxPointsText;
         private static string _analyzerPortText;
         private static string _analyzerTimeoutText;
+        private static string _scatterSampleCountText;
+        private static string _scatterMaxPointsText;
+        private static string _logGraphMaxPointsText;
         private static bool _showAdvancedSettings;
 
         private static bool _foldoutTitleSettings;
@@ -21,10 +24,13 @@ namespace TimingShow
         private static bool _foldoutDeathSettings; 
         private static bool _foldoutWinSettings;
         private static bool _foldoutTimingHUD;
+        private static bool _foldoutAvgHUD;
         private static bool _foldoutURHUD;
         private static bool _foldoutRatioHUD;
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
+        private static bool _foldoutTimingScatter;
+        private static bool _foldoutLogGraph;
 
         public static void OnGUI()
         {
@@ -39,9 +45,12 @@ namespace TimingShow
             DrawPlanetSettings();
             DrawDeathAndWinSettings();
             DrawTimingHUD();
+            DrawAvgHUD();
             DrawURHUD();
             DrawRatioHUD();
             DrawXACCGraphSettings();
+            DrawTimingScatterSettings();
+            DrawLogGraphSettings();
             DrawLoggingSettings();
             DrawSessionControls();
             OptionLogList.Draw();
@@ -75,6 +84,7 @@ namespace TimingShow
                         Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
                 }
                 Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
+                Toggle(ref ModContext.Settings.Title_Bump, "Toggle_Bump");
             }
         }
 
@@ -186,6 +196,22 @@ namespace TimingShow
                         Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
                 }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
+                Toggle(ref ModContext.Settings.HUD_Bump, "Toggle_Bump");
+            }
+        }
+
+        private static void DrawAvgHUD()
+        {
+            ToggleFold(i18n.T("Toggle_AvgHUD"), ref ModContext.Settings.ShowAvgHUD, ref _foldoutAvgHUD);
+            if (ModContext.Settings.ShowAvgHUD && _foldoutAvgHUD)
+            {
+                HUDBase(
+                    ref ModContext.Settings.AvgHUD_x, ref ModContext.Settings.AvgHUD_y, ref ModContext.Settings.AvgHUD_scale,
+                    ref ModContext.Settings.AvgHUD_bold, ref ModContext.Settings.AvgHUD_align, ref ModContext.Settings.AvgHUD_Format,
+                    ref ModContext.Settings.PercAvgHUD
+                );
+                DrawHUDFontSettings(ref ModContext.Settings.AvgHUD_UseCustomFont, ref ModContext.Settings.AvgHUD_FontPath);
+                Toggle(ref ModContext.Settings.AvgHUD_Bump, "Toggle_Bump");
             }
         }
 
@@ -200,6 +226,7 @@ namespace TimingShow
                     ref ModContext.Settings.PercURHUD
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.URHUD_UseCustomFont, ref ModContext.Settings.URHUD_FontPath);
+                Toggle(ref ModContext.Settings.URHUD_Bump, "Toggle_Bump");
             }
         }
 
@@ -214,6 +241,7 @@ namespace TimingShow
                     ref ModContext.Settings.PercRatioHUD
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.RatioHUD_UseCustomFont, ref ModContext.Settings.RatioHUD_FontPath);
+                Toggle(ref ModContext.Settings.RatioHUD_Bump, "Toggle_Bump");
                 RatioModeButtons();
             }
         }
@@ -261,8 +289,11 @@ namespace TimingShow
             if (ModContext.Settings.ShowXACCGraph && _foldoutXACCGraph)
             {
                 Toggle(ref ModContext.Settings.XACCGraph_ShowEnd, "Toggle_ShowEnd");
+                Toggle(ref ModContext.Settings.XACCGraph_ShowPerfInfo, "Toggle_ShowPerfInfo");
                 SliderFloat("Label_XOffset", ref ModContext.Settings.XACCGraph_X, 0.0f, 1.0f);
                 SliderFloat("Label_YOffset", ref ModContext.Settings.XACCGraph_Y, 0.0f, 1.0f);
+                SliderFloat("Label_GraphWidth", ref ModContext.Settings.XACCGraph_Width, 80f, 1200f);
+                SliderFloat("Label_GraphHeight", ref ModContext.Settings.XACCGraph_Height, 40f, 600f);
                 SliderFloat("Label_Scale", ref ModContext.Settings.XACCGraph_Scale, 0.2f, 3.0f);
                 IntField("Label_MaxPoints", ref _maxPointsText, ref ModContext.Settings.XACCGraph_MaxPoints, 20, 5000, 250);
 
@@ -271,7 +302,93 @@ namespace TimingShow
                 ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor);
                 ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor);
                 ColorPicker(i18n.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor);
+
+                DrawHUDFontSettings(ref ModContext.Settings.XACCGraph_UseCustomFont, ref ModContext.Settings.XACCGraph_FontPath);
             }
+        }
+
+        private static void DrawTimingScatterSettings()
+        {
+            ToggleFold(i18n.T("Toggle_TimingScatter"), ref ModContext.Settings.ShowTimingScatter, ref _foldoutTimingScatter);
+            if (ModContext.Settings.ShowTimingScatter && _foldoutTimingScatter)
+            {
+                Toggle(ref ModContext.Settings.TimingScatter_ShowEnd, "Toggle_ShowEnd");
+                Toggle(ref ModContext.Settings.TimingScatter_IgnoreOutliers, "Toggle_IgnoreOutliers");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowPerfInfo, "Toggle_ShowPerfInfo");
+                SliderFloat("Label_XOffset", ref ModContext.Settings.TimingScatter_X, 0.0f, 1.0f);
+                SliderFloat("Label_YOffset", ref ModContext.Settings.TimingScatter_Y, 0.0f, 1.0f);
+                SliderFloat("Label_GraphWidth", ref ModContext.Settings.TimingScatter_Width, 80f, 1200f);
+                SliderFloat("Label_GraphHeight", ref ModContext.Settings.TimingScatter_Height, 40f, 600f);
+                SliderFloat("Label_Scale", ref ModContext.Settings.TimingScatter_Scale, 0.2f, 3.0f);
+                IntField("Label_SampleCount", ref _scatterSampleCountText, ref ModContext.Settings.TimingScatter_SampleCount, 10, 20000, 200);
+                IntField("Label_MaxRenderPoints", ref _scatterMaxPointsText, ref ModContext.Settings.TimingScatter_MaxRenderPoints, 20, 8000, 800);
+                SliderFloat("Label_PointSize", ref ModContext.Settings.TimingScatter_PointSize, 1.0f, 12.0f);
+
+                Toggle(ref ModContext.Settings.TimingScatter_UseHitAxis, "Toggle_UseHitAxis");
+                if (!ModContext.Settings.TimingScatter_UseHitAxis) Toggle(ref ModContext.Settings.TimingScatter_AutoScroll, "Toggle_AutoScroll");
+                Toggle(ref ModContext.Settings.TimingScatter_UseJudgeColor, "Toggle_UseJudgeColor");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowZeroLine, "Toggle_ShowZeroLine");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowAvgLine, "Toggle_ShowAvgLine");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowJudgeBands, "Toggle_ShowJudgeBands");
+                if (ModContext.Settings.TimingScatter_ShowJudgeBands)
+                {
+                    Toggle(ref ModContext.Settings.TimingScatter_BandAutoWindow, "Toggle_BandAutoWindow");
+                    if (!ModContext.Settings.TimingScatter_BandAutoWindow)
+                        SliderFloat("Label_BandThresholdBpm", ref ModContext.Settings.TimingScatter_BandThresholdBpm, 100f, 600f);
+
+                    ColorPicker(i18n.T("Label_BandPerfectColor"), ref ModContext.Settings.TimingScatter_BandPerfectColor);
+                    ColorPicker(i18n.T("Label_BandElPerfectColor"), ref ModContext.Settings.TimingScatter_BandElPerfectColor);
+                    ColorPicker(i18n.T("Label_BandEarlyLateColor"), ref ModContext.Settings.TimingScatter_BandEarlyLateColor);
+                }
+
+                Toggle(ref ModContext.Settings.TimingScatter_ShowXpBand, "Toggle_ShowXpBand");
+                if (ModContext.Settings.TimingScatter_ShowXpBand)
+                {
+                    ColorPicker(i18n.T("Label_BandXpColor"), ref ModContext.Settings.TimingScatter_BandXpColor);
+                }
+
+                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.TimingScatter_BgColor);
+                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.TimingScatter_GridColor);
+                ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.TimingScatter_PointColor);
+                ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.TimingScatter_ZeroLineColor);
+                ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.TimingScatter_AvgLineColor);
+                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.TimingScatter_AxisTextColor);
+
+                DrawHUDFontSettings(ref ModContext.Settings.TimingScatter_UseCustomFont, ref ModContext.Settings.TimingScatter_FontPath);
+            }
+        }
+
+        /// <summary>
+        /// 日志散点图窗口（LogGraphWindow）自己的图表设置：全部走 LogGraph_*，与游戏内散点图的
+        /// TimingScatter_* 完全独立（改一边不影响另一边）。开关同时决定日志列表里“查看散点图”按钮是否出现。
+        /// </summary>
+        private static void DrawLogGraphSettings()
+        {
+            GUILayout.BeginVertical();
+            {
+                ToggleFold(i18n.T("Toggle_LogGraph"), ref ModContext.Settings.LogGraph_Enabled, ref _foldoutLogGraph);
+                if (ModContext.Settings.LogGraph_Enabled && _foldoutLogGraph)
+                {
+                    SliderFloat("LogGraph_UiScale", ref ModContext.Settings.LogGraph_UIScale, 0.75f, 3.0f);
+                    Toggle(ref ModContext.Settings.LogGraph_IgnoreOutliers, "Toggle_IgnoreOutliers");
+                    Toggle(ref ModContext.Settings.LogGraph_UseHitAxis, "Toggle_UseHitAxis");
+                    Toggle(ref ModContext.Settings.LogGraph_UseJudgeColor, "Toggle_UseJudgeColor");
+                    Toggle(ref ModContext.Settings.LogGraph_ShowZeroLine, "Toggle_ShowZeroLine");
+                    Toggle(ref ModContext.Settings.LogGraph_ShowAvgLine, "Toggle_ShowAvgLine");
+                    IntField("Label_MaxRenderPoints", ref _logGraphMaxPointsText, ref ModContext.Settings.LogGraph_MaxRenderPoints, 20, 8000, 800);
+                    SliderFloat("Label_PointSize", ref ModContext.Settings.LogGraph_PointSize, 1.0f, 12.0f);
+
+                    ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.LogGraph_BgColor);
+                    ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.LogGraph_GridColor);
+                    ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.LogGraph_PointColor);
+                    ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.LogGraph_ZeroLineColor);
+                    ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.LogGraph_AvgLineColor);
+                    ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.LogGraph_AxisTextColor);
+
+                    DrawHUDFontSettings(ref ModContext.Settings.LogGraph_UseCustomFont, ref ModContext.Settings.LogGraph_FontPath);
+                }
+            }
+            GUILayout.EndVertical();
         }
 
         private static void DrawLoggingSettings()
@@ -356,6 +473,7 @@ namespace TimingShow
             if (GUILayout.Button(i18n.T("Btn_Reset"), GUILayout.Width(150)))
             {
                 ModContext.SessionOffsets.Clear();
+                CalcUR.Reset();
                 ModContext.ResetJudgeState();
                 ModContext.LastTiming = 0;
                 ModContext.LastAngle = 0;
