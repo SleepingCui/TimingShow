@@ -111,10 +111,16 @@
     <Compile Include="HUD\JColors.cs" />
     <Compile Include="HUD\TextUI.cs" />
     <Compile Include="HUD\XACCGraphDrawer.cs" />
+    <Compile Include="HUD\ScatterDrawerBase.cs" />
     <Compile Include="HUD\TimingScatterDrawer.cs" />
+    <Compile Include="HUD\LogScatterDrawer.cs" />
+    <Compile Include="HUD\LogGraphFont.cs" />
+    <Compile Include="HUD\LogGraphWindow.cs" />
+    <Compile Include="HUD\LogGraphSettingsUI.cs" />
     <Compile Include="Logging\ColorConverter.cs" />
     <Compile Include="Logging\TimingLogger.cs" />
     <Compile Include="Logging\TimingLoggerBinary.cs" />
+    <Compile Include="Logging\TimingLogReader.cs" />
     <Compile Include="Logging\VarInt.cs" />
     <Compile Include="Options\OptionLogList.cs" />
     <Compile Include="Options\Options.cs" />
