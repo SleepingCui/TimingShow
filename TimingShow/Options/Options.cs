@@ -15,6 +15,7 @@ namespace TimingShow
         private static string _analyzerTimeoutText;
         private static string _scatterSampleCountText;
         private static string _scatterMaxPointsText;
+        private static string _logGraphMaxPointsText;
         private static bool _showAdvancedSettings;
 
         private static bool _foldoutTitleSettings;
@@ -29,6 +30,7 @@ namespace TimingShow
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
         private static bool _foldoutTimingScatter;
+        private static bool _foldoutLogGraph;
 
         public static void OnGUI()
         {
@@ -48,6 +50,7 @@ namespace TimingShow
             DrawRatioHUD();
             DrawXACCGraphSettings();
             DrawTimingScatterSettings();
+            DrawLogGraphSettings();
             DrawLoggingSettings();
             DrawSessionControls();
             OptionLogList.Draw();
@@ -336,19 +339,12 @@ namespace TimingShow
                     ColorPicker(i18n.T("Label_BandPerfectColor"), ref ModContext.Settings.TimingScatter_BandPerfectColor);
                     ColorPicker(i18n.T("Label_BandElPerfectColor"), ref ModContext.Settings.TimingScatter_BandElPerfectColor);
                     ColorPicker(i18n.T("Label_BandEarlyLateColor"), ref ModContext.Settings.TimingScatter_BandEarlyLateColor);
-
-                    float perfectMs, elPerfectMs, passMs;
-                    TimingScatterDrawer.GetJudgeWindowMs(ModContext.Settings, out perfectMs, out elPerfectMs, out passMs);
-                    IndentedLabel(string.Format(i18n.T("Label_BandWindowInfo"), perfectMs, elPerfectMs, passMs));
-                    string bandDifficulty = ModContext.Settings.TimingScatter_BandAutoWindow ? TimingScatterDrawer.GetGameDifficultyLabel() : "-";
-                    IndentedLabel(string.Format(i18n.T("Label_BandTempoInfo"), TimingScatterDrawer.GetEffectiveTempoBpm(), TimingScatterDrawer.GetThresholdBpm(ModContext.Settings), bandDifficulty));
                 }
 
                 Toggle(ref ModContext.Settings.TimingScatter_ShowXpBand, "Toggle_ShowXpBand");
                 if (ModContext.Settings.TimingScatter_ShowXpBand)
                 {
                     ColorPicker(i18n.T("Label_BandXpColor"), ref ModContext.Settings.TimingScatter_BandXpColor);
-                    IndentedLabel(string.Format(i18n.T("Label_XpWindowInfo"), TimingScatterDrawer.GetXpWindowMs()));
                 }
 
                 ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.TimingScatter_BgColor);
@@ -360,6 +356,39 @@ namespace TimingShow
 
                 DrawHUDFontSettings(ref ModContext.Settings.TimingScatter_UseCustomFont, ref ModContext.Settings.TimingScatter_FontPath);
             }
+        }
+
+        /// <summary>
+        /// 日志散点图窗口（LogGraphWindow）自己的图表设置：全部走 LogGraph_*，与游戏内散点图的
+        /// TimingScatter_* 完全独立（改一边不影响另一边）。开关同时决定日志列表里“查看散点图”按钮是否出现。
+        /// </summary>
+        private static void DrawLogGraphSettings()
+        {
+            GUILayout.BeginVertical();
+            {
+                ToggleFold(i18n.T("Toggle_LogGraph"), ref ModContext.Settings.LogGraph_Enabled, ref _foldoutLogGraph);
+                if (ModContext.Settings.LogGraph_Enabled && _foldoutLogGraph)
+                {
+                    SliderFloat("LogGraph_UiScale", ref ModContext.Settings.LogGraph_UIScale, 0.75f, 3.0f);
+                    Toggle(ref ModContext.Settings.LogGraph_IgnoreOutliers, "Toggle_IgnoreOutliers");
+                    Toggle(ref ModContext.Settings.LogGraph_UseHitAxis, "Toggle_UseHitAxis");
+                    Toggle(ref ModContext.Settings.LogGraph_UseJudgeColor, "Toggle_UseJudgeColor");
+                    Toggle(ref ModContext.Settings.LogGraph_ShowZeroLine, "Toggle_ShowZeroLine");
+                    Toggle(ref ModContext.Settings.LogGraph_ShowAvgLine, "Toggle_ShowAvgLine");
+                    IntField("Label_MaxRenderPoints", ref _logGraphMaxPointsText, ref ModContext.Settings.LogGraph_MaxRenderPoints, 20, 8000, 800);
+                    SliderFloat("Label_PointSize", ref ModContext.Settings.LogGraph_PointSize, 1.0f, 12.0f);
+
+                    ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.LogGraph_BgColor);
+                    ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.LogGraph_GridColor);
+                    ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.LogGraph_PointColor);
+                    ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.LogGraph_ZeroLineColor);
+                    ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.LogGraph_AvgLineColor);
+                    ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.LogGraph_AxisTextColor);
+
+                    DrawHUDFontSettings(ref ModContext.Settings.LogGraph_UseCustomFont, ref ModContext.Settings.LogGraph_FontPath);
+                }
+            }
+            GUILayout.EndVertical();
         }
 
         private static void DrawLoggingSettings()

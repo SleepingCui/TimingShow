@@ -160,10 +160,29 @@ namespace TimingShow
         public Color TimingScatter_BandPerfectColor = new Color(0.25f, 0.90f, 0.35f, 0.14f);
         public Color TimingScatter_BandElPerfectColor = new Color(1f, 0.85f, 0.20f, 0.12f);
         public Color TimingScatter_BandEarlyLateColor = new Color(0.95f, 0.40f, 0.30f, 0.10f);
-        // XPerfect 色带：RGB 取游戏 colourXPerfect 的回退值 Color32(77, 204, 255)，alpha 与判定色带一致
         public Color TimingScatter_BandXpColor = new Color(77f / 255f, 204f / 255f, 1f, 0.14f);
         public bool TimingScatter_UseCustomFont;
         public string TimingScatter_FontPath = "";
+        
+        public bool LogGraph_Enabled = true;
+        public float LogGraph_UIScale = 1.25f;
+        public float LogGraph_WindowWidth = 1440f;
+        public float LogGraph_WindowHeight = 670f;
+        public bool LogGraph_UseHitAxis;
+        public bool LogGraph_UseJudgeColor = true;
+        public bool LogGraph_ShowZeroLine = true;
+        public bool LogGraph_ShowAvgLine = true;
+        public bool LogGraph_IgnoreOutliers;
+        public int LogGraph_MaxRenderPoints = 800;
+        public float LogGraph_PointSize = 3f;
+        public Color LogGraph_BgColor = new Color(0f, 0f, 0f, 0.60f);
+        public Color LogGraph_GridColor = new Color(1f, 1f, 1f, 0.16f);
+        public Color LogGraph_ZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
+        public Color LogGraph_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
+        public Color LogGraph_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
+        public Color LogGraph_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public bool LogGraph_UseCustomFont;
+        public string LogGraph_FontPath = "";
 
         public bool Title_EnableXPerfect;
         public bool Planet_EnableXPerfect;
@@ -301,6 +320,13 @@ namespace TimingShow
             TimingScatter_MaxRenderPoints = Mathf.Clamp(TimingScatter_MaxRenderPoints, 20, 8000);
             TimingScatter_PointSize = Mathf.Clamp(TimingScatter_PointSize, 1f, 12f);
             TimingScatter_BandThresholdBpm = Mathf.Clamp(TimingScatter_BandThresholdBpm, 100f, 600f);
+
+            LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
+            LogGraph_PointSize = Mathf.Clamp(LogGraph_PointSize, 1f, 12f);
+            LogGraph_UIScale = Mathf.Clamp(LogGraph_UIScale, 0.75f, 3f);
+            
+            if (LogGraph_WindowWidth > 0f) LogGraph_WindowWidth = Mathf.Clamp(LogGraph_WindowWidth, 480f, 1920f);
+            if (LogGraph_WindowHeight > 0f) LogGraph_WindowHeight = Mathf.Clamp(LogGraph_WindowHeight, 260f, 1080f);
         }
 
         public void Save(string modPath)

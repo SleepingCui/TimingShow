@@ -119,6 +119,12 @@ namespace TimingShow
                     string analyzeLabel = i18n.T("Btn_AnalyzeLog");
                     if (GUILayout.Button(analyzeLabel, GUILayout.Width(MeasureButtonWidth(analyzeLabel, 70f))))
                         OpenLogInAnalyzer(entry.FullPath);
+                    if (ModContext.Settings.LogGraph_Enabled)
+                    {
+                        string graphLabel = i18n.T("Btn_ViewLogGraph");
+                        if (GUILayout.Button(graphLabel, GUILayout.Width(MeasureButtonWidth(graphLabel, 70f))))
+                            OpenLogGraphWindow(entry.FullPath);
+                    }
                     string openFileLabel = i18n.T("Btn_OpenLogFile");
                     if (GUILayout.Button(openFileLabel, GUILayout.Width(MeasureButtonWidth(openFileLabel, 70f))))
                         OpenLogFile(entry.FullPath);
@@ -342,6 +348,27 @@ namespace TimingShow
             catch (Exception e)
             {
                 ModContext.Logger.Error("Failed to open log analyzer: " + e.Message);
+            }
+        }
+
+        /// <summary>读取日志并以自建窗口（非 UMM 窗口）显示散点图。</summary>
+        private static void OpenLogGraphWindow(string filePath)
+        {
+            try
+            {
+                TimingLogData data;
+                string error;
+                if (!TimingLogReader.TryRead(filePath, out data, out error))
+                {
+                    ModContext.Logger.Error("Failed to read log for graph: " + (error ?? "unknown error"));
+                    return;
+                }
+
+                LogGraphWindow.Open(data);
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Error("Failed to open log graph window: " + e.Message);
             }
         }
 

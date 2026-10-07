@@ -8,7 +8,7 @@ using TMPro;
 namespace TimingShow
 {
     [RequireComponent(typeof(CanvasRenderer))]
-    public abstract class GraphDrawerBase : Graphic
+    public abstract class GraphDrawerBase : MaskableGraphic
     {
         protected abstract bool IsEnabled { get; }
         protected abstract bool ShowGraph { get; }
@@ -26,11 +26,12 @@ namespace TimingShow
         
         protected virtual bool UseCustomFont => false;
         protected virtual string FontPath => "";
-        
+        protected virtual bool AllowGameFontFallback => true;
+
         protected virtual bool ShowPerfInfo => false;
         protected virtual int PerfDataCount => GetDataCount();
         protected virtual string PerfExtraInfo => null;
-        protected virtual Color PerfTextColor => new Color32(0, 255, 0, 255);   // #00FF00
+        protected virtual Color PerfTextColor => new Color32(0, 255, 0, 255);   
 
         protected abstract void UpdateData();
         protected abstract int GetDataCount();
@@ -80,18 +81,25 @@ namespace TimingShow
             _perfText = CreateText("PerfInfoLabel", CurrentFontAsset, TextAnchor.UpperLeft);
         }
         
-        protected TMP_FontAsset ResolveGraphFont()
+
+        protected virtual TMP_FontAsset ResolveGraphFont()
         {
             string path = UseCustomFont ? (FontPath ?? "").Trim() : "";
-            string key = path.Length > 0 ? "custom:" + path : "game";
+            string key = FontCacheKey(path);
 
             if (FontCache.TryGetValue(key, out TMP_FontAsset cached)) return cached;
 
             TMP_FontAsset asset = path.Length > 0 ? LoadFontFromPath(path) : null;
-            if (asset == null) asset = FindGameFont();
+            if (asset == null && AllowGameFontFallback) asset = FindGameFont();
 
             FontCache[key] = asset;
             return asset;
+        }
+
+        private string FontCacheKey(string path)
+        {
+            if (!string.IsNullOrEmpty(path)) return "custom:" + path;
+            return AllowGameFontFallback ? "game" : "system";
         }
 
         protected void ApplyGraphFont()
@@ -100,7 +108,7 @@ namespace TimingShow
             if (asset != null) CurrentFontAsset = asset;
 
             string path = UseCustomFont ? (FontPath ?? "").Trim() : "";
-            string key = path.Length > 0 ? "custom:" + path : "game";
+            string key = FontCacheKey(path);
             if (_appliedFontKey == key) return;
 
             _appliedFontKey = key;
@@ -307,7 +315,7 @@ namespace TimingShow
             if (_perfText != null && _perfText.gameObject.activeSelf != perfActive) _perfText.gameObject.SetActive(perfActive);
         }
 
-        private void UpdateTransform()
+        protected virtual void UpdateTransform()
         {
             RectTransform rect = rectTransform;
             float scale = Mathf.Max(0.01f, Scale);
@@ -504,12 +512,15 @@ namespace TimingShow
             vh.AddTriangle(baseIdx, baseIdx + 2, baseIdx + 3);
         }
 
+
+        protected virtual float GridAlphaScale => 1f;
+        
         protected virtual void DrawGridLines(VertexHelper vh, float w, float h)
         {
             float halfGridWidth = 1.0f * Scale * 0.5f;
-            DrawSegment(vh, new Vector2(0, 0), new Vector2(w, 0), halfGridWidth, GridColor);
-            DrawSegment(vh, new Vector2(0, h * 0.5f), new Vector2(w, h * 0.5f), halfGridWidth, GridColor);
-            DrawSegment(vh, new Vector2(0, h), new Vector2(w, h), halfGridWidth, GridColor);
+            Color color = GridColor;
+            color.a *= Mathf.Clamp01(GridAlphaScale);
+            DrawSegment(vh, new Vector2(0, h * 0.5f), new Vector2(w, h * 0.5f), halfGridWidth, color);
         }
     }
 }
