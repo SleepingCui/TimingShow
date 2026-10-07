@@ -22,6 +22,12 @@ A Timing information display mod for A Dance of Fire and Ice, supporting MelonLo
 - 支持 Timing 日志，可在[Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer)获取详细的分析报告 (包括偏移散点图，正态分布图，XACC曲线等指标)
 
   Supports Timing logs; detailed analysis reports (including offset scatter plots, normal distribution graphs, XACC curves, and other metrics) are available at [Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer).
+- 提供游戏内实时 Timing 散点图与日志散点图窗口，支持平移缩放、单次击打详情与判定/XPerfect 色带
+
+  Provides an in-game real-time Timing scatter graph and a log scatter window (log list → View Graph), with pan/zoom, per-hit details, and judge/XPerfect bands
+- 新增平均偏移 (Avg) HUD 与命中跳动效果
+
+  Adds an Avg offset HUD and a hit bump animation
 - 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
 
   Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.
@@ -29,7 +35,6 @@ A Timing information display mod for A Dance of Fire and Ice, supporting MelonLo
 ## Screenshots
 <details>
 <summary>（点击展开 / Click to expand）</summary>
-
 <img width="682" height="645" alt="屏幕截图 2026-09-06 000354" src="https://github.com/user-attachments/assets/6abc512e-3f7d-446d-ba2f-d314ffed2934" />
 
 <img width="1721" height="1021" alt="屏幕截图 2026-09-06 000500" src="https://github.com/user-attachments/assets/62a7a0f1-ba1a-4445-b63a-ccd89d74e90a" />
