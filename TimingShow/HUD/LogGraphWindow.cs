@@ -310,7 +310,14 @@ namespace TimingShow.HUD
         private enum PendingButton { None, Close, Settings }
         private PendingButton _pendingButton = PendingButton.None;
         
-        private static readonly bool DiagnoseInput = false;
+        private static bool DiagnoseInput
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.Diag_InputTrace;
+            }
+        }
 
         private static void Trace(string message)
         {
@@ -628,7 +635,6 @@ namespace TimingShow.HUD
 
         private static void ApplyTitleFont(TextMeshProUGUI text, TMP_FontAsset asset)
         {
-            // 只接受显式传入的（系统）字体，不主动改用游戏字体
             if (text == null || asset == null) return;
             if (text.font == asset) return;
 
@@ -1178,11 +1184,59 @@ namespace TimingShow.HUD
             _panel.SetSettingsHover(!onClose && HitSettingsButton(local, size));
         }
 
-        private static readonly bool DiagnoseGraphBounds = true;
-        private const float BoundsTolerance = 0.5f;
-        private const float BoundsCheckInterval = 1f;
-        private const int BoundsLogLimit = 40;
-        private const float BoundsLogRepeatSeconds = 5f;
+        private static bool DiagnoseGraphBounds
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.Diag_GraphBounds;
+            }
+        }
+
+        private static bool DiagnoseTrackMeshBounds
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.Diag_TrackMeshBounds;
+            }
+        }
+
+        private static float BoundsTolerance
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return Mathf.Clamp(settings != null ? settings.Diag_BoundsTolerancePx : 0.5f, 0f, 8f);
+            }
+        }
+
+        private static float BoundsCheckInterval
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return Mathf.Clamp(settings != null ? settings.Diag_BoundsIntervalSec : 1f, 0.05f, 10f);
+            }
+        }
+
+        private static int BoundsLogLimit
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return Mathf.Clamp(settings != null ? settings.Diag_BoundsLogLimit : 40, 1, 500);
+            }
+        }
+
+        private static float BoundsLogRepeatSeconds
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return Mathf.Clamp(settings != null ? settings.Diag_BoundsLogRepeatSec : 5f, 0f, 60f);
+            }
+        }
 
         private static readonly List<KeyValuePair<string, RectTransform>> BoundsTargets = new List<KeyValuePair<string, RectTransform>>(24);
         private static readonly Dictionary<string, float> BoundsLoggedAt = new Dictionary<string, float>();
@@ -1193,17 +1247,15 @@ namespace TimingShow.HUD
 
         private void UpdateBoundsDiagnostics()
         {
+            bool wantMeshBounds = DiagnoseGraphBounds || DiagnoseTrackMeshBounds;
+            if (GraphDrawerBase.TrackMeshBounds != wantMeshBounds) GraphDrawerBase.TrackMeshBounds = wantMeshBounds;
+
             if (!DiagnoseGraphBounds || _windowRect == null || _panel == null) return;
             if (Time.unscaledTime < _boundsNextCheckAt) return;
             _boundsNextCheckAt = Time.unscaledTime + BoundsCheckInterval;
 
-            GraphDrawerBase.TrackMeshBounds = true;
-
             if (!_boundsActivated)
-            {
                 _boundsActivated = true;
-                ModContext.Logger?.Log("[LogGraphWindow] 边界断言已启用：逐帧比较 UI 屏幕包围盒与窗口矩形");
-            }
 
             ValidateGraphBounds(Time.unscaledTime);
         }
@@ -1228,9 +1280,9 @@ namespace TimingShow.HUD
                 KeyValuePair<string, RectTransform> target = BoundsTargets[i];
                 Rect bounds = ScreenRectOf(target.Value);
 
-                ReportBoundsOverflow(target.Key, bounds, window, now, "窗口");
+                ReportBoundsOverflow(target.Key, bounds, window, now, "window");
                 if (!ReferenceEquals(target.Value, _graphContainerRect))
-                    ReportBoundsOverflow(target.Key, bounds, container, now, "图表容器");
+                    ReportBoundsOverflow(target.Key, bounds, container, now, "container");
             }
 
             Vector2 meshMin;
@@ -1241,8 +1293,8 @@ namespace TimingShow.HUD
                 Vector3 max = _graphRect.TransformPoint(new Vector3(meshMax.x, meshMax.y, 0f));
                 Rect meshBounds = ScreenRectOfWorld(min, max);
 
-                ReportBoundsOverflow("GraphMesh", meshBounds, window, now, "窗口");
-                ReportBoundsOverflow("GraphMesh", meshBounds, container, now, "图表容器");
+                ReportBoundsOverflow("GraphMesh", meshBounds, window, now, "window");
+                ReportBoundsOverflow("GraphMesh", meshBounds, container, now, "container");
             }
         }
 
@@ -1272,9 +1324,9 @@ namespace TimingShow.HUD
             _boundsLogCount++;
 
             ModContext.Logger?.Log(
-                $"[LogGraphWindow] 越界 {name}（参照：{scope}）: 元素 [{bounds.xMin:F1},{bounds.yMin:F1}]-[{bounds.xMax:F1},{bounds.yMax:F1}]" +
-                $" 参照 [{reference.xMin:F1},{reference.yMin:F1}]-[{reference.xMax:F1},{reference.yMax:F1}]" +
-                $" 溢出 L{left:F1} R{right:F1} B{bottom:F1} T{top:F1}");
+                $"[LogGraphWindow] overflow {name} (scope: {scope}) bounds [{bounds.xMin:F1},{bounds.yMin:F1}]-[{bounds.xMax:F1},{bounds.yMax:F1}]" +
+                $" ref [{reference.xMin:F1},{reference.yMin:F1}]-[{reference.xMax:F1},{reference.yMax:F1}]" +
+                $" spill L{left:F1} R{right:F1} B{bottom:F1} T{top:F1}");
         }
 
         private Rect ExpectedScreenRect(Rect local)
@@ -1300,8 +1352,8 @@ namespace TimingShow.HUD
             _boundsLogCount++;
 
             ModContext.Logger?.Log(
-                $"[LogGraphWindow] 布局未应用 {name}: 实际 [{actual.xMin:F1},{actual.yMin:F1}]-[{actual.xMax:F1},{actual.yMax:F1}]" +
-                $" 期望 [{expected.xMin:F1},{expected.yMin:F1}]-[{expected.xMax:F1},{expected.yMax:F1}]");
+                $"[LogGraphWindow] layout mismatch {name} actual [{actual.xMin:F1},{actual.yMin:F1}]-[{actual.xMax:F1},{actual.yMax:F1}]" +
+                $" expected [{expected.xMin:F1},{expected.yMin:F1}]-[{expected.xMax:F1},{expected.yMax:F1}]");
         }
 
         private static Rect ScreenRectOf(RectTransform rect)
@@ -1397,6 +1449,9 @@ namespace TimingShow.HUD
                 _hoverProxy = null;
                 _exitProxy = null;
             }
+
+            if (ModContext.Settings == null || !ModContext.Settings.Diag_TrackMeshBounds)
+                GraphDrawerBase.TrackMeshBounds = false;
         }
 
 
@@ -1534,7 +1589,7 @@ namespace TimingShow.HUD
             
             if (local.y >= size.y - HeaderHeight)
             {
-                Trace("按下 → 标题栏");
+                Trace("press -> header");
                 _resizing = false;
                 _updateFallbackDrag = true;
                 _dragStartScreen = screen;

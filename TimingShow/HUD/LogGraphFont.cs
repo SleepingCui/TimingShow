@@ -57,7 +57,6 @@ namespace TimingShow.HUD
 
             _resolved = true;
 
-            // 英文为主：拉丁字体作为主字体，中韩字体只作为缺字回退
             TMP_FontAsset latin = FirstAvailable(LatinCandidates);
             TMP_FontAsset cjk = FirstAvailable(CjkCandidates);
             TMP_FontAsset hangul = FirstAvailable(HangulCandidates);

@@ -218,6 +218,15 @@ namespace TimingShow
 
         public int LogListDrawBudget = 60;
 
+        public bool Diag_GraphBounds;
+        public bool Diag_InputTrace;
+        public bool Diag_TrackMeshBounds;
+        public float Diag_BoundsIntervalSec = 1f;
+        public float Diag_BoundsTolerancePx = 0.5f;
+        public int Diag_BoundsLogLimit = 40;
+        public float Diag_BoundsLogRepeatSec = 5f;
+        public int Diag_ScatterWarningLimit = 5;
+
         public const int LogSort_Time = 0;
         public const int LogSort_Size = 1;
         public const int LogSort_SongName = 2;

@@ -65,8 +65,6 @@ namespace TimingShow.HUD
             SetVerticesDirty();
         }
 
-  
-        // 日志窗口不允许回退到游戏字体：没配置自定义字体时只使用系统字体。
         protected override bool AllowGameFontFallback => false;
 
         protected override TMP_FontAsset ResolveGraphFont()

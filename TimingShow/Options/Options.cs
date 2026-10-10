@@ -19,6 +19,7 @@ namespace TimingShow.Options
         private static string _scatterMaxPointsText;
         private static string _logGraphMaxPointsText;
         private static bool _showAdvancedSettings;
+        private static bool _showDebugSettings;
         private static bool _showLogGraphSettings;
 
         private static bool _foldoutTitleSettings;
@@ -553,7 +554,7 @@ namespace TimingShow.Options
                 );
                 ModContext.Settings.AnalyzerBridgeEnabled = analyzerEnabled;
                 if (previousAnalyzerEnabled && !analyzerEnabled)
-                LogAnalyzerBridge.Stop();
+                    LogAnalyzerBridge.Stop();
 
                 if (analyzerEnabled)
                 {
@@ -561,8 +562,38 @@ namespace TimingShow.Options
                 IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, ref ModContext.Settings.AnalyzerBridgeTimeoutSec,
                     LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds, LogAnalyzerBridge.DefaultTimeoutSeconds, 160);
                 }
+                GUILayout.Space(8);
+
+                DrawDebugSettings();
             }
             GUILayout.EndVertical();
+        }
+
+        private static void DrawDebugSettings()
+        {
+            string debugFoldoutArrow = _showDebugSettings ? "▲" : "▼";
+            if (GUILayout.Button($"{i18n.T("Btn_Debug")} {debugFoldoutArrow}", GUILayout.Width(150)))
+                _showDebugSettings = !_showDebugSettings;
+
+            IndentedLabel(i18n.T("Desc_DebugWarning"));
+
+            if (!_showDebugSettings) return;
+
+            GUILayout.Space(5);
+
+            Toggle(ref ModContext.Settings.Diag_GraphBounds, "Toggle_DiagGraphBounds");
+            Toggle(ref ModContext.Settings.Diag_InputTrace, "Toggle_DiagInputTrace");
+            Toggle(ref ModContext.Settings.Diag_TrackMeshBounds, "Toggle_DiagTrackMesh");
+
+            SliderFloat("Label_DiagBoundsInterval", ref ModContext.Settings.Diag_BoundsIntervalSec, 0.1f, 5f);
+            SliderFloat("Label_DiagBoundsTolerance", ref ModContext.Settings.Diag_BoundsTolerancePx, 0f, 4f);
+            SliderInt("Label_DiagBoundsLogLimit", ref ModContext.Settings.Diag_BoundsLogLimit, 1, 200);
+            SliderFloat("Label_DiagBoundsRepeat", ref ModContext.Settings.Diag_BoundsLogRepeatSec, 0f, 30f);
+
+            SliderInt("Label_ScatterWarningLimit", ref ModContext.Settings.Diag_ScatterWarningLimit, 0, 50);
+            SliderInt("Label_LogListDrawBudget", ref ModContext.Settings.LogListDrawBudget, 4, 400);
+
+            GUILayout.Space(5);
         }
     }
 }

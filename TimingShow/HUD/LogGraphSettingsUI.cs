@@ -1004,7 +1004,7 @@ namespace TimingShow.HUD
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Error("[LogGraphSettingsUI] 保存设置失败: " + e.Message);
+                ModContext.Logger?.Error("[LogGraphSettingsUI] Failed to save settings: " + e.Message);
             }
         }
 

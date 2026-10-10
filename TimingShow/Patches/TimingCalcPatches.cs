@@ -9,7 +9,14 @@ namespace TimingShow.Patches
     public static class TimingCalcPatches
     {
         private const int TimingScatterHardLimit = 100000;
-        private const int TimingScatterWarningLimit = 5;
+        private static int TimingScatterWarningLimit
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return Mathf.Clamp(settings != null ? settings.Diag_ScatterWarningLimit : 5, 0, 100);
+            }
+        }
         private const float TimingScatterDedupeToleranceMs = 0.05f;
 
         private static int _pendingScatterSampleIndex = -1;
@@ -39,6 +46,7 @@ namespace TimingShow.Patches
                 if (_scatterUnresolvedWarnings < TimingScatterWarningLimit)
                 {
                     _scatterUnresolvedWarnings++;
+                    ModContext.Logger?.Log($"[TimingShow] scatter sample superseded before resolve ({_scatterUnresolvedWarnings}/{TimingScatterWarningLimit})");
                 }
             }
 
@@ -48,6 +56,7 @@ namespace TimingShow.Patches
                 if (_scatterLimitWarnings < TimingScatterWarningLimit)
                 {
                     _scatterLimitWarnings++;
+                    ModContext.Logger?.Log($"[TimingShow] scatter sample limit {TimingScatterHardLimit} reached, further hits dropped ({_scatterLimitWarnings}/{TimingScatterWarningLimit})");
                 }
                 return;
             }
