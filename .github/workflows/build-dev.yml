@@ -1,0 +1,195 @@
+name: Build Development
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build"
+        required: true
+        default: "master"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-dev:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout TimingShow
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 1
+
+      - name: Checkout ADOFAI libs
+        uses: actions/checkout@v6
+        with:
+          repository: SleepingCui/adofai-libs
+          ref: main
+          token: ${{ secrets.ADOFAI_LIBS_TOKEN }}
+          path: libs
+
+      - name: Generate CI version
+        id: version
+        shell: pwsh
+        env:
+          REQUESTED_BRANCH: ${{ inputs.branch }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $branch = $env:REQUESTED_BRANCH
+          $commit = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $commit) {
+            throw "Failed to determine the checked-out commit."
+          }
+
+          $shortHash = $commit.Substring(0, 6)
+          $safeBranch = $branch -replace '[^A-Za-z0-9._-]', '-'
+          $safeBranch = $safeBranch.Trim('-')
+          if ([string]::IsNullOrWhiteSpace($safeBranch)) {
+            $safeBranch = "branch"
+          }
+
+          $version = "CI-$safeBranch-$shortHash"
+          $artifactName = "TimingShow-$version"
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "artifact_name=$artifactName" >> $env:GITHUB_OUTPUT
+          "commit=$commit" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Branch: $branch"
+          Write-Host "Commit: $commit"
+          Write-Host "CI version: $version"
+
+      - name: Update development version metadata
+        shell: pwsh
+        env:
+          CI_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $melonPath = "TimingShow.Loader.Melon/Properties/AssemblyInfo.cs"
+          $ummPath = "TimingShow.Loader.UMM/Info.json"
+
+          if (-not (Test-Path $melonPath)) {
+            throw "MelonLoader AssemblyInfo not found: $melonPath"
+          }
+          if (-not (Test-Path $ummPath)) {
+            throw "UMM Info.json not found: $ummPath"
+          }
+
+          $melonText = Get-Content $melonPath -Raw
+          $melonPattern = '(?m)(\[assembly:\s*MelonInfo\([^\r\n]*?"TimingShow"\s*,\s*")[^"]+(")'
+          $melonRegex = [regex]::new($melonPattern)
+          $updatedMelonText = $melonRegex.Replace(
+            $melonText,
+            [System.Text.RegularExpressions.MatchEvaluator]{
+              param($match)
+              return $match.Groups[1].Value + $env:CI_VERSION + $match.Groups[2].Value
+            },
+            1
+          )
+          if ($updatedMelonText -eq $melonText) {
+            throw "Could not find the TimingShow MelonInfo version in $melonPath"
+          }
+          Set-Content -Path $melonPath -Value $updatedMelonText -NoNewline -Encoding utf8
+
+          $ummText = Get-Content $ummPath -Raw
+          $ummPattern = '("Version"\s*:\s*")[^"]+(")'
+          $ummRegex = [regex]::new($ummPattern)
+          $updatedUmmText = $ummRegex.Replace(
+            $ummText,
+            [System.Text.RegularExpressions.MatchEvaluator]{
+              param($match)
+              return $match.Groups[1].Value + $env:CI_VERSION + $match.Groups[2].Value
+            },
+            1
+          )
+          if ($updatedUmmText -eq $ummText) {
+            throw "Could not find the Version field in $ummPath"
+          }
+
+          # Validate the edited JSON before building.
+          $null = $updatedUmmText | ConvertFrom-Json
+          Set-Content -Path $ummPath -Value $updatedUmmText -NoNewline -Encoding utf8
+
+          if ($updatedMelonText -notmatch [regex]::Escape($env:CI_VERSION)) {
+            throw "MelonLoader version replacement failed."
+          }
+          if ($updatedUmmText -notmatch [regex]::Escape($env:CI_VERSION)) {
+            throw "UMM version replacement failed."
+          }
+
+          Write-Host "Updated both loader versions to $env:CI_VERSION"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build and package
+        shell: cmd
+        run: build.bat
+
+      - name: Verify package
+        shell: pwsh
+        env:
+          CI_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $zipPath = "TimingShow.zip"
+          if (-not (Test-Path $zipPath)) {
+            throw "TimingShow.zip was not generated."
+          }
+
+          $tempDir = Join-Path $env:RUNNER_TEMP "timingshow-dev-verify"
+          if (Test-Path $tempDir) {
+            Remove-Item $tempDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $tempDir | Out-Null
+          Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
+
+          $ummInfoPath = Join-Path $tempDir "Info.json"
+          if (-not (Test-Path $ummInfoPath)) {
+            throw "Info.json is missing from the package."
+          }
+
+          $ummInfo = Get-Content $ummInfoPath -Raw | ConvertFrom-Json
+          if ($ummInfo.Version -ne $env:CI_VERSION) {
+            throw "UMM package version mismatch. Expected '$env:CI_VERSION', got '$($ummInfo.Version)'."
+          }
+
+          $requiredFiles = @(
+            "TimingShow.dll",
+            "TimingShow.Loader.UMM.dll",
+            "TimingShow.Loader.Melon.dll",
+            "lang.json"
+          )
+          foreach ($file in $requiredFiles) {
+            if (-not (Test-Path (Join-Path $tempDir $file))) {
+              throw "Required package file is missing: $file"
+            }
+          }
+
+          Write-Host "Package verification succeeded."
+          Get-Item $zipPath | Format-List Name, Length, FullName
+          Write-Host "UMM version: $($ummInfo.Version)"
+
+      - name: Rename artifact
+        shell: pwsh
+        env:
+          ARTIFACT_NAME: ${{ steps.version.outputs.artifact_name }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $target = "$env:ARTIFACT_NAME.zip"
+          Move-Item -Path "TimingShow.zip" -Destination $target -Force
+          Write-Host "Artifact ready: $target"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.version.outputs.artifact_name }}
+          path: ${{ steps.version.outputs.artifact_name }}.zip
+          if-no-files-found: error
+          retention-days: 14
