@@ -59,6 +59,8 @@ namespace TimingShow.HUD
         private const float BaseAxisGutterRight = 96f;
         private const float BaseAxisGutterBottom = 22f;
         private const float BaseAxisGutterTop = 8f;
+        private const float BaseAxisLabelGap = 6f;
+        private const float BaseAxisLabelMargin = 3f;
         private const float TextLineRatio = 1.35f;
         
         private static float UiScale
@@ -102,6 +104,8 @@ namespace TimingShow.HUD
         private static float AxisGutterRight => BaseAxisGutterRight * UiScale;
         private static float AxisGutterBottom => BaseAxisGutterBottom * UiScale;
         private static float AxisGutterTop => BaseAxisGutterTop * UiScale;
+        private static float AxisLabelGap => BaseAxisLabelGap * UiScale;
+        private static float AxisLabelMargin => BaseAxisLabelMargin * UiScale;
         
         private static float TitleRightPadding => CloseButtonSize + SettingsButtonSize + CloseButtonInset * 3f + ButtonGap;
         
@@ -114,7 +118,15 @@ namespace TimingShow.HUD
         private const int StatsRowCount = 4;
         
         private static Rect HeaderRect(float windowWidth, float windowHeight) => new Rect(0f, Mathf.Max(0f, windowHeight - HeaderHeight), Mathf.Max(0f, windowWidth), HeaderHeight);
-        private static Rect ContentRect(float windowWidth, float windowHeight) => new Rect(ContentInset, ContentInset, ContentWidth(windowWidth), ContentHeight(windowHeight));
+        private static Rect ContentRect(float windowWidth, float windowHeight) => ContentRectCore(windowWidth, windowHeight, UiScale);
+
+        internal static Rect ContentRectCore(float windowWidth, float windowHeight, float uiScale)
+        {
+            float inset = BaseContentInset * uiScale;
+            float width = Mathf.Max(0f, windowWidth - inset * 2f);
+            float height = Mathf.Max(0f, windowHeight - BaseHeaderHeight * uiScale - inset * 2f);
+            return new Rect(inset, inset, width, height);
+        }
         
         private static float StatsColumnWidth(float windowWidth)
         {
@@ -124,10 +136,12 @@ namespace TimingShow.HUD
         
         private static Rect WindowRect(float windowWidth, float windowHeight) => new Rect(0f, 0f, Mathf.Max(0f, windowWidth), Mathf.Max(0f, windowHeight));
         
-        private static Rect GraphContainerRect(float windowWidth, float windowHeight)
+        private static Rect GraphContainerRect(float windowWidth, float windowHeight) => GraphContainerRectCore(windowWidth, windowHeight, UiScale);
+
+        internal static Rect GraphContainerRectCore(float windowWidth, float windowHeight, float uiScale)
         {
-            Rect content = ContentRect(windowWidth, windowHeight);
-            float pad = GraphPadding;
+            Rect content = ContentRectCore(windowWidth, windowHeight, uiScale);
+            float pad = BaseGraphPadding * uiScale;
             return new Rect(content.x + pad, content.y + pad,
                 Mathf.Max(1f, content.width - pad * 2f), Mathf.Max(1f, content.height - pad * 2f));
         }
@@ -145,15 +159,6 @@ namespace TimingShow.HUD
             return new Rect(Mathf.Max(0f, windowWidth - ContentInset - width), ContentInset, width, ContentHeight(windowHeight));
         }
         
-        private static Rect FooterRect(float windowWidth, float windowHeight)
-        {
-            Rect card = GraphContainerRect(windowWidth, windowHeight);
-            Rect plot = PlotRect(windowWidth, windowHeight);
-            float pad = ChartPadding;
-            float bottom = card.y + pad;
-            return new Rect(card.x + pad, bottom, Mathf.Max(1f, card.width - pad * 2f), Mathf.Max(1f, plot.y - bottom));
-        }
-
         private static void StatsRowMetrics(float contentHeight, out float headerHeight, out float rowsTop,
             out float rowHeight, out float labelHeight, out float valueHeight)
         {
@@ -165,41 +170,90 @@ namespace TimingShow.HUD
             valueHeight = Mathf.Max(1f, rowHeight - labelHeight);
         }
         
-        private static void GraphRects(float windowWidth, float windowHeight,
-            out Rect container, out Rect yAxis, out Rect plot, out Rect xAxis, out Rect topGutter)
+        private static void GraphRects(float windowWidth, float windowHeight, float yAxisLabelWidth, float footerHeight,
+            out Rect container, out Rect yAxis, out Rect plot, out Rect xAxis, out Rect topGutter, out Rect rightBand)
         {
-            container = GraphContainerRect(windowWidth, windowHeight);
+            GraphRectsCore(windowWidth, windowHeight, yAxisLabelWidth, footerHeight, UiScale,
+                out container, out yAxis, out plot, out xAxis, out topGutter, out rightBand);
+        }
 
-            float pad = ChartPadding;
+        internal static void GraphRectsCore(float windowWidth, float windowHeight, float yAxisLabelWidth,
+            float footerHeight, float uiScale,
+            out Rect container, out Rect yAxis, out Rect plot, out Rect xAxis, out Rect topGutter, out Rect rightBand)
+        {
+            container = GraphContainerRectCore(windowWidth, windowHeight, uiScale);
+
+            float pad = BaseChartPadding * uiScale;
             float innerX = container.x + pad;
             float innerY = container.y + pad;
             float innerWidth = Mathf.Max(1f, container.width - pad * 2f);
             float innerHeight = Mathf.Max(1f, container.height - pad * 2f);
 
-            float gutterLeft = Mathf.Min(AxisGutterLeft, innerWidth * 0.28f);
-            float gutterRight = Mathf.Min(AxisGutterRight, innerWidth * 0.32f);
-            float gutterTop = Mathf.Min(AxisGutterTop, innerHeight * 0.10f);
-            
-            float axisFontSize = Mathf.Clamp(Mathf.RoundToInt(11f * UiScale), 8f, 32f);
-            float needBottom = 3f * UiScale + 16f * (axisFontSize / 12f) + 1f;
-            float gutterBottom = Mathf.Clamp(needBottom, Mathf.Min(AxisGutterBottom, innerHeight * 0.16f), Mathf.Max(1f, innerHeight * 0.40f));
+            float labelGap = BaseAxisLabelGap * uiScale;
+            float labelMargin = BaseAxisLabelMargin * uiScale;
+            float gutterRight = Mathf.Min(BaseAxisGutterRight * uiScale, innerWidth * 0.32f);
+            float maxGutterLeft = Mathf.Max(1f, innerWidth * 0.35f);
+            float leftLabelWidth = yAxisLabelWidth > 1f
+                ? yAxisLabelWidth
+                : Mathf.Max(1f, BaseAxisGutterLeft * uiScale - labelGap - labelMargin);
+            float gutterLeft = Mathf.Clamp(leftLabelWidth + labelGap + labelMargin, 1f, maxGutterLeft);
+            float gutterTop = Mathf.Min(BaseAxisGutterTop * uiScale, innerHeight * 0.10f);
 
-            float plotX = innerX + gutterLeft;
-            float plotY = innerY + gutterBottom;
-            float plotWidth = Mathf.Max(1f, innerWidth - gutterLeft - gutterRight);
-            float plotHeight = Mathf.Max(1f, innerHeight - gutterBottom - gutterTop);
+            float axisFontSize = Mathf.Clamp(Mathf.RoundToInt(11f * uiScale), 8f, 32f);
+            float fallbackFooter = 3f * uiScale + 16f * (axisFontSize / 12f) + 1f;
+            float footer = footerHeight > 1f ? footerHeight : fallbackFooter;
+            float gutterBottom = Mathf.Clamp(footer, Mathf.Min(BaseAxisGutterBottom * uiScale, innerHeight * 0.16f), Mathf.Max(1f, innerHeight * 0.40f));
 
-            yAxis = new Rect(innerX, plotY, Mathf.Max(1f, gutterLeft), plotHeight);
-            plot = new Rect(plotX, plotY, plotWidth, plotHeight);
-            xAxis = new Rect(plotX, innerY, plotWidth, Mathf.Max(1f, gutterBottom));
-            topGutter = new Rect(plotX, plotY + plotHeight, plotWidth, Mathf.Max(1f, gutterTop));
+            plot = new Rect(innerX, innerY, innerWidth, innerHeight);
+            yAxis = new Rect(innerX, innerY, Mathf.Max(1f, gutterLeft), innerHeight);
+            xAxis = new Rect(innerX, innerY, innerWidth, Mathf.Max(1f, gutterBottom));
+            topGutter = new Rect(innerX, innerY + innerHeight - Mathf.Max(1f, gutterTop), innerWidth, Mathf.Max(1f, gutterTop));
+            rightBand = new Rect(innerX + innerWidth - Mathf.Max(1f, gutterRight), innerY, Mathf.Max(1f, gutterRight), innerHeight);
         }
         
-        private static Rect PlotRect(float windowWidth, float windowHeight)
+        private Rect _resolvedContainerRect;
+        private Rect _resolvedYAxisRect;
+        private Rect _resolvedPlotRect;
+        private Rect _resolvedXAxisRect;
+        private Rect _resolvedTopGutterRect;
+        private Rect _resolvedRightBandRect;
+        private bool _graphLayoutResolved;
+
+        private void ResolveGraphLayout(float windowWidth, float windowHeight)
         {
-            Rect container, yAxis, plot, xAxis, topGutter;
-            GraphRects(windowWidth, windowHeight, out container, out yAxis, out plot, out xAxis, out topGutter);
-            return plot;
+            float yAxisLabelWidth = _drawer != null ? _drawer.AxisLabelWidth : 0f;
+            float footerHeight = _drawer != null ? _drawer.AxisFooterHeight : 0f;
+
+            Rect container, yAxis, plot, xAxis, topGutter, rightBand;
+            GraphRects(windowWidth, windowHeight, yAxisLabelWidth, footerHeight,
+                out container, out yAxis, out plot, out xAxis, out topGutter, out rightBand);
+
+            _resolvedContainerRect = container;
+            _resolvedYAxisRect = yAxis;
+            _resolvedPlotRect = plot;
+            _resolvedXAxisRect = xAxis;
+            _resolvedTopGutterRect = topGutter;
+            _resolvedRightBandRect = rightBand;
+            _graphLayoutResolved = true;
+
+            if (_drawer == null) return;
+
+            float bandLeft = _resolvedYAxisRect.width;
+            float bandBottom = _resolvedXAxisRect.height;
+            float bandRight = _resolvedRightBandRect.width;
+            float bandTop = _resolvedTopGutterRect.height;
+            _drawer.SetAxisBands(bandLeft, bandBottom, bandRight, bandTop);
+        }
+
+        private Rect ResolvedPlotRect()
+        {
+            if (!_graphLayoutResolved && _windowRect != null)
+            {
+                Vector2 size = _windowRect.sizeDelta;
+                ResolveGraphLayout(size.x, size.y);
+            }
+
+            return _resolvedPlotRect;
         }
         
         private static readonly Color PanelColor = new Color(0.05f, 0.06f, 0.09f, 0.96f);
@@ -218,8 +272,7 @@ namespace TimingShow.HUD
         private static readonly Color StatsLabelColor = new Color(0.60f, 0.64f, 0.70f, 1f);
         private static readonly Color StatsValueColor = new Color(0.96f, 0.98f, 1f, 1f);
         private static readonly Color StatsTitleColor = new Color(0.88f, 0.91f, 0.95f, 1f);
-        private static readonly Color ChartCardColor = new Color(1f, 1f, 1f, 0.035f);
-        private static readonly Color ChartCardBorderColor = new Color(1f, 1f, 1f, 0.10f);
+        private static readonly Color GraphContainerColor = new Color(1f, 1f, 1f, 0.02f);
 
         private static LogGraphWindow _instance;
         private static GameObject _root;
@@ -389,6 +442,7 @@ namespace TimingShow.HUD
 
             LogScatterDrawer drawer = graphAreaGo.AddComponent<LogScatterDrawer>();
             window._drawer = drawer;
+            if (drawer != null) drawer.AxisMetricsChanged = window.OnGraphAxisMetricsChanged;
             window._graphContainerRect = graphContainerRect;
             window._plotAreaRect = plotAreaRect;
             window._graphRect = graphRect;
@@ -640,8 +694,9 @@ namespace TimingShow.HUD
             
             bool settingsOpen = _settingsUI != null && _settingsUI.IsOpen;
             
-            Rect container, yAxisRect, plot, xAxisRect, topGutterRect;
-            GraphRects(size.x, size.y, out container, out yAxisRect, out plot, out xAxisRect, out topGutterRect);
+            ResolveGraphLayout(size.x, size.y);
+            Rect container = _resolvedContainerRect;
+            Rect plot = _resolvedPlotRect;
             
             if (_graphContainerRect != null)
             {
@@ -802,6 +857,13 @@ namespace TimingShow.HUD
             }
         }
         
+        private void OnGraphAxisMetricsChanged()
+        {
+            if (_windowRect == null) return;
+
+            ApplyLayout(_windowRect.sizeDelta, _windowRect.anchoredPosition);
+        }
+
         private void ApplySettingsLayout(Vector2 size)
         {
             if (_settingsUI == null) return;
@@ -1116,6 +1178,172 @@ namespace TimingShow.HUD
             _panel.SetSettingsHover(!onClose && HitSettingsButton(local, size));
         }
 
+        private static readonly bool DiagnoseGraphBounds = true;
+        private const float BoundsTolerance = 0.5f;
+        private const float BoundsCheckInterval = 1f;
+        private const int BoundsLogLimit = 40;
+        private const float BoundsLogRepeatSeconds = 5f;
+
+        private static readonly List<KeyValuePair<string, RectTransform>> BoundsTargets = new List<KeyValuePair<string, RectTransform>>(24);
+        private static readonly Dictionary<string, float> BoundsLoggedAt = new Dictionary<string, float>();
+        private static readonly Vector3[] BoundsCorners = new Vector3[4];
+        private static int _boundsLogCount;
+        private static bool _boundsActivated;
+        private float _boundsNextCheckAt;
+
+        private void UpdateBoundsDiagnostics()
+        {
+            if (!DiagnoseGraphBounds || _windowRect == null || _panel == null) return;
+            if (Time.unscaledTime < _boundsNextCheckAt) return;
+            _boundsNextCheckAt = Time.unscaledTime + BoundsCheckInterval;
+
+            GraphDrawerBase.TrackMeshBounds = true;
+
+            if (!_boundsActivated)
+            {
+                _boundsActivated = true;
+                ModContext.Logger?.Log("[LogGraphWindow] 边界断言已启用：逐帧比较 UI 屏幕包围盒与窗口矩形");
+            }
+
+            ValidateGraphBounds(Time.unscaledTime);
+        }
+
+        private void ValidateGraphBounds(float now)
+        {
+            Rect window = ScreenRectOf(_windowRect);
+            Rect container = ScreenRectOf(_graphContainerRect);
+            if (_graphLayoutResolved)
+            {
+                ReportLayoutMismatch("GraphContainer", container, ExpectedScreenRect(_resolvedContainerRect), now);
+                ReportLayoutMismatch("PlotArea", ScreenRectOf(_plotAreaRect), ExpectedScreenRect(_resolvedPlotRect), now);
+            }
+
+            BoundsTargets.Clear();
+            AddBoundsTarget("GraphContainer", _graphContainerRect);
+            AddBoundsTarget("PlotArea", _plotAreaRect);
+            if (_drawer != null) _drawer.CollectBoundsRectangles(BoundsTargets);
+
+            for (int i = 0; i < BoundsTargets.Count; i++)
+            {
+                KeyValuePair<string, RectTransform> target = BoundsTargets[i];
+                Rect bounds = ScreenRectOf(target.Value);
+
+                ReportBoundsOverflow(target.Key, bounds, window, now, "窗口");
+                if (!ReferenceEquals(target.Value, _graphContainerRect))
+                    ReportBoundsOverflow(target.Key, bounds, container, now, "图表容器");
+            }
+
+            Vector2 meshMin;
+            Vector2 meshMax;
+            if (_drawer != null && _graphRect != null && _drawer.TryGetMeshBounds(out meshMin, out meshMax))
+            {
+                Vector3 min = _graphRect.TransformPoint(new Vector3(meshMin.x, meshMin.y, 0f));
+                Vector3 max = _graphRect.TransformPoint(new Vector3(meshMax.x, meshMax.y, 0f));
+                Rect meshBounds = ScreenRectOfWorld(min, max);
+
+                ReportBoundsOverflow("GraphMesh", meshBounds, window, now, "窗口");
+                ReportBoundsOverflow("GraphMesh", meshBounds, container, now, "图表容器");
+            }
+        }
+
+        private static void AddBoundsTarget(string name, RectTransform rect)
+        {
+            if (rect == null || !rect.gameObject.activeInHierarchy) return;
+            BoundsTargets.Add(new KeyValuePair<string, RectTransform>(name, rect));
+        }
+
+        private static void ReportBoundsOverflow(string name, Rect bounds, Rect reference, float now, string scope)
+        {
+            if (bounds.width <= 0f && bounds.height <= 0f) return;
+
+            float left = Mathf.Max(0f, reference.xMin - bounds.xMin);
+            float right = Mathf.Max(0f, bounds.xMax - reference.xMax);
+            float bottom = Mathf.Max(0f, reference.yMin - bounds.yMin);
+            float top = Mathf.Max(0f, bounds.yMax - reference.yMax);
+
+            if (left <= BoundsTolerance && right <= BoundsTolerance
+                && bottom <= BoundsTolerance && top <= BoundsTolerance) return;
+            if (_boundsLogCount >= BoundsLogLimit) return;
+
+            string key = name + "@" + scope;
+            float lastAt;
+            if (BoundsLoggedAt.TryGetValue(key, out lastAt) && now - lastAt < BoundsLogRepeatSeconds) return;
+            BoundsLoggedAt[key] = now;
+            _boundsLogCount++;
+
+            ModContext.Logger?.Log(
+                $"[LogGraphWindow] 越界 {name}（参照：{scope}）: 元素 [{bounds.xMin:F1},{bounds.yMin:F1}]-[{bounds.xMax:F1},{bounds.yMax:F1}]" +
+                $" 参照 [{reference.xMin:F1},{reference.yMin:F1}]-[{reference.xMax:F1},{reference.yMax:F1}]" +
+                $" 溢出 L{left:F1} R{right:F1} B{bottom:F1} T{top:F1}");
+        }
+
+        private Rect ExpectedScreenRect(Rect local)
+        {
+            if (_windowRect == null) return local;
+
+            Vector3 min = _windowRect.TransformPoint(new Vector3(local.xMin, local.yMin, 0f));
+            Vector3 max = _windowRect.TransformPoint(new Vector3(local.xMax, local.yMax, 0f));
+            return ScreenRectOfWorld(min, max);
+        }
+
+        private static void ReportLayoutMismatch(string name, Rect actual, Rect expected, float now)
+        {
+            if (actual.width <= 0f && actual.height <= 0f) return;
+            if (Mathf.Abs(actual.xMin - expected.xMin) <= BoundsTolerance && Mathf.Abs(actual.yMin - expected.yMin) <= BoundsTolerance
+                && Mathf.Abs(actual.xMax - expected.xMax) <= BoundsTolerance && Mathf.Abs(actual.yMax - expected.yMax) <= BoundsTolerance) return;
+            if (_boundsLogCount >= BoundsLogLimit) return;
+
+            string key = name + "@Layout";
+            float lastAt;
+            if (BoundsLoggedAt.TryGetValue(key, out lastAt) && now - lastAt < BoundsLogRepeatSeconds) return;
+            BoundsLoggedAt[key] = now;
+            _boundsLogCount++;
+
+            ModContext.Logger?.Log(
+                $"[LogGraphWindow] 布局未应用 {name}: 实际 [{actual.xMin:F1},{actual.yMin:F1}]-[{actual.xMax:F1},{actual.yMax:F1}]" +
+                $" 期望 [{expected.xMin:F1},{expected.yMin:F1}]-[{expected.xMax:F1},{expected.yMax:F1}]");
+        }
+
+        private static Rect ScreenRectOf(RectTransform rect)
+        {
+            if (rect == null) return new Rect(0f, 0f, 0f, 0f);
+
+            TMP_Text text = rect.GetComponent<TMP_Text>();
+            if (text != null && text.gameObject.activeInHierarchy && !string.IsNullOrEmpty(text.text))
+            {
+                Bounds ink = text.textBounds;
+                Vector3 center = text.transform.TransformPoint(ink.center);
+                Vector3 extents = text.transform.TransformVector(ink.extents);
+                extents = new Vector3(Mathf.Abs(extents.x), Mathf.Abs(extents.y), Mathf.Abs(extents.z));
+                return ScreenRectOfWorld(center - extents, center + extents);
+            }
+
+            rect.GetWorldCorners(BoundsCorners);
+            return ScreenRectOfWorld(BoundsCorners[0], BoundsCorners[2]);
+        }
+
+        private static Rect ScreenRectOfWorld(Vector3 a, Vector3 b)
+        {
+            Vector2 sa = WorldToScreen(a);
+            Vector2 sb = WorldToScreen(b);
+            return Rect.MinMaxRect(Mathf.Min(sa.x, sb.x), Mathf.Min(sa.y, sb.y), Mathf.Max(sa.x, sb.x), Mathf.Max(sa.y, sb.y));
+        }
+
+        private static Vector2 WorldToScreen(Vector3 world)
+        {
+            if (_root != null)
+            {
+                Canvas canvas = _root.GetComponent<Canvas>();
+                if (canvas != null)
+                {
+                    if (canvas.renderMode == RenderMode.ScreenSpaceOverlay) return new Vector2(world.x, world.y);
+                    return RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, world);
+                }
+            }
+
+            return new Vector2(world.x, world.y);
+        }
+
         private void Update()
         {
             if (_root == null)
@@ -1142,6 +1370,7 @@ namespace TimingShow.HUD
             }
             
             SyncSettingsInteraction();
+            UpdateBoundsDiagnostics();
             if (!_dragging) RefreshButtonHover(Input.mousePosition);
             UpdateInputFallback();
         }
@@ -1333,7 +1562,7 @@ namespace TimingShow.HUD
             if (!ScreenToLocal(screenPosition, out local)) return false;
 
             Vector2 size = _windowRect.sizeDelta;
-            Rect graph = GraphContainerRect(size.x, size.y);
+            Rect graph = ResolvedPlotRect();
             return local.x >= graph.xMin && local.x <= graph.xMax && local.y >= graph.yMin && local.y <= graph.yMax;
         }
 
@@ -1575,13 +1804,7 @@ namespace TimingShow.HUD
                     Rect graph = GraphContainerRect(w, h);
                     if (graph.width > 2f && graph.height > 2f)
                     {
-                        DrawQuad(vh, new Vector2(graph.xMin, graph.yMin), new Vector2(graph.xMax, graph.yMax), ChartCardColor);
-
-                        float cardBorder = Mathf.Max(1f, border * 0.6f);
-                        DrawQuad(vh, new Vector2(graph.xMin, graph.yMin), new Vector2(graph.xMax, graph.yMin + cardBorder), ChartCardBorderColor);
-                        DrawQuad(vh, new Vector2(graph.xMin, graph.yMax - cardBorder), new Vector2(graph.xMax, graph.yMax), ChartCardBorderColor);
-                        DrawQuad(vh, new Vector2(graph.xMin, graph.yMin), new Vector2(graph.xMin + cardBorder, graph.yMax), ChartCardBorderColor);
-                        DrawQuad(vh, new Vector2(graph.xMax - cardBorder, graph.yMin), new Vector2(graph.xMax, graph.yMax), ChartCardBorderColor);
+                        DrawQuad(vh, new Vector2(graph.xMin, graph.yMin), new Vector2(graph.xMax, graph.yMax), GraphContainerColor);
                     }
                 }
                 
@@ -1650,6 +1873,4 @@ namespace TimingShow.HUD
                 vh.AddTriangle(baseIndex, baseIndex + 1, baseIndex + 2);
                 vh.AddTriangle(baseIndex, baseIndex + 2, baseIndex + 3);
             }
-        }
-    }
-}
+        }    }}

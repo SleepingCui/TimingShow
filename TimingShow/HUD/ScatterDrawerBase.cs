@@ -244,6 +244,10 @@ namespace TimingShow.HUD
 
         protected virtual bool DrawPlotFrame => false;
 
+        protected virtual bool ShowGrid => false;
+
+        protected virtual int GridDivisions => 4;
+
         protected virtual bool AvgLabelStub => false;
 
         protected virtual bool HintInFooter => false;
@@ -341,6 +345,8 @@ namespace TimingShow.HUD
                 hash = hash * 31 + (ScatterUseJudgeColor ? 1 : 0);
                 hash = hash * 31 + (ScatterShowZeroLine ? 1 : 0);
                 hash = hash * 31 + (ScatterShowAvgLine ? 1 : 0);
+                hash = hash * 31 + (ShowGrid ? 1 : 0);
+                hash = hash * 31 + GridDivisions;
                 hash = hash * 31 + (ScatterIgnoreOutliers ? 1 : 0);
                 hash = hash * 31 + ScatterPointSize.GetHashCode();
                 hash = hash * 31 + ScatterMaxRenderPoints;
@@ -925,15 +931,64 @@ namespace TimingShow.HUD
         private void DrawPlotFrameLines(VertexHelper vh, float w, float h)
         {
             Color color = ScatterAxisTextColor;
-            float thickness = Mathf.Max(0.5f, 1f * Mathf.Max(0.01f, Scale) * 0.5f);
+            float scale = Mathf.Max(0.01f, Scale);
+            float thickness = Mathf.Max(0.5f, 1f * scale * 0.5f);
 
-            Color bottom = color;
-            bottom.a *= 0.30f;
-            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(w, 0f), thickness, bottom);
+            Color axisColor = color;
+            axisColor.a *= 0.30f;
+            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(w, 0f), thickness, axisColor);
+            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(0f, h), thickness, axisColor);
 
-            Color left = color;
-            left.a *= 0.18f;
-            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(0f, h), thickness, left);
+            Color frameColor = color;
+            frameColor.a *= 0.22f;
+            DrawSegment(vh, new Vector2(0f, h), new Vector2(w, h), thickness, frameColor);
+            DrawSegment(vh, new Vector2(w, 0f), new Vector2(w, h), thickness, frameColor);
+
+            Color tickColor = color;
+            tickColor.a *= 0.35f;
+            float tick = Mathf.Max(2f, 4f * scale);
+            float tickX = Mathf.Min(tick, Mathf.Max(0f, w * 0.25f));
+            float tickY = Mathf.Min(tick, Mathf.Max(0f, h * 0.25f));
+            DrawSegment(vh, new Vector2(0f, h), new Vector2(tickX, h), thickness, tickColor);
+            DrawSegment(vh, new Vector2(0f, h * 0.5f), new Vector2(tickX, h * 0.5f), thickness, tickColor);
+            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(tickX, 0f), thickness, tickColor);
+            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(0f, tickY), thickness, tickColor);
+            DrawSegment(vh, new Vector2(w, 0f), new Vector2(w, tickY), thickness, tickColor);
+        }
+
+        protected override void DrawGridLines(VertexHelper vh, float w, float h)
+        {
+            if (!ShowGrid)
+            {
+                base.DrawGridLines(vh, w, h);
+                return;
+            }
+
+            float scale = Mathf.Max(0.01f, Scale);
+            float halfWidth = Mathf.Max(0.25f, 1f * scale * 0.5f);
+
+            Color color = GridColor;
+            color.a = Mathf.Clamp(color.a * Mathf.Clamp01(GridAlphaScale), 0.10f, 0.65f);
+
+            float[] fractions = GridLineFractions(GridDivisions);
+
+            for (int i = 0; i < fractions.Length; i++)
+            {
+                float x = w * fractions[i];
+                float y = h * fractions[i];
+                DrawSegment(vh, new Vector2(x, 0f), new Vector2(x, h), halfWidth, color);
+                DrawSegment(vh, new Vector2(0f, y), new Vector2(w, y), halfWidth, color);
+            }
+        }
+
+        internal static float[] GridLineFractions(int divisions)
+        {
+            int n = Mathf.Clamp(divisions, 2, 20);
+            float[] fractions = new float[n - 1];
+
+            for (int i = 1; i < n; i++) fractions[i - 1] = (float)i / n;
+
+            return fractions;
         }
 
         private void DrawOutOfRangeMarkers(VertexHelper vh, float w, float h)
@@ -1098,12 +1153,45 @@ namespace TimingShow.HUD
                 }
             }
 
-            float axisY = -3f * scale;
+            bool labelsInside = AxisLabelsInside;
+            float axisY;
+            if (labelsInside)
+            {
+                axisY = 3f * scale;
+                if (AxisBandBottom > 1f) axisY = Mathf.Min(axisY, Mathf.Max(0f, AxisBandBottom - labelHeight));
+            }
+            else
+            {
+                axisY = -3f * scale;
+            }
 
-            SetupXAxisText(_xStartText, startText, new Vector2(2f * scale, axisY),
-                new Vector2(0f, 1f), TextAlignmentOptions.TopLeft, fontSize, labelHeight, color);
-            SetupXAxisText(_xEndText, endText, new Vector2(w - 2f * scale, axisY),
-                new Vector2(1f, 1f), TextAlignmentOptions.TopRight, fontSize, labelHeight, color);
+            Vector2 startPivot = labelsInside ? new Vector2(0f, 0f) : new Vector2(0f, 1f);
+            Vector2 endPivot = labelsInside ? new Vector2(1f, 0f) : new Vector2(1f, 1f);
+            TextAlignmentOptions startAlign = labelsInside ? TextAlignmentOptions.BottomLeft : TextAlignmentOptions.TopLeft;
+            TextAlignmentOptions endAlign = labelsInside ? TextAlignmentOptions.BottomRight : TextAlignmentOptions.TopRight;
+
+            float xStartX;
+            float xEndX;
+            float xLabelMaxWidth;
+            if (labelsInside)
+            {
+                xStartX = AxisBandLeft > 1f ? Mathf.Min(AxisBandLeft, w * 0.5f) : 2f * scale;
+                xEndX = w - 2f * scale;
+                xLabelMaxWidth = Mathf.Max(1f, (xEndX - xStartX) * 0.5f);
+            }
+            else
+            {
+                xStartX = 2f * scale;
+                xEndX = w - 2f * scale;
+                xLabelMaxWidth = Mathf.Max(1f, w - 4f * scale);
+            }
+
+            SetupXAxisText(_xStartText, startText, new Vector2(xStartX, axisY),
+                startPivot, startAlign, fontSize, labelHeight, color, xLabelMaxWidth);
+            SetupXAxisText(_xEndText, endText, new Vector2(xEndX, axisY),
+                endPivot, endAlign, fontSize, labelHeight, color, xLabelMaxWidth);
+
+            ReportAxisFooterHeight(Mathf.Abs(axisY) + labelHeight + 1f);
 
             bool showAvgLabel = _avgAvailable && ScatterShowAvgLine;
             UpdateAvgValueLabel(showAvgLabel, settings, scale, w, h);
@@ -1125,27 +1213,46 @@ namespace TimingShow.HUD
             _avgValueText.fontSize = fontSize;
             _avgValueText.text = "Avg: " + FormatYLabel(currentAvg);
             _avgValueText.color = ScatterAvgLineColor;
-            _avgValueText.alignment = TextAlignmentOptions.MidlineLeft;
+            _avgValueText.alignment = AxisLabelsInside ? TextAlignmentOptions.MidlineRight : TextAlignmentOptions.MidlineLeft;
 
-            RectTransform rt = _avgValueText.rectTransform;
-            rt.pivot = new Vector2(0f, 0.5f);
-            rt.anchoredPosition = new Vector2(w + 6f * scale, ny * h);
-
-            float labelWidth = 120f * (fontSize / 12f);
+            float textWidth = Mathf.Max(24f, MeasureTextWidth(_avgValueText, _avgValueText.text, fontSize));
+            float labelWidth = textWidth;
             if (AvgLabelMaxWidthRatio < 1f)
             {
-                float maxWidth = Mathf.Max(24f, w * Mathf.Clamp01(AvgLabelMaxWidthRatio));
-                if (labelWidth > maxWidth)
-                {
-                    labelWidth = maxWidth;
-                    _avgValueText.overflowMode = TextOverflowModes.Ellipsis;
-                }
+                float ratioWidth = Mathf.Max(24f, w * Mathf.Clamp01(AvgLabelMaxWidthRatio));
+                if (labelWidth > ratioWidth) labelWidth = ratioWidth;
+            }
+            if (AxisBandRight > 1f)
+            {
+                float bandWidth = Mathf.Max(24f, AxisBandRight - 6f * scale);
+                if (labelWidth > bandWidth) labelWidth = bandWidth;
+            }
+            if (AxisLabelsInside) labelWidth = Mathf.Min(labelWidth, Mathf.Max(1f, w - 6f * scale));
+            _avgValueText.overflowMode = labelWidth < textWidth ? TextOverflowModes.Ellipsis : TextOverflowModes.Overflow;
+
+            float boxHeight = 24f * (fontSize / 12f);
+            float centerY = ny * h;
+            if (AxisLabelsInside)
+            {
+                boxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, h));
+                float half = boxHeight * 0.5f;
+                centerY = Mathf.Clamp(centerY, half, Mathf.Max(half, h - half));
+            }
+            else if (AxisBandTop > 1f && AxisBandBottom > 1f)
+            {
+                float up = (h - ny * h) + AxisBandTop;
+                float down = ny * h + AxisBandBottom;
+                boxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, 2f * Mathf.Min(up, down)));
             }
 
-            rt.sizeDelta = new Vector2(labelWidth, 24f * (fontSize / 12f));
+            RectTransform rt = _avgValueText.rectTransform;
+            rt.pivot = AxisLabelsInside ? new Vector2(1f, 0.5f) : new Vector2(0f, 0.5f);
+            rt.anchoredPosition = new Vector2(AxisLabelsInside ? w - 6f * scale : w + 6f * scale, centerY);
+            rt.sizeDelta = new Vector2(labelWidth, boxHeight);
         }
 
-        private void SetupXAxisText(TMP_Text t, string content, Vector2 anchoredPosition, Vector2 pivot, TextAlignmentOptions alignment, int fontSize, float height, Color color)
+        private void SetupXAxisText(TMP_Text t, string content, Vector2 anchoredPosition, Vector2 pivot,
+            TextAlignmentOptions alignment, int fontSize, float height, Color color, float maxWidth = 0f)
         {
             if (t == null) return;
 
@@ -1154,10 +1261,28 @@ namespace TimingShow.HUD
             t.color = color;
             t.alignment = alignment;
 
+            float measured = Mathf.Max(1f, MeasureTextWidth(t, content, fontSize));
+            float boxWidth = measured;
+            if (maxWidth > 0f) boxWidth = Mathf.Min(boxWidth, Mathf.Max(1f, maxWidth));
+            t.overflowMode = boxWidth < measured ? TextOverflowModes.Ellipsis : TextOverflowModes.Overflow;
+
+            float boxHeight = Mathf.Max(1f, height);
+            if (AxisBandBottom > 1f) boxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, AxisBandBottom - Mathf.Abs(anchoredPosition.y)));
+
             RectTransform rt = t.rectTransform;
             rt.pivot = pivot;
             rt.anchoredPosition = anchoredPosition;
-            rt.sizeDelta = new Vector2(220f * (fontSize / 12f), height);
+            rt.sizeDelta = new Vector2(boxWidth, boxHeight);
+        }
+
+        public override void CollectBoundsRectangles(List<KeyValuePair<string, RectTransform>> targets)
+        {
+            base.CollectBoundsRectangles(targets);
+            AddBoundsTarget(targets, "XAxisStartLabel", _xStartText);
+            AddBoundsTarget(targets, "XAxisEndLabel", _xEndText);
+            AddBoundsTarget(targets, "AvgValueLabel", _avgValueText);
+            AddBoundsTarget(targets, "DetailLabel", _detailText);
+            AddBoundsTarget(targets, "GestureHintLabel", _hintText);
         }
 
         protected override void Update()

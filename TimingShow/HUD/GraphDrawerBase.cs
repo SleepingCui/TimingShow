@@ -334,6 +334,90 @@ namespace TimingShow.HUD
 
         protected virtual string FormatYLabel(float value) => $"{value:F1}%";
 
+        private float _axisLabelWidth = -1f;
+        private float _axisFooterHeight = -1f;
+
+        public float AxisLabelWidth => Mathf.Max(0f, _axisLabelWidth);
+
+        public float AxisFooterHeight => Mathf.Max(0f, _axisFooterHeight);
+
+        private float _axisBandLeft;
+        private float _axisBandBottom;
+        private float _axisBandRight;
+        private float _axisBandTop;
+
+        protected float AxisBandLeft => _axisBandLeft;
+
+        protected float AxisBandBottom => _axisBandBottom;
+
+        protected float AxisBandRight => _axisBandRight;
+
+        protected float AxisBandTop => _axisBandTop;
+
+        public void SetAxisBands(float left, float bottom, float right, float top)
+        {
+            float l = Mathf.Max(0f, left);
+            float b = Mathf.Max(0f, bottom);
+            float r = Mathf.Max(0f, right);
+            float t = Mathf.Max(0f, top);
+            if (Mathf.Approximately(l, _axisBandLeft) && Mathf.Approximately(b, _axisBandBottom)
+                && Mathf.Approximately(r, _axisBandRight) && Mathf.Approximately(t, _axisBandTop)) return;
+
+            _axisBandLeft = l;
+            _axisBandBottom = b;
+            _axisBandRight = r;
+            _axisBandTop = t;
+
+            UpdateTextLayoutAndValues();
+            SetVerticesDirty();
+        }
+
+        protected float AxisLabelGap => 6f * Mathf.Max(0.01f, Scale);
+
+        protected virtual bool AxisLabelsInside => false;
+
+        protected void ReportAxisLabelWidth(float width)
+        {
+            float quantized = QuantizeAxisMetric(width);
+            if (Mathf.Approximately(quantized, _axisLabelWidth)) return;
+
+            _axisLabelWidth = quantized;
+            OnAxisMetricsChanged();
+        }
+
+        protected void ReportAxisFooterHeight(float height)
+        {
+            float quantized = QuantizeAxisMetric(height);
+            if (Mathf.Approximately(quantized, _axisFooterHeight)) return;
+
+            _axisFooterHeight = quantized;
+            OnAxisMetricsChanged();
+        }
+
+        private static float QuantizeAxisMetric(float value) => value <= 1f ? 0f : Mathf.Ceil(value / 4f) * 4f;
+
+        protected virtual void OnAxisMetricsChanged()
+        {
+        }
+
+        protected static float MeasureTextWidth(TMP_Text text, string content, float fontSize)
+        {
+            if (text != null && text.font != null && !string.IsNullOrEmpty(content))
+            {
+                try
+                {
+                    Vector2 preferred = text.GetPreferredValues(content);
+                    if (preferred.x > 0.5f && preferred.x < 16384f && !float.IsNaN(preferred.x)) return preferred.x;
+                }
+                catch (System.Exception)
+                {
+                }
+            }
+
+            int length = content != null ? content.Length : 0;
+            return Mathf.Max(1f, length * Mathf.Max(1f, fontSize) * 0.62f);
+        }
+
         protected virtual void UpdateTextLayoutAndValues()
         {
             ApplyGraphFont();
@@ -360,10 +444,57 @@ namespace TimingShow.HUD
 
             int scaleFontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
             Color scaleColor = new Color(1f, 1f, 1f, 0.8f);
-            float leftMargin = -6f * scale;
-            SetupLeftScaleText(_topLabelText, FormatYLabel(maxY), new Vector2(leftMargin, h), scaleFontSize, scaleColor);
-            SetupLeftScaleText(_tidLabelText, FormatYLabel(midY), new Vector2(leftMargin, h * 0.5f), scaleFontSize, scaleColor);
-            SetupLeftScaleText(_botLabelText, FormatYLabel(minY), new Vector2(leftMargin, 0f), scaleFontSize, scaleColor);
+            string topLabel = FormatYLabel(maxY);
+            string midLabel = FormatYLabel(midY);
+            string botLabel = FormatYLabel(minY);
+
+            PrepareLeftScaleText(_topLabelText, topLabel, scaleFontSize, scaleColor);
+            PrepareLeftScaleText(_tidLabelText, midLabel, scaleFontSize, scaleColor);
+            PrepareLeftScaleText(_botLabelText, botLabel, scaleFontSize, scaleColor);
+
+            float measureWidth = Mathf.Max(
+                MeasureTextWidth(_topLabelText, topLabel, scaleFontSize),
+                Mathf.Max(
+                    MeasureTextWidth(_tidLabelText, midLabel, scaleFontSize),
+                    MeasureTextWidth(_botLabelText, botLabel, scaleFontSize)));
+
+            float boxWidth = measureWidth;
+            if (_axisBandLeft > 1f) boxWidth = Mathf.Min(boxWidth, Mathf.Max(1f, _axisBandLeft - AxisLabelGap));
+
+            float boxHeight = 24f * (scaleFontSize / 12f);
+
+            if (AxisLabelsInside)
+            {
+                float maxHeight = Mathf.Max(1f, h);
+                float topBoxHeight = Mathf.Min(boxHeight, maxHeight);
+                float bottomBoxHeight = Mathf.Min(boxHeight, maxHeight);
+                float midBoxHeight = Mathf.Min(boxHeight, maxHeight);
+                float topCenter = Mathf.Max(h - topBoxHeight * 0.5f, h * 0.5f);
+                float bottomCenter = Mathf.Min(bottomBoxHeight * 0.5f, h * 0.5f);
+
+                PlaceLeftScaleText(_topLabelText, new Vector2(AxisLabelGap, topCenter), boxWidth, topBoxHeight);
+                PlaceLeftScaleText(_tidLabelText, new Vector2(AxisLabelGap, h * 0.5f), boxWidth, midBoxHeight);
+                PlaceLeftScaleText(_botLabelText, new Vector2(AxisLabelGap, bottomCenter), boxWidth, bottomBoxHeight);
+            }
+            else
+            {
+                float topBoxHeight = boxHeight;
+                float bottomBoxHeight = boxHeight;
+                if (_axisBandTop > 1f) topBoxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, 2f * _axisBandTop));
+                if (_axisBandBottom > 1f) bottomBoxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, 2f * _axisBandBottom));
+                float midBoxHeight = boxHeight;
+                if (_axisBandTop > 1f && _axisBandBottom > 1f)
+                {
+                    float allowedHeight = 2f * Mathf.Min(_axisBandTop, _axisBandBottom) + h;
+                    midBoxHeight = Mathf.Min(midBoxHeight, Mathf.Max(1f, allowedHeight));
+                }
+
+                PlaceLeftScaleText(_topLabelText, new Vector2(-AxisLabelGap, h), boxWidth, topBoxHeight);
+                PlaceLeftScaleText(_tidLabelText, new Vector2(-AxisLabelGap, h * 0.5f), boxWidth, midBoxHeight);
+                PlaceLeftScaleText(_botLabelText, new Vector2(-AxisLabelGap, 0f), boxWidth, bottomBoxHeight);
+            }
+
+            ReportAxisLabelWidth(measureWidth);
 
             UpdatePerfText();
         }
@@ -425,18 +556,92 @@ namespace TimingShow.HUD
             if (!_perfText.gameObject.activeSelf) _perfText.gameObject.SetActive(true);
         }
 
-        protected void SetupLeftScaleText(TMP_Text t, string content, Vector2 localPos, int fontSize, Color color)
+        protected void PrepareLeftScaleText(TMP_Text t, string content, int fontSize, Color color)
         {
             if (t == null) return;
             t.fontSize = fontSize;
             t.text = content;
             t.color = color;
-            t.alignment = TextAlignmentOptions.MidlineRight;
+            t.alignment = AxisLabelsInside ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.MidlineRight;
+        }
+
+        protected void PlaceLeftScaleText(TMP_Text t, Vector2 localPos, float boxWidth, float boxHeight = 0f)
+        {
+            if (t == null) return;
+
+            float height = boxHeight > 0f ? boxHeight : 24f * (t.fontSize / 12f);
 
             RectTransform rt = t.rectTransform;
-            rt.pivot = new Vector2(1f, 0.5f);
+            rt.pivot = AxisLabelsInside ? new Vector2(0f, 0.5f) : new Vector2(1f, 0.5f);
             rt.anchoredPosition = localPos;
-            rt.sizeDelta = new Vector2(120f * (fontSize / 12f), 24f * (fontSize / 12f));
+            rt.sizeDelta = new Vector2(Mathf.Max(1f, boxWidth), Mathf.Max(1f, height));
+        }
+
+        protected void SetupLeftScaleText(TMP_Text t, string content, Vector2 localPos, int fontSize, Color color)
+        {
+            PrepareLeftScaleText(t, content, fontSize, color);
+
+            float boxWidth = MeasureTextWidth(t, content, fontSize);
+            if (_axisBandLeft > 1f) boxWidth = Mathf.Min(boxWidth, Mathf.Max(1f, _axisBandLeft - AxisLabelGap));
+            PlaceLeftScaleText(t, localPos, boxWidth);
+        }
+
+        public static bool TrackMeshBounds;
+
+        public bool TryGetMeshBounds(out Vector2 min, out Vector2 max)
+        {
+            min = _meshBoundsMin;
+            max = _meshBoundsMax;
+            return _meshBoundsValid;
+        }
+
+        private Vector2 _meshBoundsMin;
+        private Vector2 _meshBoundsMax;
+        private bool _meshBoundsValid;
+        private static readonly List<UIVertex> MeshBoundsScratch = new List<UIVertex>(4096);
+
+        private void MeasureMeshBounds(VertexHelper vh)
+        {
+            MeshBoundsScratch.Clear();
+            vh.GetUIVertexStream(MeshBoundsScratch);
+
+            if (MeshBoundsScratch.Count == 0)
+            {
+                _meshBoundsValid = false;
+                return;
+            }
+
+            Vector2 min = new Vector2(float.MaxValue, float.MaxValue);
+            Vector2 max = new Vector2(float.MinValue, float.MinValue);
+
+            for (int i = 0; i < MeshBoundsScratch.Count; i++)
+            {
+                Vector3 p = MeshBoundsScratch[i].position;
+                if (p.x < min.x) min.x = p.x;
+                if (p.y < min.y) min.y = p.y;
+                if (p.x > max.x) max.x = p.x;
+                if (p.y > max.y) max.y = p.y;
+            }
+
+            _meshBoundsMin = min;
+            _meshBoundsMax = max;
+            _meshBoundsValid = true;
+        }
+
+        public virtual void CollectBoundsRectangles(List<KeyValuePair<string, RectTransform>> targets)
+        {
+            AddBoundsTarget(targets, "TitleText", _titleText);
+            AddBoundsTarget(targets, "YAxisTopLabel", _topLabelText);
+            AddBoundsTarget(targets, "YAxisMidLabel", _tidLabelText);
+            AddBoundsTarget(targets, "YAxisBottomLabel", _botLabelText);
+            AddBoundsTarget(targets, "PerfInfoLabel", _perfText);
+        }
+
+        protected static void AddBoundsTarget(List<KeyValuePair<string, RectTransform>> targets, string name, TMP_Text text)
+        {
+            if (targets == null || text == null) return;
+            if (!text.gameObject.activeInHierarchy) return;
+            targets.Add(new KeyValuePair<string, RectTransform>(name, text.rectTransform));
         }
 
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -446,7 +651,11 @@ namespace TimingShow.HUD
             float w = rectTransform.rect.width;
             float h = rectTransform.rect.height;
 
-            if (w <= 0 || h <= 0) return;
+            if (w <= 0 || h <= 0)
+            {
+                _meshBoundsValid = false;
+                return;
+            }
 
             DrawQuad(vh, Vector2.zero, new Vector2(w, h), BgColor);
             DrawGridLines(vh, w, h);
@@ -456,6 +665,8 @@ namespace TimingShow.HUD
 
             _perfVertexCount = vh.currentVertCount;
             _perfRedrawCount++;
+
+            if (TrackMeshBounds) MeasureMeshBounds(vh);
         }
 
         protected virtual void DrawReferenceLines(VertexHelper vh, float w, float h)
@@ -522,5 +733,4 @@ namespace TimingShow.HUD
             color.a *= Mathf.Clamp01(GridAlphaScale);
             DrawSegment(vh, new Vector2(0, h * 0.5f), new Vector2(w, h * 0.5f), halfGridWidth, color);
         }
-    }
-}
+    }}

@@ -22,7 +22,6 @@ namespace TimingShow.HUD
         private const float BaseFontSize = 12f;
         private const float BaseTrackHeight = 8f;
         private const float BaseToggleSize = 14f;
-        private const float BaseBarGap = 6f;
         private const float BaseLabelRatio = 0.42f;
         private const float LineHeightRatio = 1.4f;
         
@@ -42,7 +41,8 @@ namespace TimingShow.HUD
             Tab,
             Slider,
             Toggle,
-            ColorRow,
+            ColorPick,
+            ColorPreview,
             Text,
             Button
         }
@@ -53,7 +53,6 @@ namespace TimingShow.HUD
             public string LabelKey;
             public Rect Rect;
             public Rect[] Bars;        
-            public int[] Channels;     
             public float Min;
             public float Max;
             public bool LogScale;
@@ -64,7 +63,10 @@ namespace TimingShow.HUD
             public Action<bool> SetToggle;
             public int TabIndex;
             public Func<Color> GetColor;
-            public Action<Color> SetColor;
+            public int ColorIndex;
+            public Rect ResetRect;
+            public TextMeshProUGUI ResetLabel;
+            public bool ByteDisplay;
             public TextMeshProUGUI Label;
             public TextMeshProUGUI Value;
         }
@@ -79,6 +81,7 @@ namespace TimingShow.HUD
             public bool UseJudgeColor = true;
             public bool ShowZeroLine;
             public bool ShowAvgLine;
+            public bool ShowGrid = true;
             public bool UseCustomFont;
             public Color BgColor = Color.black;
             public Color GridColor = Color.white;
@@ -100,6 +103,7 @@ namespace TimingShow.HUD
                 d.UseJudgeColor = s.LogGraph_UseJudgeColor;
                 d.ShowZeroLine = s.LogGraph_ShowZeroLine;
                 d.ShowAvgLine = s.LogGraph_ShowAvgLine;
+                d.ShowGrid = s.LogGraph_ShowGrid;
                 d.UseCustomFont = s.LogGraph_UseCustomFont;
                 d.BgColor = s.LogGraph_BgColor;
                 d.GridColor = s.LogGraph_GridColor;
@@ -122,6 +126,7 @@ namespace TimingShow.HUD
                 s.LogGraph_UseJudgeColor = UseJudgeColor;
                 s.LogGraph_ShowZeroLine = ShowZeroLine;
                 s.LogGraph_ShowAvgLine = ShowAvgLine;
+                s.LogGraph_ShowGrid = ShowGrid;
                 s.LogGraph_UseCustomFont = UseCustomFont;
                 s.LogGraph_BgColor = BgColor;
                 s.LogGraph_GridColor = GridColor;
@@ -141,6 +146,8 @@ namespace TimingShow.HUD
 
         private bool _open;
         private int _tab;
+        private int _colorIndex;
+        private Row _colorPreviewRow;
         
         private Draft _draft = new Draft();
         
@@ -168,6 +175,136 @@ namespace TimingShow.HUD
             }
         }
         public bool IsOpen => _open;
+
+        private const int ColorSlotCount = 6;
+
+        private static readonly string[] ColorSlotKeys =
+        {
+            "Label_BgColor",
+            "Label_GridColor",
+            "Label_PointColor",
+            "Label_ZeroLineColor",
+            "Label_AvgLineColor",
+            "Label_AxisTextColor"
+        };
+
+        private static readonly string[] ColorChannelKeys =
+        {
+            "LogGraph_ColorChannelR",
+            "LogGraph_ColorChannelG",
+            "LogGraph_ColorChannelB"
+        };
+
+        private Color GetColorSlot(int index)
+        {
+            switch (index)
+            {
+                case 1: return _draft.GridColor;
+                case 2: return _draft.PointColor;
+                case 3: return _draft.ZeroLineColor;
+                case 4: return _draft.AvgLineColor;
+                case 5: return _draft.AxisTextColor;
+                default: return _draft.BgColor;
+            }
+        }
+
+        private void SetColorSlot(int index, Color color)
+        {
+            switch (index)
+            {
+                case 1: _draft.GridColor = color; break;
+                case 2: _draft.PointColor = color; break;
+                case 3: _draft.ZeroLineColor = color; break;
+                case 4: _draft.AvgLineColor = color; break;
+                case 5: _draft.AxisTextColor = color; break;
+                default: _draft.BgColor = color; break;
+            }
+        }
+
+        private float GetColorChannel(int slot, int channel)
+        {
+            Color color = GetColorSlot(slot);
+            return channel == 0 ? color.r : channel == 1 ? color.g : color.b;
+        }
+
+        private void SetColorChannel(int slot, int channel, float value)
+        {
+            Color color = GetColorSlot(slot);
+            color.r = channel == 0 ? value : color.r;
+            color.g = channel == 1 ? value : color.g;
+            color.b = channel == 2 ? value : color.b;
+            SetColorSlot(slot, color);
+        }
+
+        private void ResetColorSlot(int index)
+        {
+            Color color = DefaultColorSlot(index);
+            color.a = GetColorSlot(index).a;
+            SetColorSlot(index, color);
+
+            _draftDirty = true;
+            _activeRow = null;
+            _hoverRow = null;
+            RebuildRows();
+            MarkDirty();
+        }
+
+        private static Color DefaultColorSlot(int index)
+        {
+            switch (index)
+            {
+                case 1: return Settings.LogGraph_DefaultGridColor;
+                case 2: return Settings.LogGraph_DefaultPointColor;
+                case 3: return Settings.LogGraph_DefaultZeroLineColor;
+                case 4: return Settings.LogGraph_DefaultAvgLineColor;
+                case 5: return Settings.LogGraph_DefaultAxisTextColor;
+                default: return Settings.LogGraph_DefaultBgColor;
+            }
+        }
+
+        private static string ColorPreviewText(Color color)
+        {
+            return "#" + ColorUtility.ToHtmlStringRGB(color) + "    A " + color.a.ToString("F2");
+        }
+
+        private static Color ColorPreviewTextColor(Color color)
+        {
+            float luminance = color.r * 0.299f + color.g * 0.587f + color.b * 0.114f;
+            return luminance > 0.55f ? new Color(0.06f, 0.07f, 0.10f, 1f) : new Color(0.94f, 0.95f, 0.98f, 1f);
+        }
+
+        private void RefreshColorPreview()
+        {
+            if (_colorPreviewRow == null || _colorPreviewRow.Value == null) return;
+
+            Color color = GetColorSlot(_colorIndex);
+            _colorPreviewRow.Value.text = ColorPreviewText(color);
+            _colorPreviewRow.Value.color = ColorPreviewTextColor(color);
+        }
+
+        internal static float ColorSwatchSize(float rowHeight, float scale)
+        {
+            return Mathf.Max(6f, Mathf.Min(rowHeight * 0.62f, 14f * scale));
+        }
+
+        internal static Rect ColorResetRect(Rect chipRect, float scale)
+        {
+            float resetWidth = Mathf.Min(Mathf.Max(1f, chipRect.width) * 0.30f, 76f * scale);
+            float resetInset = Mathf.Max(1f, 3f * scale);
+
+            return new Rect(
+                chipRect.xMax - resetWidth - resetInset,
+                chipRect.y + resetInset,
+                Mathf.Max(1f, resetWidth),
+                Mathf.Max(1f, chipRect.height - resetInset * 2f));
+        }
+
+        internal static float ColorChipLabelWidth(Rect chipRect, float scale)
+        {
+            float swatch = ColorSwatchSize(chipRect.height, scale);
+            float reserved = ColorResetRect(chipRect, scale).width + 4f * scale;
+            return chipRect.width - swatch - 11f * scale - reserved;
+        }
 
 
         public static LogGraphSettingsUI Create(RectTransform parent, ILogGraphSettingsHost host, TMP_FontAsset font)
@@ -331,6 +468,12 @@ namespace TimingShow.HUD
             AddButton(applyRow, fontSize);
             top -= buttonHeight + gap * 1.5f;
 
+            if (_tab == 1)
+            {
+                BuildColorPicker(left, contentWidth, scale, gap, fontSize, ref top);
+                BuildColorPreview(left, contentWidth, scale, gap, fontSize, ref top);
+            }
+
             List<Row> content = _tab == 0 ? BuildBasicRows() : BuildColorRows();
             if (content.Count == 0) return;
             
@@ -385,6 +528,9 @@ namespace TimingShow.HUD
             rows.Add(Toggle("Toggle_ShowAvgLine",
                 () => _draft.ShowAvgLine,
                 v => _draft.ShowAvgLine = v));
+            rows.Add(Toggle("Toggle_ShowGrid",
+                () => _draft.ShowGrid,
+                v => _draft.ShowGrid = v));
             rows.Add(Toggle("Toggle_CustomFont",
                 () => _draft.UseCustomFont,
                 v => _draft.UseCustomFont = v));
@@ -395,28 +541,82 @@ namespace TimingShow.HUD
 
         private List<Row> BuildColorRows()
         {
-            List<Row> rows = new List<Row>(8);
+            List<Row> rows = new List<Row>(3);
 
-            rows.Add(ColorRow("Label_BgColor",
-                () => _draft.BgColor,
-                c => _draft.BgColor = c));
-            rows.Add(ColorRow("Label_GridColor",
-                () => _draft.GridColor,
-                c => _draft.GridColor = c));
-            rows.Add(ColorRow("Label_PointColor",
-                () => _draft.PointColor,
-                c => _draft.PointColor = c));
-            rows.Add(ColorRow("Label_ZeroLineColor",
-                () => _draft.ZeroLineColor,
-                c => _draft.ZeroLineColor = c));
-            rows.Add(ColorRow("Label_AvgLineColor",
-                () => _draft.AvgLineColor,
-                c => _draft.AvgLineColor = c));
-            rows.Add(ColorRow("Label_AxisTextColor",
-                () => _draft.AxisTextColor,
-                c => _draft.AxisTextColor = c));
+            for (int channel = 0; channel < 3; channel++)
+            {
+                int c = channel;
+                rows.Add(new Row
+                {
+                    Kind = RowKind.Slider,
+                    LabelKey = ColorChannelKeys[c],
+                    Min = 0f,
+                    Max = 1f,
+                    Format = "F2",
+                    ByteDisplay = true,
+                    Get = () => GetColorChannel(_colorIndex, c),
+                    Set = v => SetColorChannel(_colorIndex, c, v)
+                });
+            }
 
             return rows;
+        }
+
+        private void BuildColorPicker(float left, float contentWidth, float scale, float gap, float fontSize, ref float top)
+        {
+            const int columns = 2;
+
+            float chipHeight = Mathf.Min(BaseRowHeight * scale, 26f * scale);
+            float chipGap = Mathf.Max(1f, gap * 0.5f);
+            float cellWidth = Mathf.Max(1f, (contentWidth - chipGap * (columns - 1)) / columns);
+
+            for (int i = 0; i < ColorSlotCount; i++)
+            {
+                int slot = i;
+                int column = i % columns;
+                int line = i / columns;
+
+                Rect chipRect = new Rect(
+                    left + column * (cellWidth + chipGap),
+                    top - chipHeight - line * (chipHeight + chipGap),
+                    cellWidth,
+                    chipHeight);
+
+                Row chip = new Row
+                {
+                    Kind = RowKind.ColorPick,
+                    LabelKey = ColorSlotKeys[slot],
+                    ColorIndex = slot,
+                    GetColor = () => GetColorSlot(slot),
+                    Rect = chipRect,
+                    ResetRect = ColorResetRect(chipRect, scale)
+                };
+
+                AddColorChip(chip, Mathf.Max(8f, fontSize * 0.9f));
+            }
+
+            int lines = (ColorSlotCount + columns - 1) / columns;
+            top -= lines * chipHeight + Mathf.Max(0, lines - 1) * chipGap + gap * 1.5f;
+        }
+
+        private void BuildColorPreview(float left, float contentWidth, float scale, float gap, float fontSize, ref float top)
+        {
+            float freeHeight = Mathf.Max(1f, top - BasePadding * scale);
+            float previewHeight = Mathf.Min(freeHeight * 0.38f, BaseRowHeight * scale * 4f);
+            if (previewHeight < 20f * scale)
+            {
+                previewHeight = Mathf.Min(freeHeight * 0.8f, 20f * scale);
+            }
+
+            Row preview = new Row
+            {
+                Kind = RowKind.ColorPreview,
+                GetColor = () => GetColorSlot(_colorIndex),
+                Rect = new Rect(left, top - previewHeight, contentWidth, previewHeight)
+            };
+
+            AddColorPreview(preview, fontSize);
+            top -= previewHeight + gap * 1.5f;
         }
 
         private static Row Slider(string key, float min, float max, bool logScale, string format,
@@ -451,21 +651,6 @@ namespace TimingShow.HUD
             return new Row { Kind = RowKind.Text, LabelKey = key };
         }
 
-        private static Row ColorRow(string key, Func<Color> get, Action<Color> set)
-        {
-            return new Row
-            {
-                Kind = RowKind.ColorRow,
-                LabelKey = key,
-                Min = 0f,
-                Max = 1f,
-                Format = "F2",
-                GetColor = get,
-                SetColor = set,
-                Channels = new[] { 0, 1, 2, 3 }
-            };
-        }
-
         private void LayoutRowBars(Row row, float scale, float rowHeight)
         {
             Rect r = row.Rect;
@@ -480,23 +665,6 @@ namespace TimingShow.HUD
                 float barY = r.y + (rowHeight - trackHeight) * 0.5f;
 
                 row.Bars = new[] { new Rect(barLeft, barY, Mathf.Max(1f, barRight - barLeft), trackHeight) };
-            }
-            else if (row.Kind == RowKind.ColorRow)
-            {
-                float labelWidth = r.width * 0.34f;
-                float swatch = Mathf.Min(16f * scale, rowHeight * 0.7f);
-                float barLeft = r.x + labelWidth + swatch + BaseBarGap * scale;
-                float barRight = r.x + r.width - 2f * scale;
-                float barWidth = Mathf.Max(1f, barRight - barLeft);
-                float each = Mathf.Max(1f, (barWidth - BaseBarGap * scale * 3f) / 4f);
-                float trackHeight = Mathf.Max(6f, Mathf.Min(BaseTrackHeight * scale, rowHeight * 0.7f));
-                float barY = r.y + (rowHeight - trackHeight) * 0.5f;
-
-                row.Bars = new Rect[4];
-                for (int i = 0; i < 4; i++)
-                {
-                    row.Bars[i] = new Rect(barLeft + i * (each + BaseBarGap * scale), barY, each, trackHeight);
-                }
             }
             else if (row.Kind == RowKind.Toggle)
             {
@@ -524,9 +692,7 @@ namespace TimingShow.HUD
             row.Label = CreateText("RowLabel" + _rows.Count, i18n.T(row.LabelKey),
                 TextAlignmentOptions.MidlineLeft, fontSize, TextColor);
 
-            float labelWidth = row.Kind == RowKind.ColorRow
-                ? row.Rect.width * 0.34f
-                : row.Rect.width * BaseLabelRatio;
+            float labelWidth = row.Rect.width * BaseLabelRatio;
 
             Rect labelRect = new Rect(row.Rect.x, row.Rect.y, labelWidth, row.Rect.height);
             PlaceText(row.Label, labelRect, w, h, false);
@@ -539,6 +705,43 @@ namespace TimingShow.HUD
                     48f * UiScale, row.Rect.height);
                 PlaceText(row.Value, valueRect, w, h, true);
             }
+        }
+
+        private void AddColorChip(Row row, float fontSize)
+        {
+            row.Label = CreateText("ColorChip" + row.ColorIndex, i18n.T(row.LabelKey),
+                TextAlignmentOptions.MidlineLeft, fontSize, TextColor);
+
+            float scale = UiScale;
+            float swatch = ColorSwatchSize(row.Rect.height, scale);
+            Rect textRect = new Rect(
+                row.Rect.x + 4f * scale + swatch + 4f * scale,
+                row.Rect.y,
+                Mathf.Max(1f, ColorChipLabelWidth(row.Rect, scale)),
+                row.Rect.height);
+
+            PlaceText(row.Label, textRect, _panelWidth, _panelHeight, false);
+
+            if (row.ResetRect.width > 0f)
+            {
+                row.ResetLabel = CreateText("ColorReset" + row.ColorIndex, i18n.T("Btn_ResetColor"),
+                    TextAlignmentOptions.Center, Mathf.Max(8f, fontSize), TextColor);
+                PlaceText(row.ResetLabel, row.ResetRect, _panelWidth, _panelHeight, false);
+            }
+
+            _rows.Add(row);
+        }
+
+        private void AddColorPreview(Row row, float fontSize)
+        {
+            Color color = GetColorSlot(_colorIndex);
+
+            row.Value = CreateText("ColorPreviewValue", ColorPreviewText(color),
+                TextAlignmentOptions.Center, Mathf.Max(8f, fontSize), ColorPreviewTextColor(color));
+            PlaceText(row.Value, row.Rect, _panelWidth, _panelHeight, false);
+
+            _colorPreviewRow = row;
+            _rows.Add(row);
         }
 
         private void AddTab(Row row, float fontSize)
@@ -610,6 +813,7 @@ namespace TimingShow.HUD
 
             _texts.Clear();
             _titleText = null;
+            _colorPreviewRow = null;
         }
         
 
@@ -695,8 +899,24 @@ namespace TimingShow.HUD
                     _draftDirty = true;
                     MarkDirty();
                     return;
+                case RowKind.ColorPick:
+                    if (row.ResetRect.width > 0f && row.ResetRect.Contains(local))
+                    {
+                        ResetColorSlot(row.ColorIndex);
+                        return;
+                    }
+
+                    if (_colorIndex != row.ColorIndex)
+                    {
+                        _colorIndex = row.ColorIndex;
+                        _activeRow = null;
+                        _hoverRow = null;
+                        RebuildRows();
+                        MarkDirty();
+                    }
+
+                    return;
                 case RowKind.Slider:
-                case RowKind.ColorRow:
                     HandleDrag(row, local);
                     return;
             }
@@ -739,19 +959,7 @@ namespace TimingShow.HUD
 
                 row.Set?.Invoke(value);
                 if (row.Value != null) row.Value.text = FormatValue(row);
-            }
-            else if (row.Kind == RowKind.ColorRow)
-            {
-                Color color = row.GetColor != null ? row.GetColor() : Color.white;
-                switch (row.Channels[bar])
-                {
-                    case 0: color.r = t; break;
-                    case 1: color.g = t; break;
-                    case 2: color.b = t; break;
-                    default: color.a = t; break;
-                }
-
-                row.SetColor?.Invoke(color);
+                RefreshColorPreview();
             }
 
             MarkDirty();
@@ -761,6 +969,7 @@ namespace TimingShow.HUD
         private string FormatValue(Row row)
         {
             float value = row.Get != null ? row.Get() : row.Min;
+            if (row.ByteDisplay) return Mathf.RoundToInt(Mathf.Clamp01(value) * 255f).ToString();
             return value.ToString(row.Format);
         }
 
@@ -875,8 +1084,12 @@ namespace TimingShow.HUD
                             DrawSlider(vh, row, scale);
                             break;
 
-                        case RowKind.ColorRow:
-                            DrawColorRow(vh, row, scale);
+                        case RowKind.ColorPick:
+                            DrawColorChip(vh, row, scale, _owner._colorIndex == row.ColorIndex);
+                            break;
+
+                        case RowKind.ColorPreview:
+                            DrawColorPreview(vh, row, scale);
                             break;
 
                         case RowKind.Toggle:
@@ -910,32 +1123,53 @@ namespace TimingShow.HUD
                     ValueColor);
             }
 
-            private static void DrawColorRow(VertexHelper vh, Row row, float scale)
+            private static void DrawColorChip(VertexHelper vh, Row row, float scale, bool selected)
             {
-                if (row.Bars == null || row.GetColor == null) return;
+                if (row.GetColor == null) return;
 
+                DrawQuad(vh, row.Rect.min, row.Rect.max,
+                    selected ? TabActiveColor : new Color(1f, 1f, 1f, 0.035f));
+
+                float swatch = ColorSwatchSize(row.Rect.height, scale);
+                float sx = row.Rect.x + 4f * scale;
+                float sy = row.Rect.y + (row.Rect.height - swatch) * 0.5f;
                 Color color = row.GetColor();
-                
-                float swatch = Mathf.Min(16f * scale, row.Rect.height * 0.7f);
-                Rect swatchRect = new Rect(row.Rect.x + row.Rect.width * 0.34f - swatch - BaseBarGap * scale,
-                    row.Rect.y + (row.Rect.height - swatch) * 0.5f, swatch, swatch);
 
-                DrawQuad(vh, swatchRect.min, swatchRect.max, new Color(0.5f, 0.5f, 0.5f, 1f));
-                DrawQuad(vh, swatchRect.min, swatchRect.max, color);
+                DrawQuad(vh, new Vector2(sx, sy), new Vector2(sx + swatch, sy + swatch),
+                    new Color(0.5f, 0.5f, 0.5f, 1f));
+                DrawQuad(vh, new Vector2(sx, sy), new Vector2(sx + swatch, sy + swatch), color);
 
-                for (int i = 0; i < row.Bars.Length && i < 4; i++)
+                if (row.ResetRect.width > 0f)
                 {
-                    Rect bar = row.Bars[i];
-                    DrawQuad(vh, bar.min, bar.max, TrackColor);
+                    DrawQuad(vh, row.ResetRect.min, row.ResetRect.max, new Color(1f, 1f, 1f, 0.10f));
 
-                    float value = i == 0 ? color.r : i == 1 ? color.g : i == 2 ? color.b : color.a;
-                    float fillRight = bar.x + bar.width * Mathf.Clamp01(value);
-                    if (fillRight <= bar.x) continue;
-
-                    Color fill = color;
-                    if (i == 3) fill = new Color(color.r, color.g, color.b, 1f);
-                    DrawQuad(vh, new Vector2(bar.x, bar.y), new Vector2(fillRight, bar.yMax), fill);
+                    float bt = Mathf.Max(1f, 1.2f * scale);
+                    DrawQuad(vh, row.ResetRect.min, new Vector2(row.ResetRect.xMax, row.ResetRect.yMin + bt), BorderColor);
+                    DrawQuad(vh, new Vector2(row.ResetRect.xMin, row.ResetRect.yMax - bt), row.ResetRect.max, BorderColor);
+                    DrawQuad(vh, row.ResetRect.min, new Vector2(row.ResetRect.xMin + bt, row.ResetRect.yMax), BorderColor);
+                    DrawQuad(vh, new Vector2(row.ResetRect.xMax - bt, row.ResetRect.yMin), row.ResetRect.max, BorderColor);
                 }
+
+                float thickness = selected ? Mathf.Max(1.5f, 1.6f * scale) : Mathf.Max(1f, 1.2f * scale);
+                Color edge = selected ? AccentColor : BorderColor;
+                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMax, row.Rect.yMin + thickness), edge);
+                DrawQuad(vh, new Vector2(row.Rect.xMin, row.Rect.yMax - thickness), row.Rect.max, edge);
+                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMin + thickness, row.Rect.yMax), edge);
+                DrawQuad(vh, new Vector2(row.Rect.xMax - thickness, row.Rect.yMin), row.Rect.max, edge);
+            }
+
+            private static void DrawColorPreview(VertexHelper vh, Row row, float scale)
+            {
+                if (row.GetColor == null) return;
+
+                DrawQuad(vh, row.Rect.min, row.Rect.max, PanelColor);
+                DrawQuad(vh, row.Rect.min, row.Rect.max, row.GetColor());
+
+                float t = Mathf.Max(1f, 1.2f * scale);
+                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMax, row.Rect.yMin + t), BorderColor);
+                DrawQuad(vh, new Vector2(row.Rect.xMin, row.Rect.yMax - t), row.Rect.max, BorderColor);
+                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMin + t, row.Rect.yMax), BorderColor);
+                DrawQuad(vh, new Vector2(row.Rect.xMax - t, row.Rect.yMin), row.Rect.max, BorderColor);
             }
             
             private static void DrawButton(VertexHelper vh, Row row, float scale, bool dirty)

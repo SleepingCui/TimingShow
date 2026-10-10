@@ -11,6 +11,14 @@ namespace TimingShow.HUD
         private int _dataVersion;
         private bool _isAngle;
         public TMP_FontAsset GraphFontAsset => CurrentFontAsset;
+
+        public System.Action AxisMetricsChanged;
+
+        protected override void OnAxisMetricsChanged()
+        {
+            System.Action handler = AxisMetricsChanged;
+            if (handler != null) handler();
+        }
         
         public void LoadLog(TimingLogData data)
         {
@@ -43,10 +51,12 @@ namespace TimingShow.HUD
         protected override bool RobustYViewport => true;
         protected override bool ShowOutOfRangeIndicators => true;
         protected override bool DrawPlotFrame => true;
+        protected override bool AxisLabelsInside => true;
         protected override bool AvgLabelStub => true;
         protected override float AvgLabelMaxWidthRatio => 0.28f;
         protected override bool HintInFooter => true;
         protected override float GridAlphaScale => 0.6f;
+        protected override bool ShowGrid => LogSettings == null || LogSettings.LogGraph_ShowGrid;
         
         public void ReloadAppearance()
         {

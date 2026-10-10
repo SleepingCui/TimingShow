@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -30,11 +31,44 @@ namespace TimingShow.Options
         private static readonly object DeleteSync = new object();
         private static Vector2 _logListScroll;
         private static string _logListDirectory;
-        private static float _nextLogListRefresh;
+        private static bool _logListDirty = true;
+
+        private const float LogListHeight = 180f;
+        private static float _logRowHeight;
+
+        private static int LogListDrawBudget => Mathf.Clamp(ModContext.Settings.LogListDrawBudget, 4, 400);
         
         private static readonly object LogScanSync = new object();
         private static LogScanResult _logScanCompleted;
         private static bool _logScanRunning;
+        private static bool _cacheLoaded;
+
+        private static readonly object GraphLoadSync = new object();
+        private static LogGraphLoad _graphLoadPending;
+        private static LogGraphLoad _graphLoadCompleted;
+
+        private enum LogGraphLoadResult { Success, Failed, Missing }
+
+        private sealed class LogGraphLoad
+        {
+            public string FilePath;
+            public string FileName;
+            public TimingLogData Data;
+            public string Error;
+            public LogGraphLoadResult Result;
+        }
+
+        private const int MetaCacheVersion = 1;
+        private const int MetaHeaderProbeBytes = 64 * 1024;
+        private static readonly Dictionary<string, MetaCacheEntry> MetaCache = new Dictionary<string, MetaCacheEntry>(StringComparer.OrdinalIgnoreCase);
+
+        private sealed class MetaCacheEntry
+        {
+            public long Length;
+            public long LastWriteTicks;
+            public long Timestamp = -1;
+            public string SongName;
+        }
 
         private sealed class LogListEntry
         {
@@ -44,6 +78,14 @@ namespace TimingShow.Options
             public DateTime LastWriteTime;
             public long Length;
             public long Timestamp = -1;
+
+            public void ApplyCached(long length, long lastWriteTicks, string songName, long timestamp)
+            {
+                Length = length;
+                LastWriteTime = SafeFromTicks(lastWriteTicks);
+                SongName = songName;
+                Timestamp = timestamp;
+            }
         }
 
         private sealed class LogScanResult
@@ -55,7 +97,7 @@ namespace TimingShow.Options
         public static void OnConfigOpened()
         {
             _logListDirectory = null;
-            _nextLogListRefresh = 0f;
+            _logListDirty = true;
             try { RequestLogScan(GetLogDirectory()); }
             catch (Exception e) { ModContext.Logger.Error("Failed to refresh logs on config open: " + e.Message); }
         }
@@ -65,7 +107,9 @@ namespace TimingShow.Options
             EnsureStyles();
             ProcessDeleteResults();
             ApplyLogScanResults();
+            ApplyLogGraphLoadResult();
             RemoveActiveLogEntries();
+            UpdatePendingHintSnapshot();
 
             string foldoutArrow = _showLogList ? "▲" : "▼";
             GUILayout.Space(6);
@@ -80,12 +124,15 @@ namespace TimingShow.Options
             try { logDir = GetLogDirectory(); }
             catch { logDir = string.Empty; }
 
-            if (_logListDirectory != logDir || Time.realtimeSinceStartup >= _nextLogListRefresh)
+            if (_logListDirty || _logListDirectory != logDir)
                 RequestLogScan(logDir);
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(i18n.T("Btn_RefreshLogs"), GUILayout.Width(70)))
+            {
+                _logListDirty = true;
                 RequestLogScan(logDir);
+            }
             if (GUILayout.Button(GetSortButtonText(), GUILayout.Width(120)))
             {
                 ModContext.Settings.LogSort = (ModContext.Settings.LogSort + 1) % 3;
@@ -101,6 +148,8 @@ namespace TimingShow.Options
             }
             GUILayout.EndHorizontal();
 
+            DrawLogGraphPendingOverlay();
+
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical(GUI.skin.box);
             if (_logEntries.Count == 0)
@@ -109,41 +158,138 @@ namespace TimingShow.Options
             }
             else
             {
-                _logListScroll = GUILayout.BeginScrollView(_logListScroll, GUILayout.Height(180));
-                for (int i = 0; i < _logEntries.Count; i++)
-                {
-                    LogListEntry entry = _logEntries[i];
-                    GUILayout.BeginHorizontal(GUI.skin.box);
-                    _measureContent.text = entry.FileName;
-                    Rect nameRect = GUILayoutUtility.GetRect(_measureContent, _logNameLabelStyle, GUILayout.MinWidth(190), GUILayout.ExpandWidth(true));
-                    GUI.Label(nameRect, TruncateToWidth(entry.FileName, _logNameLabelStyle, nameRect.width), _logNameLabelStyle);
-                    GUILayout.Label(FormatFileSize(entry.Length), GUILayout.Width(78));
-                    GUILayout.Label(FormatTimestamp(entry.Timestamp), GUILayout.Width(145));
-                    string analyzeLabel = i18n.T("Btn_AnalyzeLog");
-                    if (GUILayout.Button(analyzeLabel, GUILayout.Width(MeasureButtonWidth(analyzeLabel, 70f))))
-                        OpenLogInAnalyzer(entry.FullPath);
-                    string graphLabel = i18n.T("Btn_ViewLogGraph");
-                    if (GUILayout.Button(graphLabel, GUILayout.Width(MeasureButtonWidth(graphLabel, 70f))))
-                        OpenLogGraphWindow(entry.FullPath);
-                    string openFileLabel = i18n.T("Btn_OpenLogFile");
-                    if (GUILayout.Button(openFileLabel, GUILayout.Width(MeasureButtonWidth(openFileLabel, 70f))))
-                        OpenLogFile(entry.FullPath);
-                    bool deletePending;
-                    lock (DeleteSync) deletePending = _deletePending.Contains(entry.FullPath);
-                    bool deleteArmed = IsDeleteArmed(entry.FullPath);
-                    bool previousEnabled = GUI.enabled;
-                    GUI.enabled = previousEnabled && !deletePending;
-                    GUIStyle deleteStyle = deleteArmed ? _deleteArmedButtonStyle : _deleteButtonStyle;
-                    string deleteLabel = deletePending ? i18n.T("Btn_DeletingLog") : i18n.T("Btn_DeleteLog");
-                    if (GUILayout.Button(deleteLabel, deleteStyle, GUILayout.Width(70)))
-                        HandleDeleteClick(entry.FullPath);
-                    GUI.enabled = previousEnabled;
-                    GUILayout.EndHorizontal();
-                }
-                GUILayout.EndScrollView();
+                Rect viewport = GUILayoutUtility.GetRect(1f, 1f, LogListHeight, LogListHeight, GUILayout.ExpandWidth(true));
+                HandleLogListScroll(viewport);
+                DrawVirtualLogList(viewport, ref _logListScroll);
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
+        }
+
+        private static void HandleLogListScroll(Rect viewport)
+        {
+            Event current = Event.current;
+            if (current == null || current.type != EventType.ScrollWheel) return;
+            if (!viewport.Contains(current.mousePosition)) return;
+
+            float contentHeight = _logEntries.Count * _logRowHeight;
+            float max = Mathf.Max(0f, contentHeight - viewport.height);
+            _logListScroll.y = Mathf.Clamp(_logListScroll.y + current.delta.y * _logRowHeight * 3f, 0f, max);
+            current.Use();
+        }
+
+        private static void DrawVirtualLogList(Rect viewport, ref Vector2 scroll)
+        {
+            if (_logRowHeight <= 0f) _logRowHeight = MeasureRowHeight();
+            float rowHeight = _logRowHeight;
+
+            Event current = Event.current;
+            if (current != null && current.type == EventType.Layout) return;
+
+            int budget = LogListDrawBudget;
+
+            GUI.BeginClip(viewport);
+            try
+            {
+                int first = Mathf.Max(0, Mathf.FloorToInt(scroll.y / rowHeight));
+                int last = Mathf.Min(_logEntries.Count - 1, Mathf.FloorToInt((scroll.y + viewport.height) / rowHeight));
+                int drawn = 0;
+
+                for (int i = first; i <= last; i++)
+                {
+                    LogListEntry entry = _logEntries[i];
+                    if (TimingLogger.IsFileBeingWritten(entry.FullPath)) continue;
+
+                    if (drawn >= budget) break;
+                    drawn++;
+
+                    float top = i * rowHeight - scroll.y;
+                    DrawLogRow(entry, new Rect(0f, top, viewport.width, rowHeight));
+                }
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Error("Failed to draw log list row: " + e.Message);
+            }
+            finally
+            {
+                GUI.EndClip();
+            }
+        }
+
+        private static float MeasureRowHeight()
+        {
+            try
+            {
+                float label = GUI.skin.label.CalcSize(new GUIContent("Ag")).y;
+                float button = GUI.skin.button.CalcSize(new GUIContent("Ag")).y;
+                float height = Mathf.Max(Mathf.Max(label, button) + 8f, 20f);
+                return Mathf.Min(height, 48f);
+            }
+            catch
+            {
+                return 24f;
+            }
+        }
+
+        private static void DrawLogRow(LogListEntry entry, Rect row)
+        {
+            GUI.Box(row, GUIContent.none);
+
+            float x = row.x + 6f;
+            float right = row.xMax - 4f;
+            float innerWidth = Mathf.Max(1f, right - x);
+            float labelHeight = Mathf.Max(1f, GUI.skin.label.CalcSize(new GUIContent("Ag")).y);
+            float rowY = row.y + (row.height - labelHeight) * 0.5f;
+            float buttonY = row.y + 1f;
+            float buttonHeight = Mathf.Max(1f, row.height - 2f);
+
+            const float sizeWidth = 78f;
+            const float timeWidth = 145f;
+            const float deleteWidth = 70f;
+
+            string analyzeLabel = i18n.T("Btn_AnalyzeLog");
+            string graphLabel = i18n.T("Btn_ViewLogGraph");
+            string openFileLabel = i18n.T("Btn_OpenLogFile");
+            float analyzeWidth = MeasureButtonWidth(analyzeLabel, 70f);
+            float graphWidth = MeasureButtonWidth(graphLabel, 70f);
+            float openWidth = MeasureButtonWidth(openFileLabel, 70f);
+
+            float fixedWidth = sizeWidth + timeWidth + deleteWidth + analyzeWidth + graphWidth + openWidth;
+            float nameWidth = Mathf.Max(80f, innerWidth - fixedWidth);
+
+            GUI.Label(new Rect(x, rowY, nameWidth, labelHeight),
+                TruncateToWidth(entry.FileName, _logNameLabelStyle, nameWidth), _logNameLabelStyle);
+            x += nameWidth;
+
+            GUI.Label(new Rect(x, rowY, sizeWidth, labelHeight), FormatFileSize(entry.Length));
+            x += sizeWidth;
+
+            GUI.Label(new Rect(x, rowY, timeWidth, labelHeight), FormatTimestamp(entry.Timestamp));
+            x += timeWidth;
+
+            if (GUI.Button(new Rect(x, buttonY, analyzeWidth, buttonHeight), analyzeLabel))
+                OpenLogInAnalyzer(entry.FullPath);
+            x += analyzeWidth;
+
+            if (GUI.Button(new Rect(x, buttonY, graphWidth, buttonHeight), graphLabel))
+                OpenLogGraphWindow(entry.FullPath);
+            x += graphWidth;
+
+            if (GUI.Button(new Rect(x, buttonY, openWidth, buttonHeight), openFileLabel))
+                OpenLogFile(entry.FullPath);
+            x += openWidth;
+
+            bool deletePending;
+            lock (DeleteSync) deletePending = _deletePending.Contains(entry.FullPath);
+            bool deleteArmed = IsDeleteArmed(entry.FullPath);
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && !deletePending;
+            GUIStyle deleteStyle = deleteArmed ? _deleteArmedButtonStyle : _deleteButtonStyle;
+            string deleteLabel = deletePending ? i18n.T("Btn_DeletingLog") : i18n.T("Btn_DeleteLog");
+            if (GUI.Button(new Rect(x, buttonY, deleteWidth, buttonHeight), deleteLabel, deleteStyle))
+                HandleDeleteClick(entry.FullPath);
+            GUI.enabled = previousEnabled;
         }
 
         private static void EnsureStyles()
@@ -173,8 +319,11 @@ namespace TimingShow.Options
         private static void ScanLogDirectory(string logDir)
         {
             var result = new LogScanResult { Directory = logDir, Entries = new List<LogListEntry>() };
+            bool cacheDirty = false;
             try
             {
+                EnsureMetaCacheLoaded();
+
                 if (!string.IsNullOrWhiteSpace(logDir) && Directory.Exists(logDir))
                 {
                     string[] files = Directory.GetFiles(logDir);
@@ -184,15 +333,20 @@ namespace TimingShow.Options
                         string lower = file.ToLowerInvariant();
                         if (!lower.EndsWith(".json") && !lower.EndsWith(".tlog") && !lower.EndsWith(".tlog.gz")) continue;
                         if (TimingLogger.IsFileBeingWritten(file)) continue;
-                        LogListEntry entry = ReadLogEntry(file);
+
+                        LogListEntry entry = ReadLogEntry(file, ref cacheDirty);
                         if (entry != null) result.Entries.Add(entry);
                     }
                 }
+
+                if (_cacheLoaded) PruneMetaCache(ref cacheDirty);
             }
             catch (Exception e)
             {
                 ModContext.Logger.Error("Failed to scan log directory: " + e.Message);
             }
+
+            if (cacheDirty) SaveMetaCache();
 
             lock (LogScanSync)
             {
@@ -215,21 +369,42 @@ namespace TimingShow.Options
             _logEntries.Clear();
             _logEntries.AddRange(result.Entries);
             _logListDirectory = result.Directory;
-            _nextLogListRefresh = Time.realtimeSinceStartup + 2f;
+            _logListDirty = false;
         }
 
-        private static LogListEntry ReadLogEntry(string filePath)
+        private static LogListEntry ReadLogEntry(string filePath, ref bool cacheDirty)
         {
             try
             {
+                var info = new FileInfo(filePath);
+                long length = info.Length;
+                long ticks = info.LastWriteTimeUtc.Ticks;
+
                 var entry = new LogListEntry
                 {
                     FullPath = filePath,
-                    FileName = Path.GetFileName(filePath),
-                    LastWriteTime = File.GetLastWriteTime(filePath),
-                    Length = new FileInfo(filePath).Length
+                    FileName = info.Name,
+                    LastWriteTime = info.LastWriteTime,
+                    Length = length
                 };
+
+                MetaCacheEntry cached;
+                if (_cacheLoaded && MetaCache.TryGetValue(filePath, out cached) &&
+                    cached.Length == length && cached.LastWriteTicks == ticks)
+                {
+                    entry.ApplyCached(length, ticks, cached.SongName, cached.Timestamp);
+                    return entry;
+                }
+
                 ReadLogMetadata(filePath, entry);
+
+                CacheMeta(filePath, new MetaCacheEntry
+                {
+                    Length = length,
+                    LastWriteTicks = ticks,
+                    SongName = entry.SongName,
+                    Timestamp = entry.Timestamp
+                }, ref cacheDirty);
                 return entry;
             }
             catch
@@ -245,19 +420,7 @@ namespace TimingShow.Options
                 string lower = filePath.ToLowerInvariant();
                 if (lower.EndsWith(".json"))
                 {
-                    using (var reader = new JsonTextReader(new StreamReader(filePath)))
-                    {
-                        while (reader.Read())
-                        {
-                            if (reader.TokenType != JsonToken.PropertyName) continue;
-                            string propertyName = reader.Value?.ToString();
-                            if (!reader.Read()) continue;
-                            if (string.Equals(propertyName, "timestamp", StringComparison.Ordinal) && reader.TokenType == JsonToken.Integer)
-                                entry.Timestamp = Convert.ToInt64(reader.Value);
-                            else if (string.Equals(propertyName, "songName", StringComparison.Ordinal) && reader.TokenType == JsonToken.String)
-                                entry.SongName = reader.Value?.ToString();
-                        }
-                    }
+                    ReadJsonMetadata(filePath, entry);
                     return;
                 }
 
@@ -265,8 +428,8 @@ namespace TimingShow.Options
                 using (Stream input = lower.EndsWith(".tlog.gz") ? (Stream)new GZipStream(fs, CompressionMode.Decompress) : fs)
                 using (var reader = new BinaryReader(input, System.Text.Encoding.UTF8))
                 {
-                    string magic = new string(reader.ReadChars(4));
-                    if (magic != "TSMZ") return;
+                    byte[] magic = reader.ReadBytes(4);
+                    if (magic.Length < 4 || magic[0] != 'T' || magic[1] != 'S' || magic[2] != 'M' || magic[3] != 'Z') return;
                     reader.ReadByte();
                     entry.Timestamp = reader.ReadInt64();
                     entry.SongName = reader.ReadString();
@@ -274,6 +437,233 @@ namespace TimingShow.Options
             }
             catch
             { }
+        }
+
+        private static void ReadJsonMetadata(string filePath, LogListEntry entry)
+        {
+            try
+            {
+                byte[] probe = new byte[MetaHeaderProbeBytes];
+                int read;
+                using (var fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    read = ReadUpTo(fs, probe);
+                }
+
+                string text = new UTF8Encoding(false).GetString(probe, 0, read);
+                entry.Timestamp = ReadJsonLongField(text, "timestamp", entry.Timestamp);
+                string song = ReadJsonStringField(text, "songName");
+                if (!string.IsNullOrEmpty(song)) entry.SongName = song;
+
+                if (read >= probe.Length && entry.Timestamp < 0 && string.IsNullOrEmpty(entry.SongName))
+                {
+                    entry.Timestamp = TimestampFromFileName(entry.FileName);
+                }
+            }
+            catch
+            { }
+        }
+
+        private static int ReadUpTo(Stream stream, byte[] buffer)
+        {
+            int total = 0;
+            while (total < buffer.Length)
+            {
+                int n = stream.Read(buffer, total, buffer.Length - total);
+                if (n <= 0) break;
+                total += n;
+            }
+            return total;
+        }
+
+        private static string ReadJsonStringField(string text, string key)
+        {
+            int at = FindField(text, key);
+            if (at < 0) return null;
+
+            int colon = text.IndexOf(':', at);
+            if (colon < 0) return null;
+
+            int start = text.IndexOf('"', colon + 1);
+            if (start < 0) return null;
+
+            var sb = new System.Text.StringBuilder();
+            for (int i = start + 1; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (c == '\\') { if (i + 1 < text.Length) { sb.Append(text[++i]); } continue; }
+                if (c == '"') return sb.ToString();
+                sb.Append(c);
+            }
+            return null;
+        }
+
+        private static long ReadJsonLongField(string text, string key, long fallback)
+        {
+            int at = FindField(text, key);
+            if (at < 0) return fallback;
+
+            int colon = text.IndexOf(':', at);
+            if (colon < 0) return fallback;
+
+            int i = colon + 1;
+            while (i < text.Length && (text[i] == ' ' || text[i] == '\t')) i++;
+
+            int start = i;
+            if (i < text.Length && (text[i] == '-' || text[i] == '+')) i++;
+            while (i < text.Length && char.IsDigit(text[i])) i++;
+            if (i == start) return fallback;
+
+            long value;
+            return long.TryParse(text.Substring(start, i - start), out value) ? value : fallback;
+        }
+
+        private static int FindField(string text, string key)
+        {
+            string needle = "\"" + key + "\"";
+            int index = text.IndexOf(needle, StringComparison.Ordinal);
+            while (index >= 0)
+            {
+                int after = index + needle.Length;
+                int colon = text.IndexOf(':', after);
+                if (colon < 0) return -1;
+                int quote = text.IndexOf('"', after);
+                if (quote < 0 || quote > colon) return index;
+                index = text.IndexOf(needle, index + 1, StringComparison.Ordinal);
+            }
+            return -1;
+        }
+
+        private static long TimestampFromFileName(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return -1;
+            int end = fileName.IndexOf('_');
+            if (end <= 0) end = fileName.IndexOf('.');
+            if (end <= 0) return -1;
+
+            long value;
+            return long.TryParse(fileName.Substring(0, end), out value) ? value : -1;
+        }
+
+        private static DateTime SafeFromTicks(long ticks)
+        {
+            try { return new DateTime(ticks, DateTimeKind.Utc).ToLocalTime(); }
+            catch { return DateTime.MinValue; }
+        }
+
+        private static string MetaCachePath => Path.Combine(GetCacheDirectory(), "logmeta.cache");
+
+        private static string GetCacheDirectory()
+        {
+            string root;
+            try { root = Path.GetFullPath(Path.Combine(Application.dataPath, "..")); }
+            catch { root = Path.GetTempPath(); }
+            return Path.Combine(root, "Mods", "TimingShow", "Cache");
+        }
+
+        private static void EnsureMetaCacheLoaded()
+        {
+            if (_cacheLoaded) return;
+            _cacheLoaded = true;
+
+            try
+            {
+                string path = MetaCachePath;
+                if (!File.Exists(path)) return;
+
+                using (var fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var reader = new BinaryReader(fs, System.Text.Encoding.UTF8))
+                {
+                    if (reader.ReadInt32() != MetaCacheVersion) return;
+
+                    int count = reader.ReadInt32();
+                    if (count <= 0 || count > 100000) return;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        string file = reader.ReadString();
+                        long length = reader.ReadInt64();
+                        long ticks = reader.ReadInt64();
+                        long timestamp = reader.ReadInt64();
+                        string song = reader.ReadString();
+                        MetaCache[file] = new MetaCacheEntry
+                        {
+                            Length = length,
+                            LastWriteTicks = ticks,
+                            Timestamp = timestamp,
+                            SongName = song
+                        };
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Log("Log metadata cache unreadable, rebuilding: " + e.Message);
+                MetaCache.Clear();
+            }
+        }
+
+        private static void SaveMetaCache()
+        {
+            try
+            {
+                string dir = GetCacheDirectory();
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                string path = MetaCachePath;
+                using (var fs = File.Create(path))
+                using (var writer = new BinaryWriter(fs, System.Text.Encoding.UTF8))
+                {
+                    writer.Write(MetaCacheVersion);
+                    writer.Write(MetaCache.Count);
+                    foreach (KeyValuePair<string, MetaCacheEntry> pair in MetaCache)
+                    {
+                        writer.Write(pair.Key);
+                        writer.Write(pair.Value.Length);
+                        writer.Write(pair.Value.LastWriteTicks);
+                        writer.Write(pair.Value.Timestamp);
+                        writer.Write(pair.Value.SongName ?? string.Empty);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Log("Failed to persist log metadata cache: " + e.Message);
+            }
+        }
+
+        private static void CacheMeta(string filePath, MetaCacheEntry value, ref bool cacheDirty)
+        {
+            MetaCacheEntry previous;
+            if (MetaCache.TryGetValue(filePath, out previous) &&
+                previous.Length == value.Length &&
+                previous.LastWriteTicks == value.LastWriteTicks &&
+                previous.Timestamp == value.Timestamp &&
+                string.Equals(previous.SongName, value.SongName, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            MetaCache[filePath] = value;
+            cacheDirty = true;
+        }
+
+        private static void PruneMetaCache(ref bool cacheDirty)
+        {
+            if (MetaCache.Count == 0) return;
+
+            List<string> stale = null;
+            foreach (KeyValuePair<string, MetaCacheEntry> pair in MetaCache)
+            {
+                if (File.Exists(pair.Key)) continue;
+                if (stale == null) stale = new List<string>();
+                stale.Add(pair.Key);
+            }
+
+            if (stale == null) return;
+
+            for (int i = 0; i < stale.Count; i++) MetaCache.Remove(stale[i]);
+            cacheDirty = true;
         }
 
         private static int CompareLogEntries(LogListEntry a, LogListEntry b)
@@ -351,25 +741,105 @@ namespace TimingShow.Options
             }
         }
 
-        /// <summary>读取日志并以自建窗口（非 UMM 窗口）显示散点图。</summary>
         private static void OpenLogGraphWindow(string filePath)
+        {
+            var job = new LogGraphLoad { FilePath = filePath, FileName = SafeFileName(filePath) };
+
+            lock (GraphLoadSync)
+            {
+                if (_graphLoadPending != null) return;
+                if (string.Equals(job.FilePath, _lastGraphOpenedPath, StringComparison.OrdinalIgnoreCase)) return;
+
+                _lastGraphOpenedPath = job.FilePath;
+                _graphLoadPending = job;
+                _graphLoadCompleted = null;
+            }
+
+            ThreadPool.QueueUserWorkItem(_ => LoadLogForGraph(job));
+        }
+
+        private static string _lastGraphOpenedPath;
+
+        private static LogGraphLoad _pendingHint;
+
+        private static void LoadLogForGraph(LogGraphLoad job)
         {
             try
             {
-                TimingLogData data;
                 string error;
-                if (!TimingLogReader.TryRead(filePath, out data, out error))
+                if (!File.Exists(job.FilePath))
                 {
-                    ModContext.Logger.Error("Failed to read log for graph: " + (error ?? "unknown error"));
-                    return;
+                    job.Result = LogGraphLoadResult.Missing;
+                    job.Error = "file not found";
                 }
-
-                LogGraphWindow.Open(data);
+                else if (TimingLogReader.TryRead(job.FilePath, out TimingLogData data, out error))
+                {
+                    job.Data = data;
+                    job.Result = LogGraphLoadResult.Success;
+                }
+                else
+                {
+                    job.Result = LogGraphLoadResult.Failed;
+                    job.Error = error;
+                }
             }
             catch (Exception e)
             {
-                ModContext.Logger.Error("Failed to open log graph window: " + e.Message);
+                job.Result = LogGraphLoadResult.Failed;
+                job.Error = e.Message;
             }
+
+            lock (GraphLoadSync)
+            {
+                _graphLoadCompleted = job;
+                _graphLoadPending = null;
+            }
+        }
+
+        private static void ApplyLogGraphLoadResult()
+        {
+            LogGraphLoad job;
+            lock (GraphLoadSync)
+            {
+                job = _graphLoadCompleted;
+                _graphLoadCompleted = null;
+            }
+            if (job == null) return;
+
+            if (job.Result == LogGraphLoadResult.Success && job.Data != null)
+            {
+                try { LogGraphWindow.Open(job.Data); }
+                catch (Exception e) { ModContext.Logger.Error("Failed to open log graph window: " + e.Message); }
+                return;
+            }
+
+            if (job.Result == LogGraphLoadResult.Missing)
+                ModContext.Logger.Error("Log file disappeared before it could be opened: " + job.FilePath);
+            else
+                ModContext.Logger.Error("Failed to read log for graph: " + (job.Error ?? "unknown error"));
+        }
+
+        private static void UpdatePendingHintSnapshot()
+        {
+            Event current = Event.current;
+            if (current != null && current.type != EventType.Layout) return;
+
+            lock (GraphLoadSync) _pendingHint = _graphLoadPending;
+        }
+
+        private static void DrawLogGraphPendingOverlay()
+        {
+            LogGraphLoad job = _pendingHint;
+            if (job == null) return;
+
+            GUILayout.Space(4);
+            GUILayout.Label(string.Format(i18n.T("LogGraphLoading"), job.FileName), _warningLabelStyle, GUILayout.ExpandWidth(false));
+        }
+
+        private static string SafeFileName(string path)
+        {
+            try { return Path.GetFileName(path); }
+            catch { return path; }
         }
 
         private static void OpenLogFile(string filePath)
@@ -473,8 +943,7 @@ namespace TimingShow.Options
             for (int i = 0; i < completed.Count; i++)
                 RemoveLogEntry(completed[i]);
 
-            _logListDirectory = null;
-            _nextLogListRefresh = 0f;
+            _logListDirty = true;
         }
 
         private static void RemoveLogEntry(string fullPath)

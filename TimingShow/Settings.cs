@@ -174,15 +174,23 @@ namespace TimingShow
         public bool LogGraph_UseJudgeColor = true;
         public bool LogGraph_ShowZeroLine = true;
         public bool LogGraph_ShowAvgLine = true;
+        public bool LogGraph_ShowGrid = true;
         public bool LogGraph_IgnoreOutliers;
         public int LogGraph_MaxRenderPoints = 800;
         public float LogGraph_PointSize = 3f;
-        public Color LogGraph_BgColor = new Color(0f, 0f, 0f, 0.60f);
-        public Color LogGraph_GridColor = new Color(1f, 1f, 1f, 0.16f);
-        public Color LogGraph_ZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
-        public Color LogGraph_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
-        public Color LogGraph_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
-        public Color LogGraph_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public static readonly Color LogGraph_DefaultBgColor = new Color(0f, 0f, 0f, 0.60f);
+        public static readonly Color LogGraph_DefaultGridColor = new Color(1f, 1f, 1f, 0.16f);
+        public static readonly Color LogGraph_DefaultZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
+        public static readonly Color LogGraph_DefaultAvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
+        public static readonly Color LogGraph_DefaultPointColor = new Color(0.30f, 0.76f, 1f, 1f);
+        public static readonly Color LogGraph_DefaultAxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+
+        public Color LogGraph_BgColor = LogGraph_DefaultBgColor;
+        public Color LogGraph_GridColor = LogGraph_DefaultGridColor;
+        public Color LogGraph_ZeroLineColor = LogGraph_DefaultZeroLineColor;
+        public Color LogGraph_AvgLineColor = LogGraph_DefaultAvgLineColor;
+        public Color LogGraph_PointColor = LogGraph_DefaultPointColor;
+        public Color LogGraph_AxisTextColor = LogGraph_DefaultAxisTextColor;
         public bool LogGraph_UseCustomFont;
         public string LogGraph_FontPath = "";
 
@@ -207,6 +215,8 @@ namespace TimingShow
         public int AnalyzerBridgeTimeoutSec = LogAnalyzerBridge.DefaultTimeoutSeconds;
 
         public int LogSort = 0;
+
+        public int LogListDrawBudget = 60;
 
         public const int LogSort_Time = 0;
         public const int LogSort_Size = 1;
