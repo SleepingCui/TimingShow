@@ -581,6 +581,7 @@ namespace TimingShow.Options
 
             GUILayout.Space(5);
 
+            Toggle(ref ModContext.Settings.Diag_PerfLogEnabled, "Toggle_DiagPerfLog");
             Toggle(ref ModContext.Settings.Diag_GraphBounds, "Toggle_DiagGraphBounds");
             Toggle(ref ModContext.Settings.Diag_InputTrace, "Toggle_DiagInputTrace");
             Toggle(ref ModContext.Settings.Diag_TrackMeshBounds, "Toggle_DiagTrackMesh");

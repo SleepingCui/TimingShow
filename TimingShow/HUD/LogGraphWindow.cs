@@ -16,6 +16,7 @@ namespace TimingShow.HUD
         private const string GraphContainerObjectName = "GraphContainer";
         private const string PlotAreaObjectName = "PlotArea";
         private const string GraphAreaObjectName = "GraphArea";
+        private const string DistributionAreaObjectName = "DistributionArea";
 
         private const int CanvasSortingOrder = 320;
 
@@ -61,6 +62,9 @@ namespace TimingShow.HUD
         private const float BaseAxisGutterTop = 8f;
         private const float BaseAxisLabelGap = 6f;
         private const float BaseAxisLabelMargin = 3f;
+        private const float BaseViewToggleHeight = 18f;
+        private const float BaseViewToggleItemWidth = 48f;
+        private const float BaseViewToggleFontSize = 10.5f;
         private const float TextLineRatio = 1.35f;
         
         private static float UiScale
@@ -106,6 +110,10 @@ namespace TimingShow.HUD
         private static float AxisGutterTop => BaseAxisGutterTop * UiScale;
         private static float AxisLabelGap => BaseAxisLabelGap * UiScale;
         private static float AxisLabelMargin => BaseAxisLabelMargin * UiScale;
+        private static float ViewToggleHeight => BaseViewToggleHeight * UiScale;
+        private static float ViewToggleItemWidth => BaseViewToggleItemWidth * UiScale;
+        private static float ViewToggleFontSize => BaseViewToggleFontSize * UiScale;
+        private static float ViewToggleTotalWidth => ViewToggleItemWidth * 2f;
         
         private static float TitleRightPadding => CloseButtonSize + SettingsButtonSize + CloseButtonInset * 3f + ButtonGap;
         
@@ -307,6 +315,13 @@ namespace TimingShow.HUD
         private Vector2 _sizeAtDragStart;
         private bool _graphPanActive;
         private bool _graphPanRunning;
+        private LogDistributionDrawer _distributionDrawer;
+        private RectTransform _distributionRect;
+        private DistributionStats _distributionStats;
+        private TextMeshProUGUI _viewScatterText;
+        private TextMeshProUGUI _viewDistributionText;
+        private TMP_FontAsset _graphFont;
+        private bool _distributionView;
         private enum PendingButton { None, Close, Settings }
         private PendingButton _pendingButton = PendingButton.None;
         
@@ -454,12 +469,30 @@ namespace TimingShow.HUD
             window._plotAreaRect = plotAreaRect;
             window._graphRect = graphRect;
 
+            GameObject distributionGo = new GameObject(DistributionAreaObjectName);
+            distributionGo.transform.SetParent(graphContainerGo.transform, false);
+            RectTransform distributionRect = distributionGo.GetComponent<RectTransform>();
+            if (distributionRect == null) distributionRect = distributionGo.AddComponent<RectTransform>();
+            distributionRect.anchorMin = Vector2.zero;
+            distributionRect.anchorMax = Vector2.one;
+            distributionRect.pivot = Vector2.zero;
+            distributionRect.offsetMin = Vector2.zero;
+            distributionRect.offsetMax = Vector2.zero;
+
+            LogDistributionDrawer distributionDrawer = distributionGo.AddComponent<LogDistributionDrawer>();
+            window._distributionDrawer = distributionDrawer;
+            window._distributionRect = distributionRect;
+
             TMP_FontAsset graphFont = null;
             if (drawer != null)
             {
                 drawer.LoadLog(data);
                 graphFont = drawer.GraphFontAsset;  
             }
+
+            window._graphFont = graphFont;
+            if (window._distributionDrawer != null) window._distributionDrawer.Initialize(graphFont);
+            if (distributionGo != null) distributionGo.SetActive(false);
 
             window.ApplyHeaderFonts(graphFont);
             
@@ -476,6 +509,14 @@ namespace TimingShow.HUD
             "LogGraph_StatUR",
             "LogGraph_StatRatio",
             "LogGraph_StatXAcc"
+        };
+
+        private static readonly string[] DistributionStatLabelKeys =
+        {
+            "LogGraph_DistMean",
+            "LogGraph_DistStdDev",
+            "LogGraph_DistSkewness",
+            "LogGraph_DistKurtosis"
         };
 
         private void CreateStatsTexts(Transform parent, TMP_FontAsset font)
@@ -516,7 +557,16 @@ namespace TimingShow.HUD
                 ComputeStats();
             }
 
-            UpdateStatTexts();
+            PushDistributionData();
+
+            if (_distributionView) UpdateDistributionStatTexts();
+            else UpdateStatTexts();
+        }
+
+        private void PushDistributionData()
+        {
+            if (_distributionDrawer == null) return;
+            _distributionDrawer.SetData(_distributionStats, _data != null && _data.IsAngle);
         }
         
         private void ComputeStats()
@@ -549,11 +599,14 @@ namespace TimingShow.HUD
                 if (offsets.Count > 0) _statUr = CalcUR.calc(offsets);
             }
 
+            _distributionStats = DistributionStats.Compute(samples, DistributionStats.DefaultBinCount);
             _statsComputed = true;
         }
         
         private void UpdateStatTexts()
         {
+            RestoreScatterStatLabels();
+
             Settings settings = ModContext.Settings;
             int percentDigits = settings != null ? settings.Perc3 : 1;
             int ratioDigits = settings != null ? settings.PercRatioHUD : 1;
@@ -590,6 +643,62 @@ namespace TimingShow.HUD
             }
         }
 
+        private void RestoreScatterStatLabels()
+        {
+            for (int i = 0; i < StatsRowCount; i++)
+            {
+                if (_statLabels[i] == null) continue;
+                string label = (i18n.T(StatLabelKeys[i]) ?? "").ToUpperInvariant();
+                if (_statLabels[i].text != label) _statLabels[i].text = label;
+            }
+
+            if (_statsTitleText != null)
+            {
+                string title = i18n.T("LogGraph_StatsTitle");
+                if (_statsTitleText.text != title) _statsTitleText.text = title;
+            }
+        }
+
+        private void UpdateDistributionStatTexts()
+        {
+            DistributionStats stats = _distributionStats;
+            bool hasData = stats != null && stats.HasData;
+            string unit = _data != null && _data.IsAngle ? "\u00b0" : "ms";
+
+            for (int i = 0; i < StatsRowCount; i++)
+            {
+                if (_statLabels[i] == null) continue;
+                string label = (i18n.T(DistributionStatLabelKeys[i]) ?? "").ToUpperInvariant();
+                if (_statLabels[i].text != label) _statLabels[i].text = label;
+            }
+
+            string[] values = new string[StatsRowCount];
+            values[0] = hasData ? FormatStat(stats.Mean, 2) + unit : "-";
+            values[1] = hasData ? FormatStat(stats.StdDev, 2) + unit : "-";
+            values[2] = hasData ? FormatStat(stats.Skewness, 3) : "-";
+            values[3] = hasData ? FormatStat(stats.ExcessKurtosis, 3) : "-";
+
+            for (int i = 0; i < StatsRowCount; i++)
+            {
+                if (_statValues[i] != null && _statValues[i].text != values[i]) _statValues[i].text = values[i];
+            }
+
+            if (_statsTitleText != null)
+            {
+                int valid = hasData ? stats.ValidCount : 0;
+                int clipped = hasData ? stats.ClippedCount : 0;
+                string title = string.Format(i18n.T("LogGraph_DistSampleCount"), valid);
+                if (clipped > 0) title = title + "  |  " + string.Format(i18n.T("LogGraph_DistClipped"), clipped);
+                if (_statsTitleText.text != title) _statsTitleText.text = title;
+            }
+        }
+
+        private static string FormatStat(double value, int digits)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value)) return "-";
+            return value.ToString("F" + digits, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
 
         private void CreateHeaderTexts(Transform parent, TimingLogData data)
         {
@@ -606,6 +715,13 @@ namespace TimingShow.HUD
             _metaText = CreateHeaderText(parent, "TitleMetaText", meta,
                 MetaFontSize, TitleMetaColor, TextAlignmentOptions.MidlineRight);
             if (_metaText != null && string.IsNullOrEmpty(meta)) _metaText.gameObject.SetActive(false);
+
+            _viewScatterText = CreateHeaderText(parent, "ViewToggleScatter", i18n.T("LogGraph_ViewScatter"),
+                ViewToggleFontSize, TitleSecondaryColor, TextAlignmentOptions.Center);
+            _viewDistributionText = CreateHeaderText(parent, "ViewToggleDistribution", i18n.T("LogGraph_ViewDistribution"),
+                ViewToggleFontSize, TitleSecondaryColor, TextAlignmentOptions.Center);
+            if (_viewScatterText != null) _viewScatterText.gameObject.SetActive(false);
+            if (_viewDistributionText != null) _viewDistributionText.gameObject.SetActive(false);
         }
 
         private static TextMeshProUGUI CreateHeaderText(Transform parent, string name, string content,
@@ -631,6 +747,8 @@ namespace TimingShow.HUD
             ApplyTitleFont(_titleText, asset);
             ApplyTitleFont(_fileText, asset);
             ApplyTitleFont(_metaText, asset);
+            ApplyTitleFont(_viewScatterText, asset);
+            ApplyTitleFont(_viewDistributionText, asset);
         }
 
         private static void ApplyTitleFont(TextMeshProUGUI text, TMP_FontAsset asset)
@@ -768,7 +886,11 @@ namespace TimingShow.HUD
             
             float reserved = TitleLeftPadding + TitleRightPadding;
             float metaWidth = Mathf.Min(MetaWidth, Mathf.Max(0f, (size.x - reserved) * 0.5f));
-            float titleWidth = Mathf.Max(0f, size.x - reserved - (hasMeta ? metaWidth + TitleMetaGap : 0f));
+            float metaReserve = hasMeta ? metaWidth + TitleMetaGap : 0f;
+
+            bool showViewToggle = ViewToggleFits(size.x);
+            float toggleReserve = showViewToggle ? ViewToggleTotalWidth + TitleMetaGap : 0f;
+            float titleWidth = Mathf.Max(0f, size.x - reserved - metaReserve - toggleReserve);
 
             if (!Mathf.Approximately(_titleText.fontSize, titleFontSize)) _titleText.fontSize = titleFontSize;
             _titleText.alignment = hasFile ? TextAlignmentOptions.Left : TextAlignmentOptions.MidlineLeft;
@@ -804,6 +926,140 @@ namespace TimingShow.HUD
                 rect.pivot = new Vector2(1f, 1f);
                 rect.anchoredPosition = new Vector2(size.x - TitleRightPadding, -pad);
                 rect.sizeDelta = new Vector2(metaWidth, titleHeight);
+            }
+
+            ApplyViewToggleLayout(size, showViewToggle);
+        }
+
+        private static float MetaReserveWidth(float windowWidth)
+        {
+            LogGraphWindow instance = _instance;
+            bool hasMeta = instance != null && instance._metaText != null
+                && instance._metaText.gameObject.activeSelf
+                && !string.IsNullOrEmpty(instance._metaText.text);
+            if (!hasMeta) return 0f;
+
+            float reserved = TitleLeftPadding + TitleRightPadding;
+            float metaWidth = Mathf.Min(MetaWidth, Mathf.Max(0f, (windowWidth - reserved) * 0.5f));
+            return metaWidth + TitleMetaGap;
+        }
+
+        private static bool ViewToggleFits(float windowWidth)
+        {
+            float available = windowWidth - TitleLeftPadding - TitleRightPadding - MetaReserveWidth(windowWidth);
+            return available >= ViewToggleTotalWidth + TitleMetaGap + 60f * UiScale;
+        }
+
+        private static void ViewToggleRects(Vector2 size, out Rect scatter, out Rect distribution)
+        {
+            scatter = new Rect(0f, 0f, 0f, 0f);
+            distribution = new Rect(0f, 0f, 0f, 0f);
+            if (!ViewToggleFits(size.x)) return;
+
+            float right = size.x - TitleRightPadding - MetaReserveWidth(size.x);
+            float left = right - ViewToggleTotalWidth;
+            if (left < TitleLeftPadding) return;
+
+            float titleLine = Mathf.Max(1f, TitleFontSize * TextLineRatio);
+            float height = Mathf.Min(ViewToggleHeight, titleLine);
+            float bottom = size.y - HeaderPadding - height - (titleLine - height) * 0.5f;
+
+            scatter = new Rect(left, bottom, ViewToggleItemWidth, height);
+            distribution = new Rect(left + ViewToggleItemWidth, bottom, ViewToggleItemWidth, height);
+        }
+
+        private void ApplyViewToggleLayout(Vector2 size, bool visible)
+        {
+            if (_viewScatterText == null || _viewDistributionText == null) return;
+
+            SetTextActive(_viewScatterText, visible);
+            SetTextActive(_viewDistributionText, visible);
+            if (!visible) return;
+
+            Rect scatterRect;
+            Rect distributionRect;
+            ViewToggleRects(size, out scatterRect, out distributionRect);
+            if (scatterRect.width <= 1f) return;
+
+            PlaceToggleText(_viewScatterText, scatterRect, !_distributionView);
+            PlaceToggleText(_viewDistributionText, distributionRect, _distributionView);
+        }
+
+        private static void PlaceToggleText(TextMeshProUGUI text, Rect rect, bool active)
+        {
+            if (!Mathf.Approximately(text.fontSize, ViewToggleFontSize)) text.fontSize = ViewToggleFontSize;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = active ? TitlePrimaryColor : TitleSecondaryColor;
+
+            RectTransform rectTransform = text.rectTransform;
+            rectTransform.anchorMin = new Vector2(0f, 0f);
+            rectTransform.anchorMax = new Vector2(0f, 0f);
+            rectTransform.pivot = new Vector2(0f, 0f);
+            rectTransform.anchoredPosition = new Vector2(rect.xMin, rect.yMin);
+            rectTransform.sizeDelta = new Vector2(rect.width, rect.height);
+        }
+
+        private static void SetTextActive(TextMeshProUGUI text, bool active)
+        {
+            if (text == null) return;
+            if (text.gameObject.activeSelf != active) text.gameObject.SetActive(active);
+        }
+
+        private static bool HitViewToggle(Vector2 local, Vector2 size, out bool distribution)
+        {
+            distribution = false;
+
+            Rect scatterRect;
+            Rect distributionRect;
+            ViewToggleRects(size, out scatterRect, out distributionRect);
+            if (scatterRect.width <= 1f) return false;
+
+            if (local.x >= scatterRect.xMin && local.x <= scatterRect.xMax
+                && local.y >= scatterRect.yMin && local.y <= scatterRect.yMax)
+            {
+                return true;
+            }
+
+            if (local.x >= distributionRect.xMin && local.x <= distributionRect.xMax
+                && local.y >= distributionRect.yMin && local.y <= distributionRect.yMax)
+            {
+                distribution = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void SetDistributionView(bool distribution)
+        {
+            if (_distributionView == distribution) return;
+            _distributionView = distribution;
+
+            if (_plotAreaRect != null) _plotAreaRect.gameObject.SetActive(!distribution);
+            if (_distributionRect != null) _distributionRect.gameObject.SetActive(distribution);
+
+            if (distribution && _graphPanActive)
+            {
+                _graphPanActive = false;
+                _graphPanRunning = false;
+                if (_drawer != null) _drawer.EndPan();
+            }
+
+            if (_panel != null)
+            {
+                _panel.SetViewDistribution(distribution);
+                _panel.SetViewHover(-1);
+                _panel.MarkDirty();
+            }
+
+            SyncSettingsInteraction();
+            RefreshStats();
+
+            if (_windowRect != null)
+            {
+                Vector2 size = _windowRect.sizeDelta;
+                ApplyViewToggleLayout(size, ViewToggleFits(size.x));
+                RefreshButtonHover(Input.mousePosition);
             }
         }
         
@@ -925,6 +1181,17 @@ namespace TimingShow.HUD
             Vector2 size = _windowRect.sizeDelta;
             bool onClose = HitCloseButton(local, size);
             bool onSettings = !onClose && HitSettingsButton(local, size);
+
+            bool onDistributionToggle;
+            bool onViewToggle = HitViewToggle(local, size, out onDistributionToggle) && !onClose && !onSettings;
+            if (!onViewToggle) onDistributionToggle = false;
+
+            if (onViewToggle)
+            {
+                SetDistributionView(onDistributionToggle);
+                return;
+            }
+
             bool onGrip = !onClose && !onSettings && HitResizeGrip(local, size);
             bool onTitleBar = !onClose && !onSettings && !onGrip && local.y >= size.y - HeaderHeight;
             
@@ -1032,7 +1299,7 @@ namespace TimingShow.HUD
         
         private void SyncSettingsInteraction()
         {
-            bool suspended = _settingsUI != null && _settingsUI.IsOpen;
+            bool suspended = (_settingsUI != null && _settingsUI.IsOpen) || _distributionView;
             if (_drawer != null) _drawer.InteractionSuspended = suspended;
 
             if (suspended && _graphPanActive)
@@ -1050,6 +1317,13 @@ namespace TimingShow.HUD
             RefreshStats();
 
             if (_drawer != null) _drawer.ReloadAppearance();
+
+            if (_distributionDrawer != null)
+            {
+                _distributionDrawer.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);
+                _distributionDrawer.ReloadAppearance();
+            }
+
             if (_panel != null) _panel.MarkDirty();
             if (_settingsUI != null) _settingsUI.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);
         }
@@ -1166,6 +1440,7 @@ namespace TimingShow.HUD
                 {
                     _panel.SetHover(false);
                     _panel.SetSettingsHover(false);
+                    _panel.SetViewHover(-1);
                 }
                 return;
             }
@@ -1175,6 +1450,7 @@ namespace TimingShow.HUD
             {
                 _panel.SetHover(false);
                 _panel.SetSettingsHover(false);
+                _panel.SetViewHover(-1);
                 return;
             }
 
@@ -1182,6 +1458,11 @@ namespace TimingShow.HUD
             bool onClose = HitCloseButton(local, size);
             _panel.SetHover(onClose);
             _panel.SetSettingsHover(!onClose && HitSettingsButton(local, size));
+
+            bool onDistributionToggle;
+            bool onViewToggle = HitViewToggle(local, size, out onDistributionToggle) && !onClose;
+            if (!onViewToggle) onDistributionToggle = false;
+            _panel.SetViewHover(onViewToggle ? (onDistributionToggle ? 1 : 0) : -1);
         }
 
         private static bool DiagnoseGraphBounds
@@ -1519,6 +1800,7 @@ namespace TimingShow.HUD
             
             float wheel = Input.mouseScrollDelta.y;
             if (!Mathf.Approximately(wheel, 0f)
+                && !_distributionView
                 && (_settingsUI == null || !_settingsUI.IsOpen)
                 && IsPointerInsideGraphArea(screen))
             {
@@ -1570,6 +1852,13 @@ namespace TimingShow.HUD
                 _pendingButton = PendingButton.Settings;
                 return;
             }
+
+            bool onDistributionToggle;
+            if (HitViewToggle(local, size, out onDistributionToggle))
+            {
+                SetDistributionView(onDistributionToggle);
+                return;
+            }
             
             if (HitResizeGrip(local, size))
             {
@@ -1599,7 +1888,7 @@ namespace TimingShow.HUD
                 return;
             }
             
-            if (_drawer != null && IsPointerInsideGraphArea(screen))
+            if (_drawer != null && !_distributionView && IsPointerInsideGraphArea(screen))
             {
                 _graphPanActive = true;
                 _drawer.BeginPan(screen);
@@ -1648,6 +1937,8 @@ namespace TimingShow.HUD
             private bool _hovered;
             private bool _settingsHovered;
             private bool _settingsActive;
+            private int _viewHover = -1;
+            private bool _viewDistribution;
 
             protected override void Awake()
             {
@@ -1695,6 +1986,22 @@ namespace TimingShow.HUD
             
             internal void MarkDirty()
             {
+                SetVerticesDirty();
+            }
+
+            internal void SetViewHover(int index)
+            {
+                if (_viewHover == index) return;
+
+                _viewHover = index;
+                SetVerticesDirty();
+            }
+
+            internal void SetViewDistribution(bool distribution)
+            {
+                if (_viewDistribution == distribution) return;
+
+                _viewDistribution = distribution;
                 SetVerticesDirty();
             }
             
@@ -1852,6 +2159,22 @@ namespace TimingShow.HUD
                         DrawThickLine(vh, new Vector2(barLeft, barCenter), new Vector2(barLeft + (barRight - barLeft) * 0.75f, barCenter), barThickness, Color.white);
                         DrawThickLine(vh, new Vector2(barLeft, barCenter + barSpacing), new Vector2(barRight, barCenter + barSpacing), barThickness, Color.white);
                     }
+                }
+                
+                Rect scatterToggle;
+                Rect distributionToggle;
+                ViewToggleRects(new Vector2(w, h), out scatterToggle, out distributionToggle);
+                if (scatterToggle.width > 1f)
+                {
+                    Color scatterToggleColor = !_viewDistribution
+                        ? SettingsButtonActiveColor
+                        : (_viewHover == 0 ? SettingsButtonHoverColor : CloseNormalColor);
+                    Color distributionToggleColor = _viewDistribution
+                        ? SettingsButtonActiveColor
+                        : (_viewHover == 1 ? SettingsButtonHoverColor : CloseNormalColor);
+
+                    DrawQuad(vh, new Vector2(scatterToggle.xMin, scatterToggle.yMin), new Vector2(scatterToggle.xMax, scatterToggle.yMax), scatterToggleColor);
+                    DrawQuad(vh, new Vector2(distributionToggle.xMin, distributionToggle.yMin), new Vector2(distributionToggle.xMax, distributionToggle.yMax), distributionToggleColor);
                 }
                 
                 if (!_settingsActive)

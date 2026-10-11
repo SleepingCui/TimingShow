@@ -4,6 +4,7 @@ using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using TimingShow.Diagnostics;
 
 namespace TimingShow.HUD
 {
@@ -48,11 +49,14 @@ namespace TimingShow.HUD
 
         private readonly System.Diagnostics.Stopwatch _perfStopwatch = new System.Diagnostics.Stopwatch();
         private float _perfUpdateMs;
+        private float _perfMeshMs;
+        private float _perfTextMs;
         private int _perfVertexCount;
         private float _perfFps;
         private int _perfRedrawCount;
         private float _perfRedrawWindow;
         private float _perfRedrawsPerSec;
+        private float _perfTextRefreshAt;
 
         private static readonly Dictionary<string, TMP_FontAsset> FontCache = new Dictionary<string, TMP_FontAsset>();
         private string _appliedFontKey;
@@ -254,7 +258,10 @@ namespace TimingShow.HUD
             bool rectChanged = rect.width != _lastRectWidth || rect.height != _lastRectHeight;
             int settingsHash = ComputeSettingsHash();
             bool continuousRedraw = NeedsContinuousRedraw();
-            if (_lastDataVersion != DataVersion || rectChanged || settingsHash != _lastSettingsHash || continuousRedraw)
+            bool needsRedraw = _lastDataVersion != DataVersion || rectChanged || settingsHash != _lastSettingsHash || continuousRedraw;
+            bool frameAnimation = UpdateFrameAnimation();
+
+            if (needsRedraw)
             {
                 _lastDataVersion = DataVersion;
                 _lastSettingsHash = settingsHash;
@@ -264,7 +271,14 @@ namespace TimingShow.HUD
                 UpdateData();
                 _perfStopwatch.Stop();
                 _perfUpdateMs = (float)_perfStopwatch.Elapsed.TotalMilliseconds;
+            }
+            
+            if (needsRedraw || frameAnimation)
+            {
+                _perfStopwatch.Restart();
                 UpdateTextLayoutAndValues();
+                _perfStopwatch.Stop();
+                _perfTextMs = (float)_perfStopwatch.Elapsed.TotalMilliseconds;
                 SetVerticesDirty();
             }
             else if (ShowPerfInfo)
@@ -272,10 +286,12 @@ namespace TimingShow.HUD
                 UpdatePerfText();
             }
 
-            if (UpdateFrameAnimation())
+            if (PerfStatsRecorder.IsRecording)
             {
-                UpdateTextLayoutAndValues();
-                SetVerticesDirty();
+                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(GraphName);
+                ds.LastUpdateFrameId = PerfStatsRecorder.CurrentFrameId;
+                ds.LastUpdateMs = _perfUpdateMs;
+                ds.LastTextMs = _perfTextMs;
             }
         }
         
@@ -399,23 +415,45 @@ namespace TimingShow.HUD
         protected virtual void OnAxisMetricsChanged()
         {
         }
+        
+        private static readonly Dictionary<string, float> TextWidthCache = new Dictionary<string, float>();
+
+        protected static void InvalidateTextWidthCache()
+        {
+            TextWidthCache.Clear();
+        }
+
+        private static float EstimateTextWidth(string content, float fontSize)
+        {
+            int length = content != null ? content.Length : 0;
+            return Mathf.Max(1f, length * Mathf.Max(1f, fontSize) * 0.62f);
+        }
 
         protected static float MeasureTextWidth(TMP_Text text, string content, float fontSize)
         {
-            if (text != null && text.font != null && !string.IsNullOrEmpty(content))
+            if (text == null || text.font == null || string.IsNullOrEmpty(content))
+                return EstimateTextWidth(content, fontSize);
+
+            int fontSizeKey = Mathf.RoundToInt(fontSize);
+            string key = text.GetInstanceID().ToString() + "|" + text.font.GetInstanceID().ToString()
+                + "|" + fontSizeKey.ToString() + "|" + content;
+
+            float cached;
+            if (TextWidthCache.TryGetValue(key, out cached)) return cached;
+
+            float result = EstimateTextWidth(content, fontSize);
+            try
             {
-                try
-                {
-                    Vector2 preferred = text.GetPreferredValues(content);
-                    if (preferred.x > 0.5f && preferred.x < 16384f && !float.IsNaN(preferred.x)) return preferred.x;
-                }
-                catch (System.Exception)
-                {
-                }
+                Vector2 preferred = text.GetPreferredValues(content);
+                if (preferred.x > 0.5f && preferred.x < 16384f && !float.IsNaN(preferred.x)) result = preferred.x;
+            }
+            catch (System.Exception)
+            {
             }
 
-            int length = content != null ? content.Length : 0;
-            return Mathf.Max(1f, length * Mathf.Max(1f, fontSize) * 0.62f);
+            if (TextWidthCache.Count > 8192) TextWidthCache.Clear();
+            TextWidthCache[key] = result;
+            return result;
         }
 
         protected virtual void UpdateTextLayoutAndValues()
@@ -504,8 +542,8 @@ namespace TimingShow.HUD
         protected virtual string BuildPerfText()
         {
             string text = string.Format(
-                "Pts {0}/{1} | Vtx {2} | Upd {3:F2}ms | Rebuild {4:F0}/s | {5:F0} FPS",
-                PerfDataCount, GetDataCount(), _perfVertexCount, _perfUpdateMs, _perfRedrawsPerSec, _perfFps);
+                "Pts {0}/{1} | Vtx {2} | Upd {3:F2}ms | Mesh {4:F2}ms | Text {5:F2}ms | Rb {6:F0}/s | {7:F0} FPS",
+                PerfDataCount, GetDataCount(), _perfVertexCount, _perfUpdateMs, _perfMeshMs, _perfTextMs, _perfRedrawsPerSec, _perfFps);
 
             string extra = PerfExtraInfo;
             if (!string.IsNullOrEmpty(extra)) text += " | " + extra;
@@ -540,13 +578,18 @@ namespace TimingShow.HUD
             float scale = Mathf.Max(0.01f, Scale);
             int fontSize = Mathf.Clamp(Mathf.RoundToInt(11 * scale), 8, 32);
             float lineHeight = 16f * (fontSize / 12f);
+            
+            if (Time.unscaledTime >= _perfTextRefreshAt)
+            {
+                _perfTextRefreshAt = Time.unscaledTime + 0.2f;
 
-            _perfText.fontSize = fontSize;
-            _perfText.color = PerfTextColor;
-            _perfText.alignment = TextAlignmentOptions.TopLeft;
+                _perfText.fontSize = fontSize;
+                _perfText.color = PerfTextColor;
+                _perfText.alignment = TextAlignmentOptions.TopLeft;
 
-            string text = BuildPerfText();
-            if (_perfText.text != text) _perfText.text = text;
+                string text = BuildPerfText();
+                if (_perfText.text != text) _perfText.text = text;
+            }
 
             RectTransform rt = _perfText.rectTransform;
             rt.pivot = new Vector2(0f, 1f);
@@ -560,7 +603,7 @@ namespace TimingShow.HUD
         {
             if (t == null) return;
             t.fontSize = fontSize;
-            t.text = content;
+            if (t.text != content) t.text = content;
             t.color = color;
             t.alignment = AxisLabelsInside ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.MidlineRight;
         }
@@ -646,6 +689,8 @@ namespace TimingShow.HUD
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
+            _perfStopwatch.Restart();
+
             vh.Clear();
 
             float w = rectTransform.rect.width;
@@ -654,6 +699,8 @@ namespace TimingShow.HUD
             if (w <= 0 || h <= 0)
             {
                 _meshBoundsValid = false;
+                _perfMeshMs = 0f;
+                _perfStopwatch.Stop();
                 return;
             }
 
@@ -667,6 +714,17 @@ namespace TimingShow.HUD
             _perfRedrawCount++;
 
             if (TrackMeshBounds) MeasureMeshBounds(vh);
+
+            _perfStopwatch.Stop();
+            _perfMeshMs = (float)_perfStopwatch.Elapsed.TotalMilliseconds;
+
+            if (PerfStatsRecorder.IsRecording)
+            {
+                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(GraphName);
+                ds.LastMeshFrameId = PerfStatsRecorder.CurrentFrameId;
+                ds.LastMeshMs = _perfMeshMs;
+                ds.LastVertices = _perfVertexCount;
+            }
         }
 
         protected virtual void DrawReferenceLines(VertexHelper vh, float w, float h)

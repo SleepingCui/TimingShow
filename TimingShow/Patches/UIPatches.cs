@@ -5,6 +5,7 @@ using System.Reflection;
 using UnityEngine;
 using TimingShow.HUD;
 using TimingShow.Logging;
+using TimingShow.Diagnostics;
 
 namespace TimingShow.Patches
 {
@@ -233,6 +234,7 @@ namespace TimingShow.Patches
         [HarmonyPatch(typeof(scrUIController), "Update")]
         public static class UIReplacePatch
         {
+            private static readonly System.Diagnostics.Stopwatch _perfSw = new System.Diagnostics.Stopwatch();
             private static string _titleBase;
             private static int _titleBaseSize = 100;
             private static int _titleAppliedSize = -1;
@@ -243,13 +245,19 @@ namespace TimingShow.Patches
 
                 if (ModContext.IsPlaying)
                 {
+                    int perfFrameId = PerfStatsRecorder.BeginFrame();
+
                     HitBump.Tick(Time.deltaTime * 1000.0);
 
                     if (ModContext.Settings.ShowInSongTitle && __instance.txtLevelName != null)
                         ApplyTitleText(__instance);
 
                     PlayStatePatches.SyncPauseState();
+                    _perfSw.Restart();
                     HUDMan.Update();
+                    _perfSw.Stop();
+
+                    PerfStatsRecorder.EndFrame(perfFrameId, Time.unscaledDeltaTime * 1000f, (float)_perfSw.Elapsed.TotalMilliseconds);
                 }
                 else
                 {

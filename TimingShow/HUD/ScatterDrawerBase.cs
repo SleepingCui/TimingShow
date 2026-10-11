@@ -199,6 +199,9 @@ namespace TimingShow.HUD
         private float _dataYMin;
         private float _dataYMax;
         private readonly List<float> _robustScratch = new List<float>(256);
+        private int _lastDataSignature = int.MinValue;
+        private float _cachedTargetMinY;
+        private float _cachedTargetMaxY;
 
         protected override bool IsEnabled => ModContext.IsEnabled && ModContext.IsPlaying;
         protected override bool ShowGraph => ModContext.Settings != null && ModContext.Settings.ShowTimingScatter;
@@ -419,6 +422,14 @@ namespace TimingShow.HUD
         {
             ResetViewOnLayoutChange();
 
+            int dataSignature = ComputeDataSignature();
+            if (_hasData && dataSignature == _lastDataSignature)
+            {
+                RefreshLiveView();
+                return;
+            }
+            _lastDataSignature = dataSignature;
+
             _visibleIndices.Clear();
             _renderPoints.Clear();
             _hasData = false;
@@ -570,6 +581,8 @@ namespace TimingShow.HUD
                 targetMaxY = viewHigh + pad;
             }
 
+            _cachedTargetMinY = targetMinY;
+            _cachedTargetMaxY = targetMaxY;
             ApplyViewScaling(targetMinY, targetMaxY, minOffset, maxOffset);
 
             if (!_manualViewActive)
@@ -580,6 +593,41 @@ namespace TimingShow.HUD
 
             BuildAverageSeries(samples, collected);
             BuildRenderPoints(samples, collected);
+        }
+
+        private int ComputeDataSignature()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + ScatterVersion;
+                Rect rect = rectTransform.rect;
+                hash = hash * 31 + rect.width.GetHashCode();
+                hash = hash * 31 + rect.height.GetHashCode();
+                hash = hash * 31 + ComputeSettingsHash();
+                return hash;
+            }
+        }
+
+        private void RefreshLiveView()
+        {
+            UpdateLiveTimeWindow();
+
+            if (_useTimeAxis)
+            {
+                _autoXMin = Mathf.Min(_liveLeftTimeMs, _liveRightTimeMs);
+                _autoXMax = Mathf.Max(_liveLeftTimeMs, _liveRightTimeMs);
+            }
+
+            ApplyViewScaling(_cachedTargetMinY, _cachedTargetMaxY, _dataYMin, _dataYMax);
+
+            if (!_manualViewActive)
+            {
+                _viewXMin = _autoXMin;
+                _viewXMax = _autoXMax;
+            }
+
+            BuildRenderPoints(ScatterSamples, _visibleIndices.Count);
         }
 
         private int ApplyOutlierFilter(List<TimingScatterSample> samples, int count)
@@ -912,14 +960,36 @@ namespace TimingShow.HUD
 
             DrawAverageLine(vh, w, h, settings, scale, rangeY);
 
-            int circleSegments = CircleSegmentsFor(count);
+            int circleSegments = CircleSegmentsFor(count, radius);
+            
+            HitMan runJudge = HitMan.Unknown;
+            bool runXp = false;
+            bool runValid = false;
+            Color runColor = uniformColor;
 
             for (int i = 0; i < count; i++)
             {
                 RenderPoint point = _renderPoints[i];
                 if (!TryGetPointLocalPosition(point, w, h, out Vector2 center)) continue;
 
-                Color color = judgeColor ? JColors.GetColor(point.Judge, point.IsXPerfect, true) : uniformColor;
+                Color color;
+                if (!judgeColor)
+                {
+                    color = uniformColor;
+                }
+                else if (runValid && point.Judge == runJudge && point.IsXPerfect == runXp)
+                {
+                    color = runColor;
+                }
+                else
+                {
+                    runColor = JColors.GetColor(point.Judge, point.IsXPerfect, true);
+                    runJudge = point.Judge;
+                    runXp = point.IsXPerfect;
+                    runValid = true;
+                    color = runColor;
+                }
+
                 DrawCircle(vh, center, radius, circleSegments, color);
             }
 
@@ -1036,22 +1106,50 @@ namespace TimingShow.HUD
             vh.AddTriangle(baseIndex, baseIndex + 1, baseIndex + 2);
         }
 
-        private static int CircleSegmentsFor(int pointCount)
+        private const float MaxCircleSagittaPx = 0.35f;
+
+        private static int CircleSegmentsFor(int pointCount, float radius)
         {
             int budgetPerPoint = (MaxMeshVertexCount - FixedVertexBudget) / Mathf.Max(1, pointCount);
-            int segments = budgetPerPoint - 4;
-            return Mathf.Clamp(segments, MinCircleSegments, MaxCircleSegments);
+            int byBudget = budgetPerPoint - 4;
+
+            int byRoundness = MaxCircleSegments;
+            if (radius > MaxCircleSagittaPx)
+            {
+                float cosHalf = Mathf.Clamp(1f - MaxCircleSagittaPx / radius, -1f, 1f);
+                float step = 2f * Mathf.Acos(cosHalf);
+                if (step > 1e-4f) byRoundness = Mathf.CeilToInt((Mathf.PI * 2f) / step);
+            }
+
+            return Mathf.Clamp(Mathf.Min(byBudget, byRoundness), MinCircleSegments, MaxCircleSegments);
+        }
+
+        private static readonly Dictionary<int, Vector2[]> CircleUnitCache = new Dictionary<int, Vector2[]>();
+
+        private static Vector2[] GetUnitCircle(int segments)
+        {
+            if (CircleUnitCache.TryGetValue(segments, out Vector2[] unit)) return unit;
+
+            unit = new Vector2[segments];
+            for (int i = 0; i < segments; i++)
+            {
+                float angle = (Mathf.PI * 2f * i) / segments;
+                unit[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            }
+            CircleUnitCache[segments] = unit;
+            return unit;
         }
 
         private void DrawCircle(VertexHelper vh, Vector2 center, float radius, int segments, Color color)
         {
             if (segments < 3) segments = 3;
 
+            Vector2[] unit = GetUnitCircle(segments);
             int baseIndex = vh.currentVertCount;
             for (int i = 0; i < segments; i++)
             {
-                float angle = (Mathf.PI * 2f * i) / segments;
-                vh.AddVert(new Vector3(center.x + Mathf.Cos(angle) * radius, center.y + Mathf.Sin(angle) * radius, 0f), color, Vector2.zero);
+                Vector2 p = unit[i];
+                vh.AddVert(new Vector3(center.x + p.x * radius, center.y + p.y * radius, 0f), color, Vector2.zero);
             }
 
             for (int i = 1; i < segments - 1; i++)
@@ -1211,11 +1309,12 @@ namespace TimingShow.HUD
 
             int fontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
             _avgValueText.fontSize = fontSize;
-            _avgValueText.text = "Avg: " + FormatYLabel(currentAvg);
+            string avgText = "Avg: " + FormatYLabel(currentAvg);
+            if (_avgValueText.text != avgText) _avgValueText.text = avgText;
             _avgValueText.color = ScatterAvgLineColor;
             _avgValueText.alignment = AxisLabelsInside ? TextAlignmentOptions.MidlineRight : TextAlignmentOptions.MidlineLeft;
 
-            float textWidth = Mathf.Max(24f, MeasureTextWidth(_avgValueText, _avgValueText.text, fontSize));
+            float textWidth = Mathf.Max(24f, MeasureTextWidth(_avgValueText, avgText, fontSize));
             float labelWidth = textWidth;
             if (AvgLabelMaxWidthRatio < 1f)
             {
@@ -1257,7 +1356,7 @@ namespace TimingShow.HUD
             if (t == null) return;
 
             t.fontSize = fontSize;
-            t.text = content;
+            if (t.text != content) t.text = content;
             t.color = color;
             t.alignment = alignment;
 

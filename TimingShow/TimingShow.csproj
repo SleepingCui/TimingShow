@@ -104,6 +104,7 @@
     <Compile Include="i18n.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Bridge\LogAnalyzerBridge.cs" />
+    <Compile Include="Diagnostics\PerfStatsRecorder.cs" />
     <Compile Include="Bridge\XPerfectBridge.cs" />
     <Compile Include="HUD\BumpAnim.cs" />
     <Compile Include="HUD\GraphDrawerBase.cs" />
@@ -114,6 +115,8 @@
     <Compile Include="HUD\ScatterDrawerBase.cs" />
     <Compile Include="HUD\TimingScatterDrawer.cs" />
     <Compile Include="HUD\LogScatterDrawer.cs" />
+    <Compile Include="HUD\LogDistributionData.cs" />
+    <Compile Include="HUD\LogDistributionDrawer.cs" />
     <Compile Include="HUD\LogGraphFont.cs" />
     <Compile Include="HUD\LogGraphWindow.cs" />
     <Compile Include="HUD\LogGraphSettingsUI.cs" />

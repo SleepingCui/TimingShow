@@ -748,7 +748,8 @@ namespace TimingShow.Options
             lock (GraphLoadSync)
             {
                 if (_graphLoadPending != null) return;
-                if (string.Equals(job.FilePath, _lastGraphOpenedPath, StringComparison.OrdinalIgnoreCase)) return;
+                if (string.Equals(job.FilePath, _lastGraphOpenedPath, StringComparison.OrdinalIgnoreCase)
+                    && LogGraphWindow.IsOpen) return;
 
                 _lastGraphOpenedPath = job.FilePath;
                 _graphLoadPending = job;

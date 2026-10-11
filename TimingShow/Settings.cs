@@ -219,6 +219,7 @@ namespace TimingShow
         public int LogListDrawBudget = 60;
 
         public bool Diag_GraphBounds;
+        public bool Diag_PerfLogEnabled;
         public bool Diag_InputTrace;
         public bool Diag_TrackMeshBounds;
         public float Diag_BoundsIntervalSec = 1f;

@@ -12,11 +12,35 @@ namespace TimingShow.HUD
 
         private static readonly Dictionary<string, Color> Cache = new Dictionary<string, Color>(StringComparer.Ordinal);
         private static readonly HashSet<string> Missing = new HashSet<string>(StringComparer.Ordinal);
+        
+        private const int MaxFastJudgeCode = 20;
+        private const int FastSize = (MaxFastJudgeCode + 1) * 4;
+        private static readonly Color[] FastColors = new Color[FastSize];
+        private static readonly bool[] FastColorsSet = new bool[FastSize];
+
+        private static int FastKey(HitMan judge, bool isXP, bool enableXP)
+        {
+            int code = (int)judge;
+            if (code < -1 || code >= MaxFastJudgeCode) return -1;
+            return ((code + 1) << 2) | (isXP ? 2 : 0) | (enableXP ? 1 : 0);
+        }
 
         private static object _colors;
         private static bool _colorsResolved;
         
         public static Color GetColor(HitMan judge, bool isXP, bool enableXP)
+        {
+            int key = FastKey(judge, isXP, enableXP);
+            if (key < 0) return ResolveColor(judge, isXP, enableXP);
+            if (FastColorsSet[key]) return FastColors[key];
+
+            Color color = ResolveColor(judge, isXP, enableXP);
+            FastColors[key] = color;
+            FastColorsSet[key] = true;
+            return color;
+        }
+
+        private static Color ResolveColor(HitMan judge, bool isXP, bool enableXP)
         {
             if (judge == HitMan.Unknown) return Gray;
             if (judge == HitMan.XPerfect)
@@ -153,6 +177,7 @@ namespace TimingShow.HUD
         {
             Cache.Clear();
             Missing.Clear();
+            Array.Clear(FastColorsSet, 0, FastColorsSet.Length);
             _colors = null;
             _colorsResolved = false;
         }

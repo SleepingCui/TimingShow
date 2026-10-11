@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 using static TimingShow.Patches.TimingCalcPatches;
 using TimingShow.HUD;
 using TimingShow.Logging;
+using TimingShow.Diagnostics;
 
 namespace TimingShow.Patches
 {
@@ -45,6 +46,7 @@ namespace TimingShow.Patches
         
         public static void EndSession()
         {
+            PerfStatsRecorder.EndSession("quit");
             SessionTimer.Stop();
             _isGamePaused = false;
             ModContext.IsPlaying = false;
@@ -95,6 +97,20 @@ namespace TimingShow.Patches
                 MarginTrackerAddHitPatch.ResetCounts();
                 HitBump.StopAll();
                 BumpTrigger.Reset();
+
+                if (ModContext.Settings != null && ModContext.Settings.Diag_PerfLogEnabled)
+                {
+                    try
+                    {
+                        string perfLevelPath = scnGame.instance != null ? scnGame.instance.levelPath : null;
+                        string perfSongName = scnGame.instance != null && scnGame.instance.levelData != null ? scnGame.instance.levelData.songFilename : null;
+                        PerfStatsRecorder.StartSession(perfLevelPath, perfSongName);
+                    }
+                    catch (Exception perfEx)
+                    {
+                        ModContext.Logger.Error("Failed to start perf session: " + perfEx.Message);
+                    }
+                }
 
                 bool isAuto = RDC.auto;
                 bool shouldLogAuto = isAuto && ModContext.Settings.LogAutoplay;
@@ -177,6 +193,7 @@ namespace TimingShow.Patches
                 ModContext.XAccVersion++;
                 ModContext.TimingScatterVersion++;
                 ModContext.UIDirty = true;
+                PerfStatsRecorder.EndSession("fail");
             }
         }
 
@@ -190,6 +207,7 @@ namespace TimingShow.Patches
                 ModContext.XAccVersion++;
                 ModContext.TimingScatterVersion++;
                 ModContext.UIDirty = true;
+                PerfStatsRecorder.EndSession("complete");
             }
         }
     }

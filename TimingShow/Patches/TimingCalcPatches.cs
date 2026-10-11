@@ -2,6 +2,7 @@ using HarmonyLib;
 using System;
 using UnityEngine;
 using TimingShow.Logging;
+using TimingShow.Diagnostics;
 
 namespace TimingShow.Patches
 {
@@ -169,7 +170,20 @@ namespace TimingShow.Patches
         internal static void RecordSample(double timing, double angle)
         {
             if (!ModContext.IsPlaying || ModContext.Settings == null) return;
-            
+
+            PerfStatsRecorder.HitBegin();
+            try
+            {
+                RecordSampleCore(timing, angle);
+            }
+            finally
+            {
+                PerfStatsRecorder.HitEnd();
+            }
+        }
+
+        private static void RecordSampleCore(double timing, double angle)
+        {
             bool isAuto = RDC.auto;
             bool needRecord = ModContext.Settings.ShowInWinPage || ModContext.Settings.ShowAvgHUD || ModContext.Settings.ShowURHUD || !isAuto || ModContext.Settings.LogAutoplay || ModContext.Settings.ShowXACCGraph || ModContext.Settings.ShowTimingScatter;
             if (needRecord)
@@ -209,8 +223,16 @@ namespace TimingShow.Patches
             {
                 if (!ModContext.IsEnabled || !ModContext.IsPlaying) return;
                 int raw = HitMarginCompat.ToRawCode(hit);
-                
-                ApplyHit(raw, allowLog: !RDC.auto);
+
+                PerfStatsRecorder.HitBegin();
+                try
+                {
+                    ApplyHit(raw, allowLog: !RDC.auto);
+                }
+                finally
+                {
+                    PerfStatsRecorder.HitEnd();
+                }
             }
 
 
