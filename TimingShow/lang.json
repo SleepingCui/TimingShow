@@ -336,7 +336,7 @@
     "Toggle_DiagGraphBounds": "Window Bounds Assertion",
     "Toggle_DiagInputTrace": "Input Routing Trace",
     "Toggle_DiagTrackMesh": "Collect Mesh Bounds",
-    "Toggle_DiagPerfLog": "Performance Report (per level)",
+    "Toggle_DiagPerfLog": "Performance Report",
     "Label_DiagBoundsInterval": "Assert Interval (sec): ",
     "Label_DiagBoundsTolerance": "Overflow Tolerance (px): ",
     "Label_DiagBoundsLogLimit": "Overflow Log Limit: ",
