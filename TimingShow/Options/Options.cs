@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityFileDialog;
 using static TimingShow.Options.OptionsWidgets;
 using TimingShow.Bridge;
-using TimingShow.HUD;
 
 namespace TimingShow.Options
 {

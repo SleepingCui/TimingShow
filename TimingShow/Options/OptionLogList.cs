@@ -5,11 +5,11 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Threading;
-using Newtonsoft.Json;
 using UnityEngine;
 using TimingShow.Bridge;
-using TimingShow.HUD;
 using TimingShow.Logging;
+
+using TimingShow.HUD.LogGraphWindow;
 
 namespace TimingShow.Options
 {

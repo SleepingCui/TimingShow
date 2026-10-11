@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using TimingShow.Logging;
+using ScatterBase = TimingShow.HUD.ScatterDrawerBase.ScatterDrawerBase;
 
 namespace TimingShow.HUD
 {
-    public class LogScatterDrawer : ScatterDrawerBase
+    public class LogScatterDrawer : ScatterBase
     {
         private List<TimingScatterSample> _samples = new List<TimingScatterSample>();
         private int _dataVersion;

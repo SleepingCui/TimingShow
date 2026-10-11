@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
+using ScatterBase = TimingShow.HUD.ScatterDrawerBase.ScatterDrawerBase;
 
 namespace TimingShow.HUD
 {
-    public class TimingScatterDrawer : ScatterDrawerBase
+    public class TimingScatterDrawer : ScatterBase
     {
         protected override List<TimingScatterSample> ScatterSamples => ModContext.TimingScatterSamples;
         protected override int ScatterVersion => ModContext.TimingScatterVersion;
