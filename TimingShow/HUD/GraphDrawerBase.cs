@@ -289,9 +289,19 @@ namespace TimingShow.HUD
             if (PerfStatsRecorder.IsRecording)
             {
                 PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(GraphName);
-                ds.LastUpdateFrameId = PerfStatsRecorder.CurrentFrameId;
-                ds.LastUpdateMs = _perfUpdateMs;
-                ds.LastTextMs = _perfTextMs;
+                int frameId = PerfStatsRecorder.CurrentFrameId;
+
+                if (needsRedraw)
+                {
+                    ds.LastUpdateFrameId = frameId;
+                    ds.LastUpdateMs = _perfUpdateMs;
+                }
+
+                if (needsRedraw || frameAnimation)
+                {
+                    ds.LastTextFrameId = frameId;
+                    ds.LastTextMs = _perfTextMs;
+                }
             }
         }
         
@@ -724,6 +734,7 @@ namespace TimingShow.HUD
                 ds.LastMeshFrameId = PerfStatsRecorder.CurrentFrameId;
                 ds.LastMeshMs = _perfMeshMs;
                 ds.LastVertices = _perfVertexCount;
+                ds.LastRenderPoints = GetDataCount();
             }
         }
 

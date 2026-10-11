@@ -13,6 +13,9 @@ namespace TimingShow.Diagnostics
         {
             public string Name = "";
             public long Frames;
+            public long UpdateFrames;
+            public long TextFrames;
+            public long MeshFrames;
             public double UpdateMsSum;
             public double TextMsSum;
             public double MeshMsSum;
@@ -24,8 +27,11 @@ namespace TimingShow.Diagnostics
             public float LastTextMs;
             public float LastMeshMs;
             public int LastVertices;
+            public int LastRenderPoints;
             public int LastUpdateFrameId = -1;
+            public int LastTextFrameId = -1;
             public int LastMeshFrameId = -1;
+            public int MeshReportedFrameId = -1;
         }
 
         private struct FrameSample
@@ -34,10 +40,14 @@ namespace TimingShow.Diagnostics
             public float FrameMs;
             public float HudMs;
             public int Points;
+            public int RenderPoints;
             public float ScatterMeshMs;
             public float ScatterTextMs;
             public float ScatterUpdateMs;
             public int ScatterVerts;
+            public bool MeshRan;
+            public bool TextRan;
+            public bool UpdateRan;
             public float TotalMeshMs;
             public int TotalVerts;
             public int DrawersDrawn;
@@ -128,11 +138,6 @@ namespace TimingShow.Diagnostics
             return _frameId;
         }
 
-        private static bool DrawerRanThisFrame(DrawerStats d, int frameId)
-        {
-            return d.LastUpdateFrameId == frameId || d.LastUpdateFrameId == frameId - 1;
-        }
-
         public static void EndFrame(int frameId, float deltaMs, float hudMs)
         {
             if (!_active || frameId != _frameId) return;
@@ -163,33 +168,47 @@ namespace TimingShow.Diagnostics
             s.FrameMs = deltaMs;
             s.HudMs = hudMs;
             s.Points = points;
-
-            DrawerStats scatter;
-            if (Drawers.TryGetValue(ScatterDrawerName, out scatter) && DrawerRanThisFrame(scatter, frameId))
-            {
-                s.ScatterMeshMs = scatter.LastMeshMs;
-                s.ScatterTextMs = scatter.LastTextMs;
-                s.ScatterUpdateMs = scatter.LastUpdateMs;
-                s.ScatterVerts = scatter.LastVertices;
-            }
-
+            
             float meshTotal = 0f;
             int vtxTotal = 0;
             int drawn = 0;
             foreach (KeyValuePair<string, DrawerStats> kv in Drawers)
             {
                 DrawerStats d = kv.Value;
-                if (!DrawerRanThisFrame(d, frameId)) continue;
+                bool updateRan = d.LastUpdateFrameId == frameId;
+                bool textRan = d.LastTextFrameId == frameId;
+                bool meshRan = (d.LastMeshFrameId == frameId || d.LastMeshFrameId == frameId - 1) &&
+                               d.LastMeshFrameId != d.MeshReportedFrameId;
+                if (meshRan) d.MeshReportedFrameId = d.LastMeshFrameId;
+                if (!updateRan && !textRan && !meshRan) continue;
+
                 d.Frames++;
-                d.UpdateMsSum += d.LastUpdateMs;
-                d.TextMsSum += d.LastTextMs;
-                d.MeshMsSum += d.LastMeshMs;
-                if (d.LastMeshMs > d.MeshMsMax) d.MeshMsMax = d.LastMeshMs;
-                d.VertexSum += d.LastVertices;
-                if (d.LastVertices > d.VertexMax) d.VertexMax = d.LastVertices;
-                meshTotal += d.LastMeshMs;
-                vtxTotal += d.LastVertices;
+                if (updateRan) { d.UpdateFrames++; d.UpdateMsSum += d.LastUpdateMs; }
+                if (textRan) { d.TextFrames++; d.TextMsSum += d.LastTextMs; }
+                if (meshRan)
+                {
+                    d.MeshFrames++;
+                    d.MeshMsSum += d.LastMeshMs;
+                    if (d.LastMeshMs > d.MeshMsMax) d.MeshMsMax = d.LastMeshMs;
+                    d.VertexSum += d.LastVertices;
+                    if (d.LastVertices > d.VertexMax) d.VertexMax = d.LastVertices;
+                    meshTotal += d.LastMeshMs;
+                    vtxTotal += d.LastVertices;
+                }
                 drawn++;
+
+                if (kv.Key != ScatterDrawerName) continue;
+                s.UpdateRan = updateRan;
+                s.TextRan = textRan;
+                s.MeshRan = meshRan;
+                if (updateRan) s.ScatterUpdateMs = d.LastUpdateMs;
+                if (textRan) s.ScatterTextMs = d.LastTextMs;
+                if (meshRan)
+                {
+                    s.ScatterMeshMs = d.LastMeshMs;
+                    s.ScatterVerts = d.LastVertices;
+                    s.RenderPoints = d.LastRenderPoints;
+                }
             }
             s.TotalMeshMs = meshTotal;
             s.TotalVerts = vtxTotal;
@@ -329,25 +348,56 @@ namespace TimingShow.Diagnostics
             sb.AppendLine("HUDMan.Update avg : " + hudAvg.ToString("F2", inv) + " ms (" + hudPct.ToString("F1", inv) + "% of frame)");
             sb.AppendLine("HUDMan.Update max : " + _hudMsMax.ToString("F2", inv) + " ms");
 
+            // Only frames in which the metric ran contribute to its average; frames that carried a
+            // previous reading forward are excluded (N is reported so the sample size is explicit).
+            long meshRanFrames = 0, textRanFrames = 0, updRanFrames = 0;
             double meshSum = 0.0, textSum = 0.0, updSum = 0.0;
             double meshMax = 0.0;
             long vtxSum = 0;
+            long stableFrames = 0, stableMeshRan = 0;
+            double stableFrameSum = 0.0, stableMeshSum = 0.0, stableMeshMax = 0.0;
+            long stableVtxSum = 0;
             for (int i = 0; i < Samples.Count; i++)
             {
                 FrameSample fs = Samples[i];
-                meshSum += fs.TotalMeshMs;
-                textSum += fs.ScatterTextMs;
-                updSum += fs.ScatterUpdateMs;
-                vtxSum += fs.TotalVerts;
-                if (fs.TotalMeshMs > meshMax) meshMax = fs.TotalMeshMs;
+                bool stable = fs.TimeSec >= 1.0f;
+                if (fs.MeshRan)
+                {
+                    meshRanFrames++;
+                    meshSum += fs.TotalMeshMs;
+                    vtxSum += fs.TotalVerts;
+                    if (fs.TotalMeshMs > meshMax) meshMax = fs.TotalMeshMs;
+                }
+                if (fs.TextRan) { textRanFrames++; textSum += fs.ScatterTextMs; }
+                if (fs.UpdateRan) { updRanFrames++; updSum += fs.ScatterUpdateMs; }
+                if (stable)
+                {
+                    stableFrames++;
+                    stableFrameSum += fs.FrameMs;
+                }
+                if (stable && fs.MeshRan)
+                {
+                    stableMeshRan++;
+                    stableMeshSum += fs.TotalMeshMs;
+                    stableVtxSum += fs.TotalVerts;
+                    if (fs.TotalMeshMs > stableMeshMax) stableMeshMax = fs.TotalMeshMs;
+                }
             }
             int n = Samples.Count > 0 ? Samples.Count : 1;
-            double meshAvg = meshSum / n;
+            double meshAvg = meshRanFrames > 0 ? meshSum / meshRanFrames : 0.0;
             double meshPct = avgMs > 0.0001 ? meshAvg / avgMs * 100.0 : 0.0;
-            sb.AppendLine("Drawer mesh avg   : " + meshAvg.ToString("F3", inv) + " ms (" + meshPct.ToString("F1", inv) + "% of frame), max " + meshMax.ToString("F3", inv) + " ms");
-            sb.AppendLine("Drawer text avg   : " + (textSum / n).ToString("F3", inv) + " ms");
-            sb.AppendLine("Drawer update avg : " + (updSum / n).ToString("F3", inv) + " ms");
-            sb.AppendLine("Drawer verts avg  : " + ((double)vtxSum / n).ToString("F0", inv));
+            sb.AppendLine("Drawer mesh avg   : " + meshAvg.ToString("F3", inv) + " ms (" + meshPct.ToString("F1", inv) + "% of frame), max " + meshMax.ToString("F3", inv) + " ms, ran " + meshRanFrames.ToString(inv) + "/" + n.ToString(inv) + " frames");
+            sb.AppendLine("Drawer text avg   : " + (textRanFrames > 0 ? textSum / textRanFrames : 0.0).ToString("F3", inv) + " ms, ran " + textRanFrames.ToString(inv) + "/" + n.ToString(inv) + " frames");
+            sb.AppendLine("Drawer update avg : " + (updRanFrames > 0 ? updSum / updRanFrames : 0.0).ToString("F3", inv) + " ms, ran " + updRanFrames.ToString(inv) + "/" + n.ToString(inv) + " frames");
+            sb.AppendLine("Drawer verts avg  : " + (meshRanFrames > 0 ? ((double)vtxSum / meshRanFrames) : 0.0).ToString("F0", inv) + " (over ran frames)");
+            if (stableFrames > 0)
+            {
+                double sAvgMs = stableFrameSum / stableFrames;
+                sb.AppendLine("Stable t>=1s      : " + Fps(sAvgMs) + " FPS (" + sAvgMs.ToString("F2", inv) + " ms), mesh avg " +
+                              (stableMeshRan > 0 ? (stableMeshSum / stableMeshRan) : 0.0).ToString("F3", inv) + " ms over " +
+                              stableMeshRan.ToString(inv) + " ran frames, max " + stableMeshMax.ToString("F3", inv) + " ms, verts avg " +
+                              (stableMeshRan > 0 ? ((double)stableVtxSum / stableMeshRan) : 0.0).ToString("F0", inv) + ", frames " + stableFrames.ToString(inv));
+            }
 
             double hitAvg = _frames > 0 ? _hitMsSum / _frames : 0.0;
             double hitPct = avgMs > 0.0001 ? hitAvg / avgMs * 100.0 : 0.0;
@@ -366,23 +416,77 @@ namespace TimingShow.Diagnostics
             }
             sb.AppendLine();
 
-            sb.AppendLine("--- Drawer cost vs scatter point count ---");
-            sb.AppendLine(Pad("Points", 12) + Pad("Frames", 10) + Pad("MeshAvg", 11) + Pad("TextAvg", 11) + Pad("UpdAvg", 11) + "VtxAvg");
+            // Averages cover only the frames in which that metric actually executed; N is the
+            // number of such frames. Frames that merely carried over a previous reading are
+            // excluded, so these means are not diluted by idle frames.
+            sb.AppendLine("--- Drawer cost vs scatter point count (bucketed by source sample count) ---");
+            sb.AppendLine(Pad("Points", 12) + Pad("MeshN", 8) + Pad("MeshAvg", 10) + Pad("MeshP95", 10) +
+                           Pad("VtxP50", 9) + Pad("VtxP95", 9) + Pad("VtxMax", 9) +
+                           Pad("TextN", 8) + Pad("TextAvg", 10) + Pad("UpdN", 8) + "UpdAvg");
             for (int i = 0; i < BucketUpper.Length; i++)
             {
-                long bf = 0; double bm = 0, bt = 0, bu = 0; long bv = 0;
+                List<float> mesh = new List<float>();
+                List<float> vtx = new List<float>();
+                List<float> text = new List<float>();
+                List<float> upd = new List<float>();
                 for (int j = 0; j < Samples.Count; j++)
                 {
                     FrameSample fs = Samples[j];
                     if (BucketIndex(fs.Points) != i) continue;
-                    bf++; bm += fs.TotalMeshMs; bt += fs.ScatterTextMs; bu += fs.ScatterUpdateMs; bv += fs.TotalVerts;
+                    if (fs.MeshRan) { mesh.Add(fs.TotalMeshMs); vtx.Add(fs.ScatterVerts); }
+                    if (fs.TextRan) text.Add(fs.ScatterTextMs);
+                    if (fs.UpdateRan) upd.Add(fs.ScatterUpdateMs);
                 }
-                if (bf == 0) continue;
+                if (mesh.Count == 0 && text.Count == 0 && upd.Count == 0) continue;
+
+                float[] meshA = SortedCopy(mesh);
+                float[] vtxA = SortedCopy(vtx);
+                float[] textA = SortedCopy(text);
+                float[] updA = SortedCopy(upd);
+
                 sb.AppendLine(
-                    Pad(BucketLabel(i), 12) + Pad(bf.ToString(inv), 10) +
-                    Pad((bm / bf).ToString("F3", inv), 11) + Pad((bt / bf).ToString("F3", inv), 11) +
-                    Pad((bu / bf).ToString("F3", inv), 11) + ((double)bv / bf).ToString("F0", inv));
+                    Pad(BucketLabel(i), 12) + Pad(meshA.Length.ToString(inv), 8) + Pad(Mean(meshA).ToString("F3", inv), 10) +
+                    Pad(Percentile(meshA, 0.95).ToString("F3", inv), 10) +
+                    Pad(Percentile(vtxA, 0.50).ToString("F0", inv), 9) + Pad(Percentile(vtxA, 0.95).ToString("F0", inv), 9) +
+                    Pad(vtxA.Length > 0 ? vtxA[vtxA.Length - 1].ToString("F0", inv) : "-", 9) +
+                    Pad(textA.Length.ToString(inv), 8) + Pad(Mean(textA).ToString("F3", inv), 10) +
+                    Pad(updA.Length.ToString(inv), 8) + Mean(updA).ToString("F3", inv));
             }
+            sb.AppendLine();
+
+            // Actual drawn-primitive counts, as opposed to the source sample count in 'Points'.
+            // Stable-phase figures exclude the first second after recording starts.
+            long meshFrames = 0, stableMeshFrames = 0;
+            List<float> rpAll = new List<float>();
+            List<float> rpStable = new List<float>();
+            List<float> vxAll = new List<float>();
+            List<float> vxStable = new List<float>();
+            for (int j = 0; j < Samples.Count; j++)
+            {
+                FrameSample fs = Samples[j];
+                if (!fs.MeshRan) continue;
+                meshFrames++;
+                rpAll.Add(fs.RenderPoints);
+                vxAll.Add(fs.ScatterVerts);
+                if (fs.TimeSec >= 1.0f)
+                {
+                    stableMeshFrames++;
+                    rpStable.Add(fs.RenderPoints);
+                    vxStable.Add(fs.ScatterVerts);
+                }
+            }
+            float[] rpAllA = SortedCopy(rpAll);
+            float[] vxAllA = SortedCopy(vxAll);
+            float[] rpStableA = SortedCopy(rpStable);
+            float[] vxStableA = SortedCopy(vxStable);
+            sb.AppendLine("--- Scatter rendered geometry (frames where the mesh executed) ---");
+            sb.AppendLine("Mesh ran          : " + meshFrames.ToString(inv) + " / " + Samples.Count.ToString(inv) +
+                           " frames (" + Pct(meshFrames, Samples.Count) + "%), stable t>=1s: " +
+                           stableMeshFrames.ToString(inv) + " (" + Pct(stableMeshFrames, Samples.Count) + "%)");
+            AppendStatLine(sb, "render_points/all", rpAllA, inv);
+            AppendStatLine(sb, "render_points/1s+", rpStableA, inv);
+            AppendStatLine(sb, "vertices/all", vxAllA, inv);
+            AppendStatLine(sb, "vertices/1s+", vxStableA, inv);
             sb.AppendLine();
 
             if (Samples.Count > 0)
@@ -422,19 +526,24 @@ namespace TimingShow.Diagnostics
             }
 
             sb.AppendLine("--- Graph drawers ---");
-            sb.AppendLine(Pad("Drawer", 20) + Pad("Frames", 9) + Pad("UpdAvg", 10) + Pad("TextAvg", 10) + Pad("MeshAvg", 10) + Pad("MeshMax", 10) + Pad("VtxAvg", 9) + "VtxMax");
+            sb.AppendLine("(each metric averaged over its own executing frames)");
+            sb.AppendLine(Pad("Drawer", 20) + Pad("Frames", 9) + Pad("UpdN", 7) + Pad("UpdAvg", 10) +
+                           Pad("TextN", 7) + Pad("TextAvg", 10) + Pad("MeshN", 7) + Pad("MeshAvg", 10) +
+                           Pad("MeshMax", 10) + Pad("VtxAvg", 9) + "VtxMax");
             foreach (KeyValuePair<string, DrawerStats> kv in Drawers)
             {
                 DrawerStats d = kv.Value;
                 if (d.Frames <= 0) continue;
-                double u = d.UpdateMsSum / d.Frames;
-                double t = d.TextMsSum / d.Frames;
-                double m = d.MeshMsSum / d.Frames;
-                double v = (double)d.VertexSum / d.Frames;
+                double u = d.UpdateFrames > 0 ? d.UpdateMsSum / d.UpdateFrames : 0.0;
+                double t = d.TextFrames > 0 ? d.TextMsSum / d.TextFrames : 0.0;
+                double m = d.MeshFrames > 0 ? d.MeshMsSum / d.MeshFrames : 0.0;
+                double v = d.MeshFrames > 0 ? (double)d.VertexSum / d.MeshFrames : 0.0;
                 sb.AppendLine(
                     Pad(d.Name, 20) + Pad(d.Frames.ToString(inv), 9) +
-                    Pad(u.ToString("F3", inv), 10) + Pad(t.ToString("F3", inv), 10) +
-                    Pad(m.ToString("F3", inv), 10) + Pad(d.MeshMsMax.ToString("F3", inv), 10) +
+                    Pad(d.UpdateFrames.ToString(inv), 7) + Pad(u.ToString("F3", inv), 10) +
+                    Pad(d.TextFrames.ToString(inv), 7) + Pad(t.ToString("F3", inv), 10) +
+                    Pad(d.MeshFrames.ToString(inv), 7) + Pad(m.ToString("F3", inv), 10) +
+                    Pad(d.MeshMsMax.ToString("F3", inv), 10) +
                     Pad(v.ToString("F1", inv), 9) + d.VertexMax.ToString(inv));
             }
             sb.AppendLine();
@@ -467,7 +576,9 @@ namespace TimingShow.Diagnostics
         {
             StringBuilder sb = new StringBuilder();
             CultureInfo inv = CultureInfo.InvariantCulture;
-            sb.AppendLine("time_s,frame_ms,fps,hud_ms,points,scatter_mesh_ms,scatter_text_ms,scatter_update_ms,scatter_vtx,mesh_total_ms,vtx_total,drawers,hits,hit_ms");
+            // Cost cells are left empty when that metric did not execute on the frame, so a zero
+            // is never confused with a carried-over reading; the matching *_ran flag disambiguates.
+            sb.AppendLine("time_s,frame_ms,fps,hud_ms,points,scatter_render_points,scatter_mesh_ms,scatter_text_ms,scatter_update_ms,scatter_vtx,scatter_mesh_ran,scatter_text_ran,scatter_update_ran,mesh_total_ms,vtx_total,drawers,hits,hit_ms");
             for (int i = 0; i < Samples.Count; i++)
             {
                 FrameSample s = Samples[i];
@@ -477,10 +588,14 @@ namespace TimingShow.Diagnostics
                   .Append(fps.ToString("F1", inv)).Append(',')
                   .Append(s.HudMs.ToString("F3", inv)).Append(',')
                   .Append(s.Points.ToString(inv)).Append(',')
-                  .Append(s.ScatterMeshMs.ToString("F3", inv)).Append(',')
-                  .Append(s.ScatterTextMs.ToString("F3", inv)).Append(',')
-                  .Append(s.ScatterUpdateMs.ToString("F3", inv)).Append(',')
-                  .Append(s.ScatterVerts.ToString(inv)).Append(',')
+                  .Append(s.MeshRan ? s.RenderPoints.ToString(inv) : "").Append(',')
+                  .Append(s.MeshRan ? s.ScatterMeshMs.ToString("F3", inv) : "").Append(',')
+                  .Append(s.TextRan ? s.ScatterTextMs.ToString("F3", inv) : "").Append(',')
+                  .Append(s.UpdateRan ? s.ScatterUpdateMs.ToString("F3", inv) : "").Append(',')
+                  .Append(s.MeshRan ? s.ScatterVerts.ToString(inv) : "").Append(',')
+                  .Append(s.MeshRan ? "1" : "0").Append(',')
+                  .Append(s.TextRan ? "1" : "0").Append(',')
+                  .Append(s.UpdateRan ? "1" : "0").Append(',')
                   .Append(s.TotalMeshMs.ToString("F3", inv)).Append(',')
                   .Append(s.TotalVerts.ToString(inv)).Append(',')
                   .Append(s.DrawersDrawn.ToString(inv)).Append(',')
@@ -488,6 +603,42 @@ namespace TimingShow.Diagnostics
                   .Append(s.HitMs.ToString("F3", inv)).Append('\n');
             }
             return sb.ToString();
+        }
+
+        private static double Mean(float[] values)
+        {
+            if (values == null || values.Length == 0) return 0.0;
+            double sum = 0.0;
+            for (int i = 0; i < values.Length; i++) sum += values[i];
+            return sum / values.Length;
+        }
+
+        private static float[] SortedCopy(List<float> values)
+        {
+            float[] a = values.ToArray();
+            System.Array.Sort(a);
+            return a;
+        }
+
+        private static string Pct(long part, long total)
+        {
+            if (total <= 0) return "0.0";
+            return (100.0 * part / total).ToString("F1", CultureInfo.InvariantCulture);
+        }
+
+        private static void AppendStatLine(StringBuilder sb, string label, float[] sorted, CultureInfo inv)
+        {
+            if (sorted.Length == 0)
+            {
+                sb.AppendLine(Pad(label, 18) + "no samples");
+                return;
+            }
+            sb.AppendLine(Pad(label, 18) +
+                          "P50 " + Pad(Percentile(sorted, 0.50).ToString("F0", inv), 7) +
+                          "P95 " + Pad(Percentile(sorted, 0.95).ToString("F0", inv), 7) +
+                          "P99 " + Pad(Percentile(sorted, 0.99).ToString("F0", inv), 7) +
+                          "avg " + Pad(Mean(sorted).ToString("F1", inv), 8) +
+                          "max " + sorted[sorted.Length - 1].ToString("F0", inv));
         }
 
         private static double Percentile(float[] sorted, double q)
