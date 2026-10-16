@@ -106,9 +106,12 @@ namespace TimingShow.HUD.ScatterDrawerBase
             }
 
             int collected = 0;
-            for (int i = total - 1; i >= 0 && collected < take; i--)
+            int scanned = 0;
+            for (int i = total - 1; i >= 0 && scanned < take; i--)
             {
                 if (!samples[i].HasJudge) continue;
+                scanned++;
+                if (_playerFilter >= 0 && samples[i].PlayerId != _playerFilter) continue;
                 _visibleIndices.Add(i);
                 collected++;
             }
@@ -235,6 +238,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 hash = hash * 31 + ComputeSettingsHash();
                 return hash;
             }
+        }
+
+        protected void InvalidateDataCache()
+        {
+            _lastDataSignature = int.MinValue;
         }
 
         private void RefreshLiveView()
@@ -396,6 +404,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             Settings settings = ModContext.Settings;
             if (!ScatterShowAvgLine) return;
             bool dropOutliers = LevelFinished && ScatterIgnoreOutliers;
+            bool restrictToVisible = dropOutliers || _playerFilter >= 0;
 
             int visible = 0;
             double sum = 0.0;
@@ -406,7 +415,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 TimingScatterSample s = samples[i];
                 if (!s.HasJudge) continue;
 
-                if (dropOutliers && !(visible < count && _visibleIndices[visible] == i))
+                if (restrictToVisible && !(visible < count && _visibleIndices[visible] == i))
                     continue;
 
                 sum += s.OffsetMs;
@@ -512,7 +521,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 TimeMs = s.TimeMs,
                 OffsetMs = s.OffsetMs,
                 Judge = s.Judge,
-                IsXPerfect = s.IsXPerfect
+                IsXPerfect = s.IsXPerfect,
+                PlayerId = s.PlayerId
             };
         }
 

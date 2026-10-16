@@ -50,9 +50,7 @@ namespace TimingShow.Patches
             SessionTimer.Stop();
             _isGamePaused = false;
             ModContext.IsPlaying = false;
-            MarginTrackerAddHitPatch.ResetCounts();
-            ModContext.SessionOffsets.Clear();
-            CalcUR.Reset();
+            Players.ResetAll();
             ModContext.ClearTimingScatterSamples();
             TimingLogger.CloseSession();
             HUDMan.Destroy();
@@ -84,17 +82,15 @@ namespace TimingShow.Patches
                 _isGamePaused = false;
                 ModContext.IsPlaying = true;
                 ModContext.IsLevelFinished = false;
-                ModContext.LastTiming = 0;
-                ModContext.LastAngle = 0;
-                ModContext.ResetJudgeState();
-                ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
-                ModContext.FullXAccHistory.Clear();
+
+                Players.ResetAll();
+                ModContext.Logger?.Log($"coop players = {Players.Count}");
+
+                ModContext.ClearXAccHistory();
                 ModContext.XAccVersion++;
                 ModContext.ClearTimingScatterSamples();
                 ModContext.UIDirty = true;
                 JColors.ResetCache();
-                MarginTrackerAddHitPatch.ResetCounts();
                 HitBump.StopAll();
                 BumpTrigger.Reset();
 
@@ -125,7 +121,6 @@ namespace TimingShow.Patches
                 try
                 {
                     if (scnGame.instance == null || scnGame.instance.levelData == null) return;
-                    if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
 
                     var controller = scrController.instance;
                     var conductor = scrController.conductor ?? scrConductor.instance ?? (controller != null && controller.chosenPlanet != null ? controller.chosenPlanet.conductor : null);

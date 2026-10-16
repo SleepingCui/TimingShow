@@ -12,6 +12,16 @@ namespace TimingShow.HUD
         protected override int ScatterVersion => ModContext.TimingScatterVersion;
         protected override bool LevelFinished => ModContext.IsLevelFinished;
 
+        protected override int ScatterPlayerCount
+        {
+            get { return Coop.ActiveCount; }
+        }
+
+        protected override bool ScatterDistinguishPlayers
+        {
+            get { return true; }
+        }
+
         protected override bool GamePaused
         {
             get

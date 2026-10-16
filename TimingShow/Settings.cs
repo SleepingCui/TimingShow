@@ -37,6 +37,12 @@ namespace TimingShow
         public int Perc3 = 1;
         public int Perc4 = 1;
         public string Language = "English";
+        
+        public bool Coop_TimingHUD = true;
+        public bool Coop_AvgHUD = true;
+        public bool Coop_URHUD = true;
+        public bool Coop_RatioHUD = true;
+        public bool Coop_WinPageAllPlayers = true;
 
         public bool ReplaceTooEarly = true;
         public bool ReplaceVeryEarly = true;
@@ -172,6 +178,7 @@ namespace TimingShow
         public float LogGraph_WindowHeight = 670f;
         public bool LogGraph_UseHitAxis;
         public bool LogGraph_UseJudgeColor = true;
+        public bool LogGraph_DistinguishPlayers = true;
         public bool LogGraph_ShowZeroLine = true;
         public bool LogGraph_ShowAvgLine = true;
         public bool LogGraph_ShowGrid = true;
@@ -238,7 +245,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 2;
+        public const int CurrentSettingsVersion = 3;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -307,6 +314,16 @@ namespace TimingShow
                 migrated = true;
             }
 
+            if (SettingsVersion < 3)
+            {
+                HUD_Format = StripValueSuffix(HUD_Format);
+                AvgHUD_Format = StripValueSuffix(AvgHUD_Format);
+                URHUD_Format = StripValueSuffix(URHUD_Format);
+                RatioHUD_Format = StripValueSuffix(RatioHUD_Format);
+
+                migrated = true;
+            }
+
             if (SettingsVersion < CurrentSettingsVersion)
             {
                 SettingsVersion = CurrentSettingsVersion;
@@ -325,6 +342,15 @@ namespace TimingShow
             }
         }
         
+        private static string StripValueSuffix(string format)
+        {
+            if (string.IsNullOrEmpty(format)) return format;
+            return format
+                .Replace("{0}ms", "{0}")
+                .Replace("{0}°", "{0}")
+                .Replace("{0}:1", "{0}");
+        }
+
         public void Sanitize()
         {
             XACCGraph_X = Mathf.Clamp01(XACCGraph_X);

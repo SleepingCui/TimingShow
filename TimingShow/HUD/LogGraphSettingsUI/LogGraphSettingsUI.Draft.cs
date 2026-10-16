@@ -13,6 +13,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             public bool IgnoreOutliers;
             public bool UseHitAxis;
             public bool UseJudgeColor = true;
+            public bool DistinguishPlayers = true;
             public bool ShowZeroLine;
             public bool ShowAvgLine;
             public bool ShowGrid = true;
@@ -35,6 +36,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 d.IgnoreOutliers = s.LogGraph_IgnoreOutliers;
                 d.UseHitAxis = s.LogGraph_UseHitAxis;
                 d.UseJudgeColor = s.LogGraph_UseJudgeColor;
+                d.DistinguishPlayers = s.LogGraph_DistinguishPlayers;
                 d.ShowZeroLine = s.LogGraph_ShowZeroLine;
                 d.ShowAvgLine = s.LogGraph_ShowAvgLine;
                 d.ShowGrid = s.LogGraph_ShowGrid;
@@ -58,6 +60,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 s.LogGraph_IgnoreOutliers = IgnoreOutliers;
                 s.LogGraph_UseHitAxis = UseHitAxis;
                 s.LogGraph_UseJudgeColor = UseJudgeColor;
+                s.LogGraph_DistinguishPlayers = DistinguishPlayers;
                 s.LogGraph_ShowZeroLine = ShowZeroLine;
                 s.LogGraph_ShowAvgLine = ShowAvgLine;
                 s.LogGraph_ShowGrid = ShowGrid;

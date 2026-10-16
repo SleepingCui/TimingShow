@@ -95,29 +95,20 @@ namespace TimingShow.HUD
             }
             if (_timingScatterObject != null && _timingScatterObject.activeSelf != isScatterPlay) _timingScatterObject.SetActive(isScatterPlay);
 
-            bool dirty = ModContext.UIDirty; 
+            bool dirty = ModContext.UIDirty;
 
             // timing hud
             if (isTimingPlay && dirty)
             {
-                string timing = ModContext.Settings.HUD_ShowAngle
-                    ? ModContext.LastAngle.ToString("F" + ModContext.Settings.PercHUD)
-                    : ModContext.LastTiming.ToString("F" + ModContext.Settings.PercHUD);
+                string timing = Coop.Join(ModContext.Settings.Coop_TimingHUD, FormatTiming);
                 BumpTrigger.Timing(timing);
-                if (ModContext.Settings.HUD_UseJudgeColor)
-                {
-                    Color fColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.HUD_EnableXPerfect);
-                    timing = $"<color=#{ColorUtility.ToHtmlStringRGB(fColor)}>" + timing + "</color>";
-                }
-                string format = ModContext.Settings.HUD_Format;
-                if (ModContext.Settings.HUD_ShowAngle) format = format.Replace("ms", "°");
-                UpdateTextHUD(_hudInstance, format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
+                UpdateTextHUD(_hudInstance, ModContext.Settings.HUD_Format, timing, ModContext.Settings.HUD_x, ModContext.Settings.HUD_y, ModContext.Settings.HUD_scale, ModContext.Settings.HUD_align, ModContext.Settings.HUD_bold);
             }
 
             // avg offset hud
             if (isAvgPlay && dirty)
             {
-                string avgStr = CalcUR.Mean().ToString("F" + ModContext.Settings.PercAvgHUD);
+                string avgStr = Coop.Join(ModContext.Settings.Coop_AvgHUD, FormatAvg);
                 BumpTrigger.Avg(avgStr);
                 UpdateTextHUD(_avgHudInstance, ModContext.Settings.AvgHUD_Format, avgStr, ModContext.Settings.AvgHUD_x, ModContext.Settings.AvgHUD_y, ModContext.Settings.AvgHUD_scale, ModContext.Settings.AvgHUD_align, ModContext.Settings.AvgHUD_bold);
             }
@@ -125,7 +116,7 @@ namespace TimingShow.HUD
             // ur hud
             if (isURPlay && dirty)
             {
-                string urStr = CalcUR.Calc().ToString("F" + ModContext.Settings.PercURHUD);
+                string urStr = Coop.Join(ModContext.Settings.Coop_URHUD, FormatUr);
                 BumpTrigger.UR(urStr);
                 UpdateTextHUD(_urHudInstance, ModContext.Settings.URHUD_Format, urStr, ModContext.Settings.URHUD_x, ModContext.Settings.URHUD_y, ModContext.Settings.URHUD_scale, ModContext.Settings.URHUD_align, ModContext.Settings.URHUD_bold);
             }
@@ -133,7 +124,7 @@ namespace TimingShow.HUD
             // ratio hud
             if (isRatioPlay && dirty)
             {
-                string ratioStr = CalcRatio.GetRatioString();
+                string ratioStr = Coop.Join(ModContext.Settings.Coop_RatioHUD, FormatRatio);
                 BumpTrigger.Ratio(ratioStr);
                 UpdateTextHUD(_ratioHudInstance, ModContext.Settings.RatioHUD_Format, ratioStr, ModContext.Settings.RatioHUD_x, ModContext.Settings.RatioHUD_y, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_align, ModContext.Settings.RatioHUD_bold);
             }
@@ -146,6 +137,37 @@ namespace TimingShow.HUD
             ApplyBumpSize(_ratioHudInstance, isRatioPlay, ModContext.Settings.RatioHUD_scale, ModContext.Settings.RatioHUD_Bump, HitBump.Ratio);
         }
         
+        private static string FormatTiming(PlayerSession player)
+        {
+            Settings s = ModContext.Settings;
+            string number = s.HUD_ShowAngle
+                ? player.LastAngle.ToString("F" + s.PercHUD)
+                : player.LastTiming.ToString("F" + s.PercHUD);
+
+            if (s.HUD_UseJudgeColor)
+            {
+                Color color = JColors.GetColor(player.LastJudge, player.IsXPerfect(player.LastJudge), s.HUD_EnableXPerfect);
+                number = $"<color=#{ColorUtility.ToHtmlStringRGB(color)}>" + number + "</color>";
+            }
+
+            return number + (s.HUD_ShowAngle ? "°" : "ms");
+        }
+
+        private static string FormatAvg(PlayerSession player)
+        {
+            return player.Ur.Mean().ToString("F" + ModContext.Settings.PercAvgHUD) + "ms";
+        }
+
+        private static string FormatUr(PlayerSession player)
+        {
+            return player.Ur.StdDev().ToString("F" + ModContext.Settings.PercURHUD);
+        }
+
+        private static string FormatRatio(PlayerSession player)
+        {
+            return CalcRatio.GetRatioText(player);
+        }
+
         private static void ApplyBumpSize(TextUI instance, bool active, float scale, bool bump, BumpAnim anim)
         {
             if (!active || instance == null) return;

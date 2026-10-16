@@ -110,8 +110,9 @@ namespace TimingShow.HUD.ScatterDrawerBase
             int fontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
             float lineHeight = 16f * (fontSize / 12f);
             float pad = DetailPanelPadding * (fontSize / 12f);
-            float panelWidth = 132f * (fontSize / 12f) + pad * 2f;
-            float panelHeight = lineHeight * DetailLineCount + pad * 2f;
+            float panelWidth = 190f * (fontSize / 12f) + pad * 2f;
+            int lineCount = ScatterPlayerCount > 1 ? DetailLineCount + 1 : DetailLineCount;
+            float panelHeight = lineHeight * lineCount + pad * 2f;
 
             _detailText.fontSize = fontSize;
             _detailText.color = ScatterAxisTextColor;
@@ -225,14 +226,26 @@ namespace TimingShow.HUD.ScatterDrawerBase
             _detailAccentColor = JColors.GetColor(sample.Judge, sample.IsXPerfect, true);
 
             string timing = string.Format("{0:+0.00;-0.00;0.00} ms", sample.OffsetMs);
-            string time = sample.TimeMs < 0f ? i18n.T("Detail_TimeUnavailable") : FormatDetailTime(sample.TimeMs);
+            string time = sample.TimeMs < 0f
+                ? i18n.T("Detail_TimeUnavailable")
+                : FormatDetailTime(sample.TimeMs) + " (" + sample.TimeMs.ToString() + " ms)";
 
-            return string.Format(
+            string body = string.Format(
                 "{0} #{1}\n{2}: {3}\n{4}: {5}\n{6}: <color=#{7}>{8}</color>",
                 i18n.T("Detail_Hit"), index + 1,
                 i18n.T("Detail_Timing"), timing,
                 i18n.T("Detail_Time"), time,
                 i18n.T("Detail_Judge"), ColorUtility.ToHtmlStringRGB(_detailAccentColor), FormatDetailJudge(sample));
+
+            if (ScatterPlayerCount > 1)
+            {
+                body += "\n" + string.Format("{0}: <color=#{1}>{2}</color>",
+                    i18n.T("Detail_Player"),
+                    ColorUtility.ToHtmlStringRGB(Coop.PlayerColor(sample.PlayerId)),
+                    Coop.Label(sample.PlayerId));
+            }
+
+            return body;
         }
 
         private static string FormatDetailTime(float timeMs)

@@ -11,9 +11,25 @@ namespace TimingShow.HUD
         private List<TimingScatterSample> _samples = new List<TimingScatterSample>();
         private int _dataVersion;
         private bool _isAngle;
+        private int _playerCount = 1;
         public TMP_FontAsset GraphFontAsset => CurrentFontAsset;
 
         public System.Action AxisMetricsChanged;
+
+        protected override int ScatterPlayerCount
+        {
+            get { return _playerCount; }
+        }
+
+        protected override bool ScatterDistinguishPlayers
+        {
+            get { return LogSettings == null || LogSettings.LogGraph_DistinguishPlayers; }
+        }
+
+        protected override bool AllowPlayerFilter
+        {
+            get { return LogSettings == null || LogSettings.LogGraph_DistinguishPlayers; }
+        }
 
         protected override void OnAxisMetricsChanged()
         {
@@ -25,8 +41,10 @@ namespace TimingShow.HUD
         {
             _samples = data != null && data.Samples != null ? data.Samples : new List<TimingScatterSample>();
             _isAngle = data != null && data.IsAngle;
+            _playerCount = data != null && data.PlayerCount > 0 ? data.PlayerCount : 1;
             _dataVersion++;
 
+            ResetPlayerFilter();
             ResetManualView();
             SetVerticesDirty();
         }

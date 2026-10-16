@@ -8,12 +8,13 @@ namespace TimingShow.Logging
 {
     public static class TimingLogger
     {
-        public const int FormatVersion = 6;
-        public const int BinaryFormatVersion = 7;
+        public const int FormatVersion = 7;
+        public const int BinaryFormatVersion = 8;
 
         private static StreamWriter _writer;
         private static string _currentFilePath;
-        private static bool _isFirstEntry = true;
+        private static int _playerCount = 1;
+        private static StringBuilder[] _playerBuffers;
         private static int _hitCount;
         private static bool _isCurrentSessionBinary;
         private static bool _isCurrentSessionAngle;
@@ -36,9 +37,13 @@ namespace TimingShow.Logging
                 return;
             }
 
-            _isFirstEntry = true;
             _hitCount = 0;
             _isCurrentSessionAngle = ModContext.Settings.Logger_ShowAngle;
+
+            _playerCount = Players.Count;
+            if (_playerCount < 1) _playerCount = 1;
+            _playerBuffers = new StringBuilder[_playerCount];
+            for (int p = 0; p < _playerCount; p++) _playerBuffers[p] = new StringBuilder(4096);
 
             try
             {
@@ -73,14 +78,13 @@ namespace TimingShow.Logging
                 _writer.WriteLine($"  \"hitMarginVersion\": \"{HitMarginCompat.Version}\",");
                 _writer.WriteLine($"  \"judgeCodeVersion\": {HitMarginCompat.JudgeCodeVersion},");
 
-                _writer.Write("  \"offsets\": [");
-
                 _writer.Flush();
             }
             catch (Exception ex)
             {
                 ModContext.Logger.Error($"unable to create log file: {ex.Message}");
                 _writer = null;
+                _playerBuffers = null;
             }
         }
         
@@ -90,16 +94,21 @@ namespace TimingShow.Logging
             
             bool logXP = isXP && (HitMarginCompat.IsGame34 || ModContext.Settings.Logger_EnableXPerfect);
 
+            int playerId = Players.Current.PlayerId;
+            if (playerId < 0) playerId = 0;
+
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.LogHit(timing, angle, rawMarginCode, judgeCode, logXP);
+                TimingLoggerBinary.LogHit(timing, angle, rawMarginCode, judgeCode, logXP, playerId);
                 return;
             }
 
-            if (_writer == null) return;
+            if (_writer == null || _playerBuffers == null) return;
             try
             {
                 _hitCount++;
+
+                if (playerId >= _playerCount) playerId = 0;
 
                 string fmt = "F" + Math.Max(0, ModContext.Settings.PercLog);
                 string formattedTiming = (_isCurrentSessionAngle ? angle : timing).ToString(fmt);
@@ -107,21 +116,19 @@ namespace TimingShow.Logging
                     ? "null"
                     : ModContext.LastSongTimeMs.ToString("F3", CultureInfo.InvariantCulture);
 
-                string prefix = _isFirstEntry ? "" : ",";
-                _writer.Write(prefix);
-                _writer.Write("[");
-                _writer.Write(formattedSongTime);
-                _writer.Write(",");
-                _writer.Write(formattedTiming);
-                _writer.Write(",");
-                _writer.Write(rawMarginCode);
-                _writer.Write(",");
-                _writer.Write(judgeCode);
-                _writer.Write(",");
-                _writer.Write(logXP ? 1 : 0);
-                _writer.Write("]");
-
-                _isFirstEntry = false;
+                StringBuilder buffer = _playerBuffers[playerId];
+                if (buffer.Length > 0) buffer.Append(',');
+                buffer.Append('[');
+                buffer.Append(formattedSongTime);
+                buffer.Append(',');
+                buffer.Append(formattedTiming);
+                buffer.Append(',');
+                buffer.Append(rawMarginCode);
+                buffer.Append(',');
+                buffer.Append(judgeCode);
+                buffer.Append(',');
+                buffer.Append(logXP ? 1 : 0);
+                buffer.Append(']');
             }
             catch (Exception ex)
             {
@@ -153,7 +160,15 @@ namespace TimingShow.Logging
                     return;
                 }
 
-                _writer.WriteLine("]");
+                for (int i = 0; i < _playerCount; i++)
+                {
+                    _writer.Write($"  \"offsets_{i + 1}\": [");
+                    if (_playerBuffers != null && i < _playerBuffers.Length && _playerBuffers[i] != null)
+                        _writer.Write(_playerBuffers[i].ToString());
+                    _writer.Write("]");
+                    if (i < _playerCount - 1) _writer.Write(",");
+                    _writer.WriteLine();
+                }
                 _writer.Write("}");
                 _writer.Flush();
                 ModContext.Logger.Log($"Successfully closed session: {_currentFilePath}");
@@ -167,6 +182,7 @@ namespace TimingShow.Logging
                 _writer?.Dispose();
                 _writer = null;
                 _currentFilePath = null;
+                _playerBuffers = null;
                 _isCurrentSessionAngle = false;
             }
         }

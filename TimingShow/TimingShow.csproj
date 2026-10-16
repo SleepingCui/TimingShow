@@ -100,6 +100,8 @@
     <Compile Include="IModLogger.cs" />
     <Compile Include="ModContext.cs" />
     <Compile Include="Calc.cs" />
+    <Compile Include="Coop.cs" />
+    <Compile Include="PlayerSession.cs" />
     <Compile Include="HitMan.cs" />
     <Compile Include="i18n.cs" />
     <Compile Include="Settings.cs" />
@@ -118,6 +120,7 @@
     <Compile Include="HUD\ScatterDrawerBase\ScatterDrawerBase.Text.cs" />
     <Compile Include="HUD\ScatterDrawerBase\ScatterDrawerBase.Interaction.cs" />
     <Compile Include="HUD\ScatterDrawerBase\ScatterDrawerBase.Detail.cs" />
+    <Compile Include="HUD\ScatterDrawerBase\ScatterDrawerBase.Players.cs" />
     <Compile Include="HUD\TimingScatterDrawer.cs" />
     <Compile Include="HUD\LogScatterDrawer.cs" />
     <Compile Include="HUD\LogDistributionData.cs" />

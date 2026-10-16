@@ -127,6 +127,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 hash = hash * 31 + settings.TimingScatter_BandEarlyLateColor.GetHashCode();
                 hash = hash * 31 + settings.TimingScatter_BandXpColor.GetHashCode();
                 hash = hash * 31 + (FullRangeMode ? 1 : 0);
+                hash = hash * 31 + ScatterPlayerCount;
+                hash = hash * 31 + _playerFilter;
                 return hash;
             }
         }
