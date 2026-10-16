@@ -28,6 +28,9 @@ A Timing information display mod for A Dance of Fire and Ice, supporting MelonLo
 - 新增平均偏移 (Avg) HUD 与命中跳动效果
 
   Adds an Avg offset HUD and a hit bump animation
+- 支持本地多人 (co-op)：各玩家独立统计，HUD/标题形如 `Timing - 12.3ms,15.6ms`，死亡页与结算页显示全员对比；XACC 曲线与散点图按玩家配色区分，日志窗口的散点图例可点击筛选单个玩家
+
+  Supports local co-op: per-player statistics, merged display such as `Timing - 12.3ms,15.6ms`, and all-player comparison on the death and results screens; XACC curves and scatter plots are colored per player, and the log window's scatter legend can be clicked to isolate a single player
 - 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
 
   Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.

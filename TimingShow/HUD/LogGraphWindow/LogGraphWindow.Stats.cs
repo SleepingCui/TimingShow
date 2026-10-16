@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using TMPro;
@@ -47,6 +48,7 @@ namespace TimingShow.HUD.LogGraphWindow
             text.alignment = TextAlignmentOptions.TopLeft;
             text.color = color;
             text.raycastTarget = false;
+            text.richText = true;
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.overflowMode = TextOverflowModes.Ellipsis;
             if (font != null) text.font = font;
@@ -75,30 +77,74 @@ namespace TimingShow.HUD.LogGraphWindow
             _statXPerfect = 0;
             _statUr = 0.0;
 
+            _playerCount = _data != null && _data.PlayerCount > 0 ? _data.PlayerCount : 1;
+            if (_playerCount > 4) _playerCount = 4;
+
+            for (int p = 0; p < 4; p++)
+            {
+                _statTotalByPlayer[p] = 0;
+                _statNormalPerfectByPlayer[p] = 0;
+                _statPerfectFamilyByPlayer[p] = 0;
+                _statXPerfectByPlayer[p] = 0;
+                _statUrByPlayer[p] = 0.0;
+            }
+
             List<TimingScatterSample> samples = _data != null ? _data.Samples : null;
             if (samples != null)
             {
-                List<double> offsets = new List<double>(samples.Count);
+                List<double> all = new List<double>(samples.Count);
+                List<double>[] perPlayer = new List<double>[_playerCount];
+                for (int p = 0; p < _playerCount; p++) perPlayer[p] = new List<double>();
+
                 for (int i = 0; i < samples.Count; i++)
                 {
                     TimingScatterSample sample = samples[i];
                     if (!sample.HasJudge) continue;
 
+                    int p = sample.PlayerId;
+                    if (p < 0 || p >= _playerCount) p = 0;
+
                     _statTotal++;
+                    _statTotalByPlayer[p]++;
+                    if (HitMarginCompat.IsPerfectFamily(sample.Judge)) { _statPerfectFamily++; _statPerfectFamilyByPlayer[p]++; }
+                    if (HitMarginCompat.IsNormalPerfect(sample.Judge)) { _statNormalPerfect++; _statNormalPerfectByPlayer[p]++; }
+                    if (sample.IsXPerfect) { _statXPerfect++; _statXPerfectByPlayer[p]++; }
+
                     if (!float.IsNaN(sample.OffsetMs) && !float.IsInfinity(sample.OffsetMs))
                     {
-                        offsets.Add(sample.OffsetMs);
+                        all.Add(sample.OffsetMs);
+                        perPlayer[p].Add(sample.OffsetMs);
                     }
-                    if (HitMarginCompat.IsPerfectFamily(sample.Judge)) _statPerfectFamily++;
-                    if (HitMarginCompat.IsNormalPerfect(sample.Judge)) _statNormalPerfect++;
-                    if (sample.IsXPerfect) _statXPerfect++;
                 }
 
-                if (offsets.Count > 0) _statUr = CalcUR.calc(offsets);
+                if (all.Count > 0) _statUr = CalcUR.calc(all);
+                for (int p = 0; p < _playerCount; p++)
+                {
+                    if (perPlayer[p].Count > 0) _statUrByPlayer[p] = CalcUR.calc(perPlayer[p]);
+                }
             }
 
-            _distributionStats = DistributionStats.Compute(samples, DistributionStats.DefaultBinCount);
+            _distributionStats = DistributionStats.Compute(FilteredSamples(samples), DistributionStats.DefaultBinCount);
             _statsComputed = true;
+        }
+
+        private List<TimingScatterSample> FilteredSamples(List<TimingScatterSample> samples)
+        {
+            int filter = _drawer != null ? _drawer.SelectedPlayerId : -1;
+            if (filter < 0 || samples == null) return samples;
+
+            List<TimingScatterSample> filtered = new List<TimingScatterSample>(samples.Count);
+            for (int i = 0; i < samples.Count; i++)
+            {
+                if (samples[i].PlayerId == filter) filtered.Add(samples[i]);
+            }
+            return filtered;
+        }
+
+        private void OnPlayerFilterChanged()
+        {
+            _statsComputed = false;
+            RefreshStats();
         }
         
         private void UpdateStatTexts()
@@ -110,35 +156,74 @@ namespace TimingShow.HUD.LogGraphWindow
             int ratioDigits = settings != null ? settings.PercRatioHUD : 1;
             int ratioMode = settings != null ? settings.Ratio_Mode : Settings.RatioMode_NormalPerfect;
 
-            _statTexts[0] = _statTotal.ToString();
-            _statTexts[1] = _statUr.ToString("F" + percentDigits);
+            int players = _playerCount > 1 ? _playerCount : 1;
 
-            int target;
-            switch (ratioMode)
+            if (players <= 1)
             {
-                case Settings.RatioMode_PerfectFamily:
-                    target = _statPerfectFamily;
-                    break;
-                case Settings.RatioMode_XPerfect:
-                    target = _statXPerfect;
-                    break;
-                default:
-                    target = _statNormalPerfect;
-                    break;
+                _statTexts[0] = _statTotal.ToString();
+                _statTexts[1] = _statUr.ToString("F" + percentDigits);
+                _statTexts[2] = ComputeRatioText(_statTotal, _statNormalPerfect, _statPerfectFamily, _statXPerfect, ratioMode, ratioDigits);
+                _statTexts[3] = ComputeXAccText(_statTotal, _statXPerfect, percentDigits);
             }
-
-            int other = _statTotal - target;
-            if (_statTotal == 0) _statTexts[2] = "0:1";
-            else if (other <= 0) _statTexts[2] = "infinity";
-            else _statTexts[2] = ((double)target / other).ToString("F" + ratioDigits) + ":1";
-
-            float xAcc = _statTotal > 0 ? (float)_statXPerfect / _statTotal * 100f : 0f;
-            _statTexts[3] = xAcc.ToString("F" + percentDigits) + "%";
+            else
+            {
+                _statTexts[0] = JoinPlayerValues(players, p => _statTotalByPlayer[p].ToString());
+                _statTexts[1] = JoinPlayerValues(players, p => _statUrByPlayer[p].ToString("F" + percentDigits));
+                _statTexts[2] = JoinPlayerValues(players, p => ComputeRatioText(
+                    _statTotalByPlayer[p], _statNormalPerfectByPlayer[p], _statPerfectFamilyByPlayer[p], _statXPerfectByPlayer[p],
+                    ratioMode, ratioDigits));
+                _statTexts[3] = JoinPlayerValues(players, p => ComputeXAccText(_statTotalByPlayer[p], _statXPerfectByPlayer[p], percentDigits));
+            }
 
             for (int i = 0; i < 4; i++)
             {
                 if (_statValues[i] != null) _statValues[i].text = _statTexts[i];
             }
+        }
+
+        private static string ComputeRatioText(int total, int normalPerfect, int perfectFamily, int xPerfect, int ratioMode, int ratioDigits)
+        {
+            int target;
+            switch (ratioMode)
+            {
+                case Settings.RatioMode_PerfectFamily:
+                    target = perfectFamily;
+                    break;
+                case Settings.RatioMode_XPerfect:
+                    target = xPerfect;
+                    break;
+                default:
+                    target = normalPerfect;
+                    break;
+            }
+
+            int other = total - target;
+            if (total == 0) return "0:1";
+            if (other <= 0) return "infinity";
+            return ((double)target / other).ToString("F" + ratioDigits) + ":1";
+        }
+
+        private static string ComputeXAccText(int total, int xPerfect, int percentDigits)
+        {
+            float xAcc = total > 0 ? (float)xPerfect / total * 100f : 0f;
+            return xAcc.ToString("F" + percentDigits) + "%";
+        }
+
+        private static string JoinPlayerValues(int players, System.Func<int, string> value)
+        {
+            StringBuilder sb = new StringBuilder(64);
+            for (int p = 0; p < players; p++)
+            {
+                if (p > 0) sb.Append("  ");
+                sb.Append("<color=#");
+                sb.Append(ColorUtility.ToHtmlStringRGB(Coop.PlayerColor(p)));
+                sb.Append('>');
+                sb.Append(Coop.Label(p));
+                sb.Append(' ');
+                sb.Append(value(p));
+                sb.Append("</color>");
+            }
+            return sb.ToString();
         }
 
         private void RestoreScatterStatLabels()

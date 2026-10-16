@@ -23,6 +23,7 @@ namespace TimingShow.Logging
         public string HitMarginVersionText;
         public int JudgeCodeVersion;
         public bool Truncated;
+        public int PlayerCount = 1;
         public List<TimingScatterSample> Samples = new List<TimingScatterSample>(1024);
     }
 
@@ -154,11 +155,18 @@ namespace TimingShow.Logging
                             break;
                         }
 
-                        if (string.Equals(name, "offsets", StringComparison.Ordinal))
+                        if (IsOffsetsField(name))
                         {
+                            int offsetsPlayerId = OffsetsFieldPlayerId(name);
                             if (reader.TokenType == JsonToken.StartArray)
                             {
                                 hasOffsets = true;
+                                if (offsetsPlayerId + 1 > result.PlayerCount) result.PlayerCount = offsetsPlayerId + 1;
+                                if (!AppendOffsetsArray(reader, result, offsetsPlayerId))
+                                {
+                                    aborted = true;
+                                    break;
+                                }
                             }
                             else
                             {
@@ -167,7 +175,7 @@ namespace TimingShow.Logging
                                 else SkipContainer(reader);
                                 result.Truncated = true;
                             }
-                            break;
+                            continue;
                         }
 
                         if (reader.TokenType == JsonToken.StartObject || reader.TokenType == JsonToken.StartArray)
@@ -177,105 +185,6 @@ namespace TimingShow.Logging
                         }
 
                         if (ApplyHeaderField(result, name, reader)) sawHeaderField = true;
-                    }
-
-                    if (hasOffsets)
-                    {
-                        List<TimingScatterSample> samples = result.Samples;
-
-                        while (true)
-                        {
-                            if (samples.Count >= MaxSamples)
-                            {
-                                result.Truncated = true;
-                                aborted = true;
-                                break;
-                            }
-
-                            if (!reader.Read())
-                            {
-                                result.Truncated = true;
-                                aborted = true;
-                                break;
-                            }
-
-                            JsonToken token = reader.TokenType;
-                            if (token == JsonToken.EndArray) break;
-
-                            if (token != JsonToken.StartArray)
-                            {
-                                SkipContainer(reader);
-                                continue;
-                            }
-
-                            TimingScatterSample sample = new TimingScatterSample();
-                            sample.HasJudge = true;
-                            sample.TimeMs = float.NaN;
-                            sample.Judge = HitMan.Unknown;
-
-                            double timeMs = double.NaN;
-                            double value = 0.0;
-                            int judgeCode = -1;
-                            bool isXp = false;
-                            bool innerDone = false;
-                            int index = 0;
-
-                            while (true)
-                            {
-                                if (!reader.Read())
-                                {
-                                    result.Truncated = true;
-                                    aborted = true;
-                                    break;
-                                }
-
-                                JsonToken inner = reader.TokenType;
-                                if (inner == JsonToken.EndArray)
-                                {
-                                    innerDone = true;
-                                    break;
-                                }
-
-                                if (inner == JsonToken.StartObject || inner == JsonToken.StartArray)
-                                {
-                                    SkipContainer(reader);
-                                    index++;
-                                    continue;
-                                }
-
-                                switch (index)
-                                {
-                                    case 0:
-                                        if (inner != JsonToken.Null) timeMs = TokenToDouble(reader.Value);
-                                        break;
-                                    case 1:
-                                        value = TokenToDouble(reader.Value);
-                                        break;
-                                    case 2:
-
-                                        break;
-                                    case 3:
-                                        judgeCode = TokenToInt32(reader.Value);
-                                        break;
-                                    case 4:
-                                        isXp = TokenToInt32(reader.Value) != 0;
-                                        break;
-                                    default:
-                                        break;
-                                }
-
-                                index++;
-                            }
-
-                            if (aborted) break;
-                            if (!innerDone) break;
-
-                            sample.TimeMs = (float)timeMs;
-                            sample.OffsetMs = (float)value;
-                            sample.Judge = (HitMan)judgeCode;
-                            sample.IsXPerfect = isXp;
-                            samples.Add(sample);
-                        }
                     }
 
                     if (hasOffsets && !completed && !aborted)
@@ -378,6 +287,141 @@ namespace TimingShow.Logging
             }
         }
 
+        private static bool IsOffsetsField(string name)
+        {
+            if (name == null) return false;
+            if (string.Equals(name, "offsets", StringComparison.Ordinal)) return true;
+            if (name.Length <= OffsetsPrefix.Length) return false;
+            if (!name.StartsWith(OffsetsPrefix, StringComparison.Ordinal)) return false;
+
+            for (int i = OffsetsPrefix.Length; i < name.Length; i++)
+            {
+                char c = name[i];
+                if (c < '0' || c > '9') return false;
+            }
+            return true;
+        }
+
+        private static int OffsetsFieldPlayerId(string name)
+        {
+            if (string.Equals(name, "offsets", StringComparison.Ordinal)) return 0;
+            if (name == null || name.Length <= OffsetsPrefix.Length) return 0;
+
+            int value = 0;
+            for (int i = OffsetsPrefix.Length; i < name.Length; i++)
+            {
+                char c = name[i];
+                if (c < '0' || c > '9') return 0;
+                value = value * 10 + (c - '0');
+                if (value > 1000) return 0;
+            }
+
+            int playerId = value - 1;
+            return playerId < 0 ? 0 : playerId;
+        }
+
+        private const string OffsetsPrefix = "offsets_";
+
+        private static bool AppendOffsetsArray(JsonTextReader reader, TimingLogData result, int playerId)
+        {
+            List<TimingScatterSample> samples = result.Samples;
+
+            while (true)
+            {
+                if (samples.Count >= MaxSamples)
+                {
+                    result.Truncated = true;
+                    return false;
+                }
+
+                if (!reader.Read())
+                {
+                    result.Truncated = true;
+                    return false;
+                }
+
+                JsonToken token = reader.TokenType;
+                if (token == JsonToken.EndArray) return true;
+
+                if (token != JsonToken.StartArray)
+                {
+                    SkipContainer(reader);
+                    continue;
+                }
+
+                TimingScatterSample sample = new TimingScatterSample();
+                sample.HasJudge = true;
+                sample.TimeMs = float.NaN;
+                sample.Judge = HitMan.Unknown;
+
+                double timeMs = double.NaN;
+                double value = 0.0;
+                int judgeCode = -1;
+                bool isXp = false;
+                bool innerDone = false;
+                int index = 0;
+
+                while (true)
+                {
+                    if (!reader.Read())
+                    {
+                        result.Truncated = true;
+                        return false;
+                    }
+
+                    JsonToken inner = reader.TokenType;
+                    if (inner == JsonToken.EndArray)
+                    {
+                        innerDone = true;
+                        break;
+                    }
+
+                    if (inner == JsonToken.StartObject || inner == JsonToken.StartArray)
+                    {
+                        SkipContainer(reader);
+                        index++;
+                        continue;
+                    }
+
+                    switch (index)
+                    {
+                        case 0:
+                            if (inner != JsonToken.Null) timeMs = TokenToDouble(reader.Value);
+                            break;
+                        case 1:
+                            value = TokenToDouble(reader.Value);
+                            break;
+                        case 2:
+
+                            break;
+                        case 3:
+                            judgeCode = TokenToInt32(reader.Value);
+                            break;
+                        case 4:
+                            isXp = TokenToInt32(reader.Value) != 0;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    index++;
+                }
+
+                if (!innerDone)
+                {
+                    result.Truncated = true;
+                    return false;
+                }
+
+                sample.TimeMs = (float)timeMs;
+                sample.OffsetMs = (float)value;
+                sample.Judge = (HitMan)judgeCode;
+                sample.IsXPerfect = isXp;
+                sample.PlayerId = playerId;
+                samples.Add(sample);
+            }
+        }
+
         private static bool TryReadBinary(string filePath, out TimingLogData data, out string error)
         {
             data = null;
@@ -436,6 +480,12 @@ namespace TimingShow.Logging
                     result.IsAngle = reader.ReadByte() != 0;
                     result.HitMarginVersionText = HitMarginVersionToText(reader.ReadByte());
                     result.JudgeCodeVersion = reader.ReadByte();
+
+                    if (result.FormatVersion >= 8)
+                    {
+                        int playerCount = reader.ReadByte();
+                        if (playerCount > 0) result.PlayerCount = playerCount;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -455,6 +505,19 @@ namespace TimingShow.Logging
                         {
                             result.Truncated = true;
                             break;
+                        }
+
+                        int playerId = 0;
+                        if (result.FormatVersion >= 8)
+                        {
+                            try
+                            {
+                                playerId = reader.ReadByte();
+                            }
+                            catch (EndOfStreamException)
+                            {
+                                break;
+                            }
                         }
 
                         int control;
@@ -521,6 +584,7 @@ namespace TimingShow.Logging
                         sample.Judge = (HitMan)judgeCode;
                         sample.IsXPerfect = isXp;
                         sample.HasJudge = true;
+                        sample.PlayerId = playerId;
                         samples.Add(sample);
                     }
                 }

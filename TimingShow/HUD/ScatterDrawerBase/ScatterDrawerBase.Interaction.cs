@@ -104,7 +104,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
             {
                 _detailDataVersion = ScatterVersion;
                 ClearDetailInteraction();
-                if (ScatterSamples.Count == 0) ResetManualView();
+                if (ScatterSamples.Count == 0)
+                {
+                    ResetManualView();
+                    ResetPlayerFilter();
+                }
             }
 
             bool interactive = DetailInteractive;
@@ -179,6 +183,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 if (EventSystem.current == null && Input.GetMouseButtonDown(0)
                     && IsPointerInsideRect(Input.mousePosition))
                 {
+                    if (TryPlayerLegendClick(Input.mousePosition)) return;
                     BeginGesture(Input.mousePosition);
                 }
                 return;
@@ -214,7 +219,10 @@ namespace TimingShow.HUD.ScatterDrawerBase
             if (eventData != null && eventData.button != PointerEventData.InputButton.Left) return;
             if (!DetailInteractive) return;
 
-            BeginGesture(eventData != null ? eventData.position : (Vector2)Input.mousePosition);
+            Vector2 screen = eventData != null ? eventData.position : (Vector2)Input.mousePosition;
+            if (TryPlayerLegendClick(screen)) return;
+
+            BeginGesture(screen);
         }
 
         public void OnPointerUp(PointerEventData eventData)

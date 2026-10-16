@@ -1,50 +1,28 @@
 using System;
 using System.Collections.Generic;
-using static TimingShow.Patches.TimingCalcPatches;
 using TimingShow.Bridge;
 
 namespace TimingShow
 {
     public static class CalcUR
     {
-        private static int _count;
-        private static double _mean;
-        private static double _s;
 
-        public static void AddSample(double x)
-        {
-            int n = ++_count;
-            double d = x - _mean;
-            _mean += d / n;
-            _s += d * (x - _mean);
-        }
-
-        public static void Reset()
-        {
-            _count = 0;
-            _mean = 0.0;
-            _s = 0.0;
-        }
-
-        public static double Calc()
-        {
-            if (_count == 0) return 0.0;
-            return Math.Sqrt(_s / _count) * 10.0;
-        }
-
-        public static double Mean()
-        {
-            return _count == 0 ? 0.0 : _mean;
-        }
-
-        public static double calc(List<double> offsets)
+        public static double Mean(List<double> offsets)
         {
             if (offsets == null || offsets.Count == 0) return 0.0;
 
             double avg = 0.0;
             int count = offsets.Count;
             for (int i = 0; i < count; i++) avg += offsets[i];
-            avg /= count;
+            return avg / count;
+        }
+
+        public static double calc(List<double> offsets)
+        {
+            if (offsets == null || offsets.Count == 0) return 0.0;
+
+            double avg = Mean(offsets);
+            int count = offsets.Count;
 
             double sumOfSquares = 0.0;
             for (int i = 0; i < count; i++)
@@ -60,32 +38,39 @@ namespace TimingShow
 
     public class CalcRatio
     {
-        public static string GetRatioString()
+        public static string GetRatioString(PlayerSession player)
         {
+            Settings settings = ModContext.Settings;
+
             int targetHits;
-            switch (ModContext.Settings.Ratio_Mode)
+            switch (settings.Ratio_Mode)
             {
                 case Settings.RatioMode_PerfectFamily:
-                    targetHits = MarginTrackerAddHitPatch.PerfectFamilyCount;
+                    targetHits = player.PerfectFamilyCount;
                     break;
                 case Settings.RatioMode_XPerfect:
-                    targetHits = MarginTrackerAddHitPatch.XPerfectCount;
+                    targetHits = player.XPerfectCount;
                     break;
                 case Settings.RatioMode_NormalPerfect:
-                    targetHits = MarginTrackerAddHitPatch.NormalPerfectCount;
+                    targetHits = player.NormalPerfectCount;
                     break;
                 default:
-                    targetHits = MarginTrackerAddHitPatch.NormalPerfectCount;
+                    targetHits = player.NormalPerfectCount;
                     break;
             }
 
-            int total = MarginTrackerAddHitPatch.TotalHitsCount;
+            int total = player.TotalHitsCount;
             int otherHits = total - targetHits;
             if (total == 0) return "0";
             if (otherHits <= 0) return "infinity";
 
             double ratio = (double)targetHits / otherHits;
-            return ratio.ToString("F" + ModContext.Settings.PercRatioHUD);
+            return ratio.ToString("F" + settings.PercRatioHUD);
+        }
+
+        public static string GetRatioText(PlayerSession player)
+        {
+            return GetRatioString(player) + ":1";
         }
     }
 

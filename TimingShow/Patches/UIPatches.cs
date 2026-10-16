@@ -11,6 +11,24 @@ namespace TimingShow.Patches
 {
     public static class UIPatches
     {
+        [HarmonyPatch(typeof(scrHitTextManager), "ShowHitText")]
+        public static class HitTextManagerShowPatch
+        {
+            public static int CurrentHitMargin = -1;
+
+            public static void Prefix(HitMargin hitMargin, scrPlanet planet)
+            {
+                Players.CurrentId = Players.ResolvePlayerId(planet);
+                CurrentHitMargin = (int)hitMargin;
+            }
+
+            public static void Postfix()
+            {
+                Players.CurrentId = Players.Unset;
+                CurrentHitMargin = -1;
+            }
+        }
+
         // jd text
         [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
         [HarmonyPriority(199)]
@@ -20,30 +38,35 @@ namespace TimingShow.Patches
             {
                 if (!ModContext.IsEnabled || !ModContext.Settings.ShowOnPlanet || !ModContext.IsPlaying) return;
                 if (__instance.text == null) return;
-                
-                HitMan judge = HitMarginCompat.ToJudgeKind((int)__instance.hitMargin);
+
+                int rawMargin = (int)__instance.hitMargin;
+                HitMan judge = HitMarginCompat.ToJudgeKind(rawMargin);
 
                 if (!ShouldReplace(judge)) return;
 
-                Color targetColor = JColors.GetColor(judge, ResolveIsXP(judge), ModContext.Settings.Planet_EnableXPerfect);
+                PlayerSession player = HitTextManagerShowPatch.CurrentHitMargin == rawMargin
+                    ? Players.Current
+                    : Players.Get(0);
+
+                Color targetColor = JColors.GetColor(judge, player.IsXPerfect(judge), ModContext.Settings.Planet_EnableXPerfect);
 
                 string timingText = ModContext.Settings.Planet_ShowAngle
-                    ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc2)
-                    : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc2);
+                    ? ModContext.FormatAngle(player.LastAngle, ModContext.Settings.Perc2)
+                    : ModContext.Format(player.LastTiming, ModContext.Settings.Perc2);
 
                 int fontSize = ModContext.Settings.Planet_FontSize;
                 __instance.text.richText = true;
                 __instance.text.text = fontSize == 100 ? timingText : $"<size={fontSize}%>{timingText}</size>";
                 __instance.text.color = targetColor;
                 __instance.text.ForceMeshUpdate();
-                
+
                 if (judge == HitMan.XPerfect)
                     HideXPerfectBorder(__instance);
             }
 
             private static FieldInfo _xPerfectBorderField;
             private static bool _xPerfectBorderResolved;
-            
+
             private static void HideXPerfectBorder(scrHitTextMesh instance)
             {
                 if (!_xPerfectBorderResolved)
@@ -102,12 +125,6 @@ namespace TimingShow.Patches
                     default: return false;
                 }
             }
-            
-            private static bool ResolveIsXP(HitMan judge)
-            {
-                if (HitMarginCompat.IsGame34) return judge == HitMan.XPerfect;
-                return ModContext.LastIsXP;
-            }
         }
 
         // fail text
@@ -119,55 +136,71 @@ namespace TimingShow.Patches
                 if (!ModContext.IsEnabled)
                 {
                     TimingLogger.CloseSession();
-                    if (ModContext.SessionOffsets != null) ModContext.SessionOffsets.Clear();
-                    CalcUR.Reset();
+                    Players.ResetAll();
                     return;
                 }
 
                 if (ModContext.Settings.ShowOnDeath && __instance.txtTryCalibrating != null)
                 {
-                    List<string> items = new List<string>();
-
-                    if (ModContext.Settings.ShowOnDeath_ShowAvgTiming)
-                    {
-                        double avgOffset = 0;
-                        int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
-                        if (count > 0)
-                        {
-                            for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
-                            avgOffset /= count;
-                        }
-                        items.Add($"{i18n.T("Avg_Timing")}{ModContext.Format(avgOffset, ModContext.Settings.Perc3)}");
-                    }
-
-                    if (ModContext.Settings.ShowOnDeath_ShowUR)
-                    {
-                        items.Add($"{i18n.T("Label_UR")}{CalcUR.calc(ModContext.SessionOffsets).ToString("F" + ModContext.Settings.Perc3)}");
-                    }
-
-                    if (ModContext.Settings.ShowOnDeath_ShowXACC)
-                    {
-                        float xaccPerc = 0f;
-                        if (__instance.playerOne != null && __instance.playerOne.marginTracker != null)
-                            xaccPerc = __instance.playerOne.marginTracker.percentXAcc * 100f;
-                        items.Add($"XACC: {xaccPerc.ToString("F" + ModContext.Settings.Perc3)}%");
-                    }
-
-                    if (ModContext.Settings.ShowOnDeath_ShowRatio)
-                    {
-                        string ratioStr = CalcRatio.GetRatioString();
-                        items.Add($"Ratio: {ratioStr}:1");
-                    }
-
-                    if (items.Count > 0)
+                    string lines = Coop.JoinLines(BuildDeathLine);
+                    if (!string.IsNullOrEmpty(lines))
                     {
                         int fontSize = ModContext.Settings.ShowOnDeath_FontSize;
-                        string info = $"<size={fontSize}%>{string.Join("    ", items)}</size>";
-                        __instance.txtTryCalibrating.text = info;
+                        __instance.txtTryCalibrating.text = $"<size={fontSize}%>{lines}</size>";
                     }
                 }
 
                 TimingLogger.CloseSession();
+            }
+
+            private static string BuildDeathLine(PlayerSession player)
+            {
+                Settings s = ModContext.Settings;
+                List<string> items = new List<string>();
+
+                if (s.ShowOnDeath_ShowAvgTiming)
+                {
+                    items.Add($"{i18n.T("Avg_Timing")}{ModContext.Format(CalcUR.Mean(player.Offsets), s.Perc3)}");
+                }
+
+                if (s.ShowOnDeath_ShowUR)
+                {
+                    items.Add($"{i18n.T("Label_UR")}{CalcUR.calc(player.Offsets).ToString("F" + s.Perc3)}");
+                }
+
+                if (s.ShowOnDeath_ShowXACC)
+                {
+                    items.Add($"XACC: {(GetPercentXAcc(player) * 100f).ToString("F" + s.Perc3)}%");
+                }
+
+                if (s.ShowOnDeath_ShowRatio)
+                {
+                    items.Add($"Ratio: {CalcRatio.GetRatioText(player)}");
+                }
+
+                return items.Count > 0 ? string.Join("    ", items) : null;
+            }
+        }
+
+        internal static float GetPercentXAcc(PlayerSession player)
+        {
+            try
+            {
+                scrPlayerManager manager = ADOBase.playerManager;
+                if (manager == null) return 0f;
+
+                scrPlayer[] players = manager.players;
+                if (players == null || player.PlayerId >= players.Length) return 0f;
+
+                scrPlayer owner = players[player.PlayerId];
+                if (owner == null || owner.marginTracker == null) return 0f;
+
+                return owner.marginTracker.percentXAcc;
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger?.Log("GetPercentXAcc failed: " + e.Message);
+                return 0f;
             }
         }
 
@@ -183,49 +216,88 @@ namespace TimingShow.Patches
 
                 if (__instance.detailedResults != null && __instance.detailedResults.textComponent != null && __instance.detailedResults.gameObject.activeSelf)
                 {
-                    List<string> items = new List<string>();
+                    int fontSize = ModContext.Settings.ShowInWinPage_FontSize;
+                    string[] resultsArray = GetResultsArray(__instance.detailedResults);
 
-                    if (ModContext.Settings.ShowInWinPage_ShowAvgTiming)
+                    if (Coop.IsCoop && !ModContext.Settings.Coop_WinPageAllPlayers)
                     {
-                        double avgOffset = 0;
-                        int count = ModContext.SessionOffsets != null ? ModContext.SessionOffsets.Count : 0;
-
-                        if (count > 0)
+                        if (resultsArray != null)
                         {
-                            for (int i = 0; i < count; i++) avgOffset += ModContext.SessionOffsets[i];
-                            avgOffset /= count;
+                            for (int i = 0; i < resultsArray.Length; i++)
+                            {
+                                string line = BuildWinLine(Players.Get(i));
+                                if (string.IsNullOrEmpty(line)) continue;
+                                resultsArray[i] += $"<size={fontSize}%>    {line}</size>";
+                            }
                         }
-
-                        items.Add(i18n.T("Avg_Timing") + ModContext.Format(avgOffset, ModContext.Settings.Perc4));
                     }
-
-                    if (ModContext.Settings.ShowInWinPage_ShowUR)
+                    else
                     {
-                        items.Add(i18n.T("Label_UR") + CalcUR.calc(ModContext.SessionOffsets).ToString("F" + Math.Max(0, ModContext.Settings.Perc4)));
-                    }
-
-                    if (ModContext.Settings.ShowInWinPage_ShowRatio)
-                    {
-                        string ratioStr = CalcRatio.GetRatioString();
-                        items.Add($"Ratio: {ratioStr}:1");
-                    }
-
-                    if (items.Count > 0)
-                    {
-                        int fontSize = ModContext.Settings.ShowInWinPage_FontSize;
-                        string info = $"<size={fontSize}%>    {string.Join("    ", items)}</size>";
-
-                        var resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (resultsField != null)
+                        string lines = Coop.JoinLines(BuildWinLine, "    ");
+                        if (!string.IsNullOrEmpty(lines))
                         {
-                            string[] resultsArray = resultsField.GetValue(__instance.detailedResults) as string[];
+                            string info = $"<size={fontSize}%>{lines}</size>";
+
                             if (resultsArray != null)
                             {
                                 for (int i = 0; i < resultsArray.Length; i++) resultsArray[i] += info;
                             }
+                            __instance.detailedResults.textComponent.text += info;
                         }
-                        __instance.detailedResults.textComponent.text += info;
                     }
+                }
+            }
+
+            private static string BuildWinLine(PlayerSession player)
+            {
+                Settings s = ModContext.Settings;
+                List<string> items = new List<string>();
+
+                if (s.ShowInWinPage_ShowAvgTiming)
+                {
+                    items.Add(i18n.T("Avg_Timing") + ModContext.Format(CalcUR.Mean(player.Offsets), s.Perc4));
+                }
+
+                if (s.ShowInWinPage_ShowUR)
+                {
+                    items.Add(i18n.T("Label_UR") + CalcUR.calc(player.Offsets).ToString("F" + Math.Max(0, s.Perc4)));
+                }
+
+                if (s.ShowInWinPage_ShowRatio)
+                {
+                    items.Add($"Ratio: {CalcRatio.GetRatioText(player)}");
+                }
+
+                return items.Count > 0 ? string.Join("    ", items) : null;
+            }
+
+            private static FieldInfo _resultsField;
+            private static bool _resultsFieldResolved;
+
+            private static string[] GetResultsArray(DetailedResults detailedResults)
+            {
+                if (!_resultsFieldResolved)
+                {
+                    _resultsFieldResolved = true;
+                    try
+                    {
+                        _resultsField = typeof(DetailedResults).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance);
+                    }
+                    catch (Exception e)
+                    {
+                        ModContext.Logger?.Log($"DetailedResults.results not available: {e.Message}");
+                    }
+                }
+                if (_resultsField == null) return null;
+
+                try
+                {
+                    return _resultsField.GetValue(detailedResults) as string[];
+                }
+                catch (Exception e)
+                {
+                    ModContext.Logger?.Log($"Failed to read DetailedResults.results: {e.Message}");
+                    return null;
                 }
             }
         }
@@ -268,22 +340,13 @@ namespace TimingShow.Patches
                     _titleAppliedSize = -1;
                 }
             }
-            
+
             private static void ApplyTitleText(scrUIController ui)
             {
                 if (ModContext.UIDirty)
                 {
-                    string titleValue = ModContext.Settings.Title_ShowAngle ? ModContext.FormatAngle(ModContext.LastAngle, ModContext.Settings.Perc1) : ModContext.Format(ModContext.LastTiming, ModContext.Settings.Perc1);
-                    BumpTrigger.Title(titleValue);
-
-                    string timing = titleValue;
-                    if (ModContext.Settings.Title_UseJudgeColor)
-                    {
-                        Color titleColor = JColors.GetColor(ModContext.LastJudge, ModContext.LastIsXP, ModContext.Settings.Title_EnableXPerfect);
-                        timing = "<color=#" + ColorUtility.ToHtmlStringRGB(titleColor) + ">" + timing + "</color>";
-                    }
-
-                    _titleBase = timing;
+                    BumpTrigger.Title(Coop.Join(BuildTitleValue));
+                    _titleBase = Coop.Join(BuildTitlePart);
                     _titleBaseSize = ModContext.Settings.Title_FontSize;
                     _titleAppliedSize = -1;
                 }
@@ -298,6 +361,28 @@ namespace TimingShow.Patches
                 ui.txtLevelName.supportRichText = true;
                 ui.txtLevelName.text = size == 100 ? _titleBase : $"<size={size}%>{_titleBase}</size>";
                 _titleAppliedSize = size;
+            }
+
+            private static string BuildTitleValue(PlayerSession player)
+            {
+                Settings s = ModContext.Settings;
+                return s.Title_ShowAngle
+                    ? ModContext.FormatAngle(player.LastAngle, s.Perc1)
+                    : ModContext.Format(player.LastTiming, s.Perc1);
+            }
+
+            private static string BuildTitlePart(PlayerSession player)
+            {
+                string value = BuildTitleValue(player);
+
+                Settings s = ModContext.Settings;
+                if (s.Title_UseJudgeColor)
+                {
+                    Color color = JColors.GetColor(player.LastJudge, player.IsXPerfect(player.LastJudge), s.Title_EnableXPerfect);
+                    value = "<color=#" + ColorUtility.ToHtmlStringRGB(color) + ">" + value + "</color>";
+                }
+
+                return value;
             }
         }
     }

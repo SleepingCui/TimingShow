@@ -304,6 +304,12 @@ namespace TimingShow.HUD.LogGraphWindow
         private int _statPerfectFamily;
         private int _statXPerfect;
         private double _statUr;
+        private int _playerCount = 1;
+        private readonly int[] _statTotalByPlayer = new int[4];
+        private readonly int[] _statNormalPerfectByPlayer = new int[4];
+        private readonly int[] _statPerfectFamilyByPlayer = new int[4];
+        private readonly int[] _statXPerfectByPlayer = new int[4];
+        private readonly double[] _statUrByPlayer = new double[4];
         private GraphSettingsUI _settingsUI;
         private bool _dragging;
         private bool _resizing;
@@ -463,6 +469,7 @@ namespace TimingShow.HUD.LogGraphWindow
             LogScatterDrawer drawer = graphAreaGo.AddComponent<LogScatterDrawer>();
             window._drawer = drawer;
             if (drawer != null) drawer.AxisMetricsChanged = window.OnGraphAxisMetricsChanged;
+            if (drawer != null) drawer.PlayerFilterChanged = window.OnPlayerFilterChanged;
             window._graphContainerRect = graphContainerRect;
             window._plotAreaRect = plotAreaRect;
             window._graphRect = graphRect;

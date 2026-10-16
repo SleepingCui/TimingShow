@@ -17,6 +17,7 @@ namespace TimingShow.GeometryTests
         private static int _gridCases;
         private static int _colorCases;
         private static int _colorClampedLabels;
+        private static int _chromeCases;
         private static readonly List<string> Failures = new List<string>();
         private static readonly List<string> Clipped = new List<string>();
 
@@ -97,6 +98,7 @@ namespace TimingShow.GeometryTests
 
             RunGridChecks(asm);
             RunColorPanelChecks(asm);
+            RunChromeChecks(asm);
 
             Console.WriteLine();
             Console.WriteLine("cases             : " + cases);
@@ -105,6 +107,7 @@ namespace TimingShow.GeometryTests
             Console.WriteLine("labels clipped    : " + _labelClippedByContainer + " / " + _labelCases + " (inside the window but outside graphContainer, entering the RectMask2D clip region)");
             Console.WriteLine("grid line ratios  : " + _gridCases + " sets (all inside the open interval (0,1))");
             Console.WriteLine("color item geom   : " + _colorCases + " sets (extreme combinations clamping label width to 1px: " + _colorClampedLabels + ")");
+            Console.WriteLine("window chrome     : " + _chromeCases + " window/scale combinations (header, sidebar, stats rows, view toggle, clamp)");
 
             if (Failures.Count > 0)
             {
@@ -187,6 +190,212 @@ namespace TimingShow.GeometryTests
                     _colorClampedLabels++;
                 }
             }
+        }
+
+        private static void RunChromeChecks(Assembly asm)
+        {
+            Type window = asm.GetType("TimingShow.HUD.LogGraphWindow.LogGraphWindow", throwOnError: true);
+            Type settingsType = asm.GetType("TimingShow.Settings", throwOnError: true);
+            Type modContext = asm.GetType("TimingShow.ModContext", throwOnError: true);
+
+            FieldInfo settingsField = modContext.GetField("Settings", BindingFlags.Static | BindingFlags.Public);
+            FieldInfo scaleField = settingsType.GetField("LogGraph_UIScale", BindingFlags.Instance | BindingFlags.Public);
+            object settings = System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(settingsType);
+
+            MethodInfo contentCore = Require(window, "ContentRectCore");
+            MethodInfo clampSize = Require(window, "ClampSize");
+            MethodInfo clampPosition = Require(window, "ClampPosition");
+            MethodInfo contentWidth = Require(window, "ContentWidth");
+            MethodInfo contentHeight = Require(window, "ContentHeight");
+            MethodInfo headerRect = Require(window, "HeaderRect");
+            MethodInfo statsColumnWidth = Require(window, "StatsColumnWidth");
+            MethodInfo settingsRect = Require(window, "SettingsRect");
+            MethodInfo sidebarRect = Require(window, "SidebarRect");
+            MethodInfo statsRowMetrics = Require(window, "StatsRowMetrics");
+            MethodInfo viewToggleFits = Require(window, "ViewToggleFits");
+            MethodInfo viewToggleRects = Require(window, "ViewToggleRects");
+            MethodInfo hitViewToggle = Require(window, "HitViewToggle");
+            MethodInfo metaReserve = Require(window, "MetaReserveWidth");
+
+            Type vectorType = clampSize.GetParameters()[0].ParameterType;
+
+            double[] scales = { 0.75, 1.0, 1.25, 1.5, 2.0, 3.0 };
+            double[] widths = { 480, 600, 900, 1440, 1920, 2560 };
+            double[] heights = { 260, 340, 520, 670, 1080, 1080 };
+            double[] screenWidths = { 640, 1280, 1920, 3840 };
+            double[] screenHeights = { 480, 720, 1080, 2160 };
+
+            foreach (double scale in scales)
+            {
+                scaleField.SetValue(settings, (float)scale);
+                settingsField.SetValue(null, settings);
+                double clampedScale = Math.Min(3.0, Math.Max(0.75, scale));
+
+                double contentInset = PropF(window, "ContentInset");
+                double headerHeight = PropF(window, "HeaderHeight");
+                double statsMinWidth = PropF(window, "StatsMinWidth");
+                double statsPanelWidth = PropF(window, "StatsPanelWidth");
+                double titleLeft = PropF(window, "TitleLeftPadding");
+
+                Check(Math.Abs(PropF(window, "UiScale") - clampedScale) < 1e-4,
+                    "chrome UiScale " + scale + " : UiScale does not reflect LogGraph_UIScale");
+
+                for (int i = 0; i < widths.Length; i++)
+                {
+                    double w = widths[i];
+                    double h = heights[i];
+                    string id = string.Format("chrome {0}x{1} UiScale {2}", w, h, scale);
+                    _chromeCases++;
+
+                    BoxF windowBox = new BoxF(0, 0, w, h);
+                    BoxF content = Box(contentCore.Invoke(null, new object[] { (float)w, (float)h, (float)clampedScale }));
+
+                    double cw = CallF(contentWidth, (float)w);
+                    double ch = CallF(contentHeight, (float)h);
+                    Check(Math.Abs(cw - content.Width) < Eps, id + " : ContentWidth disagrees with ContentRectCore " + cw + " vs " + content.Width);
+                    Check(Math.Abs(ch - content.Height) < Eps, id + " : ContentHeight disagrees with ContentRectCore " + ch + " vs " + content.Height);
+                    Check(Math.Abs(cw - Math.Max(0, w - contentInset * 2)) < Eps, id + " : ContentWidth formula drifted " + cw);
+                    Check(Math.Abs(ch - Math.Max(0, h - headerHeight - contentInset * 2)) < Eps, id + " : ContentHeight formula drifted " + ch);
+                    Check(windowBox.Contains(content, Eps), id + " : content escapes window " + content);
+
+                    BoxF header = Box(headerRect.Invoke(null, new object[] { (float)w, (float)h }));
+                    Check(header.X0 >= -Eps && header.X1 <= w + Eps, id + " : headerRect escapes window horizontally " + header);
+                    Check(header.Y0 >= -Eps && header.Y1 <= h + Eps, id + " : headerRect escapes window vertically " + header);
+                    Check(Math.Abs(header.Height - headerHeight) < Eps, id + " : headerRect height != HeaderHeight " + header);
+                    Check(header.Y0 >= content.Y1 - Eps, id + " : headerRect overlaps content " + header + " / " + content);
+
+                    double statsWidth = CallF(statsColumnWidth, (float)w);
+                    Check(statsWidth >= statsMinWidth - Eps, id + " : StatsColumnWidth below StatsMinWidth " + statsWidth);
+                    Check(statsWidth <= statsPanelWidth + Eps, id + " : StatsColumnWidth above StatsPanelWidth " + statsWidth);
+                    double quarter = Math.Max(statsMinWidth, cw * 0.25);
+                    Check(statsWidth <= quarter + Eps, id + " : StatsColumnWidth above max(content*0.25, min) " + statsWidth);
+
+                    BoxF sidebar = Box(sidebarRect.Invoke(null, new object[] { (float)w, (float)h }));
+                    BoxF settingsBox = Box(settingsRect.Invoke(null, new object[] { (float)w, (float)h }));
+                    Check(Math.Abs(sidebar.Width - statsWidth) < Eps, id + " : SidebarRect width != StatsColumnWidth " + sidebar);
+                    Check(Math.Abs(sidebar.Height - ch) < Eps, id + " : SidebarRect height != ContentHeight " + sidebar);
+                    Check(content.Contains(sidebar, Eps), id + " : SidebarRect escapes content " + sidebar + " / " + content);
+                    Check(content.Contains(settingsBox, Eps), id + " : SettingsRect escapes content " + settingsBox + " / " + content);
+                    Check(settingsBox.Width >= 1 - Eps, id + " : SettingsRect width invalid " + settingsBox);
+                    Check(settingsBox.X1 <= sidebar.X0 + Eps, id + " : SettingsRect overlaps SidebarRect " + settingsBox + " / " + sidebar);
+
+                    object[] metrics = { (float)ch, 0f, 0f, 0f, 0f, 0f };
+                    statsRowMetrics.Invoke(null, metrics);
+                    double mHeader = Convert.ToDouble(metrics[1]);
+                    double mRowsTop = Convert.ToDouble(metrics[2]);
+                    double mRow = Convert.ToDouble(metrics[3]);
+                    double mLabel = Convert.ToDouble(metrics[4]);
+                    double mValue = Convert.ToDouble(metrics[5]);
+                    Check(mHeader >= 1 - Eps, id + " : stats header height invalid " + mHeader);
+                    Check(Math.Abs(mRowsTop - mHeader) < Eps, id + " : stats rowsTop != headerHeight " + mRowsTop);
+                    Check(mRow >= 1 - Eps, id + " : stats row height invalid " + mRow);
+                    Check(mLabel >= -Eps && mLabel <= mRow + Eps, id + " : stats label height invalid " + mLabel + " / row " + mRow);
+                    Check(mValue >= 1 - Eps, id + " : stats value height invalid " + mValue);
+                    Check(mValue >= mRow - mLabel - Eps, id + " : stats value+label shorter than row " + mValue + "+" + mLabel + " / row " + mRow);
+                    Check(mRowsTop + 4 * mRow <= ch + Eps, id + " : stats rows overflow content height " + (mRowsTop + 4 * mRow) + " / " + ch);
+
+                    bool fits = CallBool(viewToggleFits, (float)w);
+                    object sizeVec = MakeVector(vectorType, w, h);
+                    object[] rectsArgs = { sizeVec, null, null };
+                    viewToggleRects.Invoke(null, rectsArgs);
+                    BoxF toggleScatter = Box(rectsArgs[1]);
+                    BoxF toggleDistribution = Box(rectsArgs[2]);
+                    bool toggleNonEmpty = toggleScatter.Width > 1;
+
+                    Check(fits == toggleNonEmpty, id + " : ViewToggleFits disagrees with ViewToggleRects (" + fits + " vs " + toggleNonEmpty + ")");
+
+                    if (fits && toggleNonEmpty)
+                    {
+                        Check(toggleScatter.X0 >= titleLeft - Eps, id + " : view toggle escapes left edge " + toggleScatter);
+                        Check(toggleDistribution.X1 <= w + Eps, id + " : view toggle escapes right edge " + toggleDistribution);
+                        Check(Math.Abs(toggleDistribution.X0 - toggleScatter.X1) < Eps, id + " : view toggle items are not adjacent");
+                        Check(Math.Abs(toggleDistribution.Width - toggleScatter.Width) < Eps, id + " : view toggle item widths differ");
+                        Check(toggleScatter.Height > 0 && Math.Abs(toggleScatter.Height - toggleDistribution.Height) < Eps, id + " : view toggle item height invalid");
+                        Check(toggleScatter.Y0 >= -Eps && toggleScatter.Y1 <= h + Eps, id + " : view toggle escapes vertically " + toggleScatter);
+
+                        object scatterCenter = MakeVector(vectorType, toggleScatter.X0 + toggleScatter.Width * 0.5, toggleScatter.Y0 + toggleScatter.Height * 0.5);
+                        object distributionCenter = MakeVector(vectorType, toggleDistribution.X0 + toggleDistribution.Width * 0.5, toggleDistribution.Y0 + toggleDistribution.Height * 0.5);
+                        object outside = MakeVector(vectorType, 1.0, 1.0);
+
+                        object[] hitArgs = { scatterCenter, sizeVec, false };
+                        bool hit = Convert.ToBoolean(hitViewToggle.Invoke(null, hitArgs));
+                        Check(hit && !Convert.ToBoolean(hitArgs[2]), id + " : scatter toggle center does not hit the scatter item");
+                        hitArgs = new object[] { distributionCenter, sizeVec, false };
+                        hit = Convert.ToBoolean(hitViewToggle.Invoke(null, hitArgs));
+                        Check(hit && Convert.ToBoolean(hitArgs[2]), id + " : distribution toggle center does not hit the distribution item");
+                        hitArgs = new object[] { outside, sizeVec, false };
+                        hit = Convert.ToBoolean(hitViewToggle.Invoke(null, hitArgs));
+                        Check(!hit, id + " : empty corner wrongly hits a view toggle");
+                    }
+
+                    foreach (double screenW in screenWidths)
+                    foreach (double screenH in screenHeights)
+                    foreach (double inW in new[] { 100.0, 480.0, 1920.0, 4000.0 })
+                    foreach (double inH in new[] { 100.0, 260.0, 1080.0, 3000.0 })
+                    {
+                        object clamped = clampSize.Invoke(null, new object[] { MakeVector(vectorType, inW, inH), (float)screenW, (float)screenH });
+                        double ox = VecX(clamped);
+                        double oy = VecY(clamped);
+                        Check(ox >= 480 - Eps, id + " : ClampSize width below minimum " + ox);
+                        Check(oy >= 260 - Eps, id + " : ClampSize height below minimum " + oy);
+                        Check(ox <= Math.Max(480, Math.Min(1920, screenW)) + Eps, id + " : ClampSize width above maximum " + ox);
+                        Check(oy <= Math.Max(260, Math.Min(1080, screenH)) + Eps, id + " : ClampSize height above maximum " + oy);
+
+                        object pos = clampPosition.Invoke(null, new object[]
+                        {
+                            MakeVector(vectorType, -50, screenH + 50),
+                            MakeVector(vectorType, ox, oy),
+                            (float)screenW, (float)screenH,
+                        });
+                        double px = VecX(pos);
+                        double py = VecY(pos);
+                        Check(px >= -Eps && px <= Math.Max(0, screenW - ox) + Eps, id + " : ClampPosition x out of range " + px);
+                        Check(py >= -Eps && py <= Math.Max(0, screenH - oy) + Eps, id + " : ClampPosition y out of range " + py);
+                    }
+
+                    Check(Math.Abs(CallF(metaReserve, (float)w)) < 1e-4,
+                        id + " : MetaReserveWidth should be 0 without a window instance");
+                }
+
+                bool previous = false;
+                bool seenFit = false;
+                foreach (double probe in new[] { 200.0, 480.0, 600.0, 800.0, 1000.0, 1200.0, 1600.0, 1920.0, 2560.0, 3840.0 })
+                {
+                    bool current = CallBool(viewToggleFits, (float)probe);
+                    Check(!(previous && !current), "chrome UiScale " + scale + " : ViewToggleFits is not monotonic at width " + probe);
+                    previous = current;
+                    seenFit |= current;
+                }
+                Check(seenFit, "chrome UiScale " + scale + " : ViewToggleFits never fits even at 3840px");
+            }
+        }
+
+        private static double PropF(Type type, string name)
+        {
+            PropertyInfo p = type.GetProperty(name, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            if (p == null) throw new InvalidOperationException("missing static property " + name);
+            return Convert.ToDouble(p.GetValue(null));
+        }
+
+        private static double CallF(MethodInfo m, params object[] args) => Convert.ToDouble(m.Invoke(null, args));
+
+        private static bool CallBool(MethodInfo m, params object[] args) => Convert.ToBoolean(m.Invoke(null, args));
+
+        private static object MakeVector(Type vectorType, double x, double y) =>
+            Activator.CreateInstance(vectorType, (float)x, (float)y);
+
+        private static double VecX(object v) => VecComponent(v, "x");
+
+        private static double VecY(object v) => VecComponent(v, "y");
+
+        private static double VecComponent(object v, string name)
+        {
+            Type t = v.GetType();
+            PropertyInfo p = t.GetProperty(name);
+            if (p != null) return Convert.ToDouble(p.GetValue(v));
+            FieldInfo f = t.GetField(name);
+            if (f == null) throw new InvalidOperationException("vector has no component " + name);
+            return Convert.ToDouble(f.GetValue(v));
         }
 
         private static object MakeRect(Type rectType, BoxF box)

@@ -24,7 +24,7 @@ namespace TimingShow.Options
         private static bool _foldoutTitleSettings;
         private static bool _foldoutPlanetSettings;
         private static bool _foldoutReplaceSettings;
-        private static bool _foldoutDeathSettings; 
+        private static bool _foldoutDeathSettings;
         private static bool _foldoutWinSettings;
         private static bool _foldoutTimingHUD;
         private static bool _foldoutAvgHUD;
@@ -176,6 +176,7 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.ShowInWinPage_ShowAvgTiming, "Toggle_Death_AvgTiming");
                 Toggle(ref ModContext.Settings.ShowInWinPage_ShowUR, "Toggle_Death_UR");
                 Toggle(ref ModContext.Settings.ShowInWinPage_ShowRatio, "Toggle_Death_Ratio");
+                Toggle(ref ModContext.Settings.Coop_WinPageAllPlayers, "Toggle_Coop_WinPageAllPlayers");
                 SliderInt("Label_FontSize", ref ModContext.Settings.ShowInWinPage_FontSize, 20, 200);
             }
         }
@@ -199,6 +200,7 @@ namespace TimingShow.Options
                 }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.HUD_Bump, "Toggle_Bump");
+                Toggle(ref ModContext.Settings.Coop_TimingHUD, "Toggle_CoopPlayers");
             }
         }
 
@@ -214,6 +216,7 @@ namespace TimingShow.Options
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.AvgHUD_UseCustomFont, ref ModContext.Settings.AvgHUD_FontPath);
                 Toggle(ref ModContext.Settings.AvgHUD_Bump, "Toggle_Bump");
+                Toggle(ref ModContext.Settings.Coop_AvgHUD, "Toggle_CoopPlayers");
             }
         }
 
@@ -229,6 +232,7 @@ namespace TimingShow.Options
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.URHUD_UseCustomFont, ref ModContext.Settings.URHUD_FontPath);
                 Toggle(ref ModContext.Settings.URHUD_Bump, "Toggle_Bump");
+                Toggle(ref ModContext.Settings.Coop_URHUD, "Toggle_CoopPlayers");
             }
         }
 
@@ -244,6 +248,7 @@ namespace TimingShow.Options
                 );
                 DrawHUDFontSettings(ref ModContext.Settings.RatioHUD_UseCustomFont, ref ModContext.Settings.RatioHUD_FontPath);
                 Toggle(ref ModContext.Settings.RatioHUD_Bump, "Toggle_Bump");
+                Toggle(ref ModContext.Settings.Coop_RatioHUD, "Toggle_CoopPlayers");
                 RatioModeButtons();
             }
         }
@@ -375,6 +380,7 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.LogGraph_IgnoreOutliers, "Toggle_IgnoreOutliers");
                 Toggle(ref ModContext.Settings.LogGraph_UseHitAxis, "Toggle_UseHitAxis");
                 Toggle(ref ModContext.Settings.LogGraph_UseJudgeColor, "Toggle_UseJudgeColor");
+                Toggle(ref ModContext.Settings.LogGraph_DistinguishPlayers, "Toggle_DistinguishPlayers");
                 Toggle(ref ModContext.Settings.LogGraph_ShowZeroLine, "Toggle_ShowZeroLine");
                 Toggle(ref ModContext.Settings.LogGraph_ShowAvgLine, "Toggle_ShowAvgLine");
                 IntField("Label_MaxRenderPoints", ref _logGraphMaxPointsText, ref ModContext.Settings.LogGraph_MaxRenderPoints, 20, 8000, 800);
@@ -473,12 +479,7 @@ namespace TimingShow.Options
         {
             if (GUILayout.Button(i18n.T("Btn_Reset"), GUILayout.Width(150)))
             {
-                ModContext.SessionOffsets.Clear();
-                CalcUR.Reset();
-                ModContext.ResetJudgeState();
-                ModContext.LastTiming = 0;
-                ModContext.LastAngle = 0;
-                Patches.TimingCalcPatches.MarginTrackerAddHitPatch.ResetCounts();
+                Players.ResetAll();
             }
         }
 

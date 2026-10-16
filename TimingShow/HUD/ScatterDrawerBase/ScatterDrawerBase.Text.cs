@@ -23,6 +23,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
             _hintText.alignment = TextAlignmentOptions.Bottom;
             _hintText.gameObject.SetActive(false);
 
+            CreatePlayerLegendTexts();
+
             TMP_Text[] children = GetComponentsInChildren<TMP_Text>(true);
             for (int i = 0; i < children.Length; i++) children[i].raycastTarget = false;
         }
@@ -35,6 +37,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             ApplyFontToText(_avgValueText, font);
             ApplyFontToText(_detailText, font);
             ApplyFontToText(_hintText, font);
+            ApplyPlayerLegendFont(font);
         }
 
         protected override void ToggleTexts(bool active)
@@ -54,6 +57,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 bool wantDetail = active && _detailVisible;
                 if (_detailText.gameObject.activeSelf != wantDetail) _detailText.gameObject.SetActive(wantDetail);
             }
+
+            TogglePlayerLegend(active);
         }
 
         protected override void UpdateTextLayoutAndValues()
@@ -126,6 +131,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 endPivot, endAlign, fontSize, labelHeight, color, xLabelMaxWidth);
 
             ReportAxisFooterHeight(Mathf.Abs(axisY) + labelHeight + 1f);
+
+            UpdatePlayerLegendLayout(w, h);
 
             bool showAvgLabel = _avgAvailable && ScatterShowAvgLine;
             UpdateAvgValueLabel(showAvgLabel, settings, scale, w, h);

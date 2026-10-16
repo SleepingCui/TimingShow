@@ -19,6 +19,7 @@ namespace TimingShow.Logging
         private static long _prevValueBits;
         private static int _hitCount;
         private static bool _isAngle;
+        private static int _playerCount = 1;
 
         public static bool IsFileBeingWritten(string filePath)
         {
@@ -57,6 +58,9 @@ namespace TimingShow.Logging
                 _hitCount = 0;
                 _isAngle = ModContext.Settings.Logger_ShowAngle;
 
+                _playerCount = Players.Count;
+                if (_playerCount < 1) _playerCount = 1;
+
                 _writer.Write(MagicBytes);
                 _writer.Write(FormatVersion);
                 _writer.Write(timestamp);
@@ -68,6 +72,7 @@ namespace TimingShow.Logging
                 _writer.Write(_isAngle);
                 _writer.Write((byte)HitMarginCompat.Version);
                 _writer.Write((byte)HitMarginCompat.JudgeCodeVersion);
+                _writer.Write((byte)_playerCount);
 
                 _writer.Flush();
                 ModContext.Logger.Log($"created: {_currentFilePath} (binary)");
@@ -80,13 +85,15 @@ namespace TimingShow.Logging
         }
         
         
-        public static void LogHit(double timing, double angle, int rawMarginCode, int judgeCode, bool isXP)
+        public static void LogHit(double timing, double angle, int rawMarginCode, int judgeCode, bool isXP, int playerId)
         {
             if (_writer == null) return;
 
             try
             {
                 _hitCount++;
+                if (playerId < 0 || playerId >= _playerCount) playerId = 0;
+                _writer.Write((byte)playerId);
                 WriteXorDouble(_writer, ModContext.LastSongTimeMs, ref _prevTimeBits);
                 WriteXorDouble(_writer, _isAngle ? angle : timing, ref _prevValueBits);
 

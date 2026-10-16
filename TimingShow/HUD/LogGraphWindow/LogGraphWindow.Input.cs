@@ -239,6 +239,7 @@ namespace TimingShow.HUD.LogGraphWindow
             
             if (_drawer != null && !_distributionView && IsPointerInsideGraphArea(screen))
             {
+                if (_drawer.TryPlayerLegendClick(screen)) return;
                 _graphPanActive = true;
                 _drawer.BeginPan(screen);
                 return;

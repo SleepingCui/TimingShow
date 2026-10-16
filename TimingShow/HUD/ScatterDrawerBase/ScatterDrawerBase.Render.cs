@@ -36,6 +36,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             public float OffsetMs;
             public HitMan Judge;
             public bool IsXPerfect;
+            public int PlayerId;
         }
 
         private readonly List<int> _visibleIndices = new List<int>(1024);
@@ -77,6 +78,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
             DrawAverageLine(vh, w, h, settings, scale, rangeY);
 
+            bool colorByPlayer = ColorPointsByPlayer;
             int circleSegments = CircleSegmentsFor(count, radius);
             
             HitMan runJudge = HitMan.Unknown;
@@ -90,7 +92,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 if (!TryGetPointLocalPosition(point, w, h, out Vector2 center)) continue;
 
                 Color color;
-                if (!judgeColor)
+                if (colorByPlayer)
+                {
+                    color = Coop.PlayerColor(point.PlayerId);
+                }
+                else if (!judgeColor)
                 {
                     color = uniformColor;
                 }
@@ -109,6 +115,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
                 DrawCircle(vh, center, radius, circleSegments, color);
             }
+
+            DrawPlayerLegendSwatches(vh, w, h);
 
             if (ShowOutOfRangeIndicators) DrawOutOfRangeMarkers(vh, w, h);
 

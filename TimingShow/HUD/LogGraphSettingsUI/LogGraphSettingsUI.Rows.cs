@@ -154,6 +154,9 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             rows.Add(Toggle("Toggle_UseJudgeColor",
                 () => _draft.UseJudgeColor,
                 v => _draft.UseJudgeColor = v));
+            rows.Add(Toggle("Toggle_DistinguishPlayers",
+                () => _draft.DistinguishPlayers,
+                v => _draft.DistinguishPlayers = v));
             rows.Add(Toggle("Toggle_ShowZeroLine",
                 () => _draft.ShowZeroLine,
                 v => _draft.ShowZeroLine = v));

@@ -351,6 +351,7 @@ namespace TimingShow.HUD.LogGraphWindow
             
             float labelFontSize = Mathf.Clamp(Mathf.Min(StatsLabelFontSize, labelHeight / TextLineRatio), 8f, StatsLabelFontSize);
             float valueFontSize = Mathf.Clamp(Mathf.Min(StatsValueFontSize, valueHeight / TextLineRatio), 8f, StatsValueFontSize);
+            if (_playerCount > 1) valueFontSize = Mathf.Max(8f, valueFontSize * 0.8f);
 
             if (_statsTitleText != null)
             {
