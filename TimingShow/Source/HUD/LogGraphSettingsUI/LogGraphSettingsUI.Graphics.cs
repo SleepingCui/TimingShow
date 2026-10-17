@@ -49,9 +49,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 float scale = UiScale;
                 float border = Mathf.Max(1f, 1.5f * scale);
 
-                DrawQuad(vh, new Vector2(x0, y0), new Vector2(x1, y1), PanelColor);
-                DrawQuad(vh, new Vector2(x0, y0), new Vector2(x0 + border, y1), BorderColor);
-                DrawQuad(vh, new Vector2(x1 - border, y0), new Vector2(x1, y1), BorderColor);
+                Rect panelRect = new Rect(x0, y0, w, h);
+                float panelCorner = Mathf.Min(LogRoundedRect.PanelRadius * scale, Mathf.Min(w, h) * 0.5f);
+                LogRoundedRect.DrawFilled(vh, panelRect, panelCorner, PanelColor, 8);
+                LogRoundedRect.DrawBorder(vh, panelRect, panelCorner, border, BorderColor, 8);
 
                 List<Row> rows = _owner._rows;
                 for (int i = 0; i < rows.Count; i++)
@@ -59,13 +60,17 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                     Row row = rows[i];
 
                     if (ReferenceEquals(row, _owner._hoverRow) && row.Kind != RowKind.Title)
-                        DrawQuad(vh, row.Rect.min, row.Rect.max, RowHoverColor);
+                    {
+                        LogRoundedRect.DrawFilled(vh, row.Rect,
+                            Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.3f), RowHoverColor, 6);
+                    }
 
                     switch (row.Kind)
                     {
                         case RowKind.Tab:
-                            DrawQuad(vh, row.Rect.min, row.Rect.max,
-                                _owner._tab == row.TabIndex ? TabActiveColor : TabColor);
+                            LogRoundedRect.DrawFilled(vh, row.Rect,
+                                Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.3f),
+                                _owner._tab == row.TabIndex ? TabActiveColor : TabColor, 6);
                             break;
 
                         case RowKind.Button:
@@ -96,7 +101,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 if (row.Bars == null || row.Bars.Length == 0 || row.Get == null) return;
 
                 Rect bar = row.Bars[0];
-                DrawQuad(vh, bar.min, bar.max, TrackColor);
+                float trackRadius = bar.height * LogRoundedRect.CapsuleRatio;
+                LogRoundedRect.DrawFilled(vh, bar, trackRadius, TrackColor, 8);
 
                 float t = Mathf.InverseLerp(row.Min, row.Max, row.Get());
                 if (row.LogScale && row.Min > 0f && row.Max > row.Min)
@@ -105,63 +111,59 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 t = Mathf.Clamp01(t);
                 float fillRight = bar.x + bar.width * t;
                 if (fillRight > bar.x)
-                    DrawQuad(vh, new Vector2(bar.x, bar.y), new Vector2(fillRight, bar.yMax), AccentColor);
+                {
+                    Rect fill = new Rect(bar.x, bar.y, fillRight - bar.x, bar.height);
+                    LogRoundedRect.DrawFilled(vh, fill, trackRadius, AccentColor, 8);
+                }
 
                 float knobWidth = Mathf.Max(3f, 3f * scale);
                 float knobCenter = Mathf.Clamp(fillRight, bar.x + knobWidth * 0.5f, bar.xMax - knobWidth * 0.5f);
-                DrawQuad(vh,
-                    new Vector2(knobCenter - knobWidth * 0.5f, bar.y - 2f * scale),
-                    new Vector2(knobCenter + knobWidth * 0.5f, bar.yMax + 2f * scale),
-                    ValueColor);
+                Rect knob = new Rect(knobCenter - knobWidth * 0.5f, bar.y - 2f * scale,
+                    knobWidth, bar.height + 4f * scale);
+                LogRoundedRect.DrawFilled(vh, knob, knobWidth * LogRoundedRect.CapsuleRatio, ValueColor, 6);
             }
 
             private static void DrawColorChip(VertexHelper vh, Row row, float scale, bool selected)
             {
                 if (row.GetColor == null) return;
 
-                DrawQuad(vh, row.Rect.min, row.Rect.max,
-                    selected ? TabActiveColor : new Color(1f, 1f, 1f, 0.035f));
+                float rowCorner = Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.3f);
+                LogRoundedRect.DrawFilled(vh, row.Rect, rowCorner,
+                    selected ? TabActiveColor : new Color(1f, 1f, 1f, 0.035f), 6);
 
                 float swatch = ColorSwatchSize(row.Rect.height, scale);
                 float sx = row.Rect.x + 4f * scale;
                 float sy = row.Rect.y + (row.Rect.height - swatch) * 0.5f;
                 Color color = row.GetColor();
-
-                DrawQuad(vh, new Vector2(sx, sy), new Vector2(sx + swatch, sy + swatch),
-                    new Color(0.5f, 0.5f, 0.5f, 1f));
-                DrawQuad(vh, new Vector2(sx, sy), new Vector2(sx + swatch, sy + swatch), color);
+                Rect swatchRect = new Rect(sx, sy, swatch, swatch);
+                float swatchCorner = Mathf.Min(LogRoundedRect.SwatchRadius * scale, swatch * 0.5f);
+                LogRoundedRect.DrawFilled(vh, swatchRect, swatchCorner,
+                    new Color(0.5f, 0.5f, 0.5f, 1f), 4);
+                LogRoundedRect.DrawFilled(vh, swatchRect, swatchCorner, color, 4);
 
                 if (row.ResetRect.width > 0f)
                 {
-                    DrawQuad(vh, row.ResetRect.min, row.ResetRect.max, new Color(1f, 1f, 1f, 0.10f));
-
-                    float bt = Mathf.Max(1f, 1.2f * scale);
-                    DrawQuad(vh, row.ResetRect.min, new Vector2(row.ResetRect.xMax, row.ResetRect.yMin + bt), BorderColor);
-                    DrawQuad(vh, new Vector2(row.ResetRect.xMin, row.ResetRect.yMax - bt), row.ResetRect.max, BorderColor);
-                    DrawQuad(vh, row.ResetRect.min, new Vector2(row.ResetRect.xMin + bt, row.ResetRect.yMax), BorderColor);
-                    DrawQuad(vh, new Vector2(row.ResetRect.xMax - bt, row.ResetRect.yMin), row.ResetRect.max, BorderColor);
+                    float resetCorner = Mathf.Min(LogRoundedRect.SmallRadius * scale, row.ResetRect.height * 0.35f);
+                    LogRoundedRect.DrawFilled(vh, row.ResetRect, resetCorner,
+                        new Color(1f, 1f, 1f, 0.10f), 6);
+                    LogRoundedRect.DrawBorder(vh, row.ResetRect, resetCorner,
+                        Mathf.Max(1f, 1.2f * scale), BorderColor, 6);
                 }
 
                 float thickness = selected ? Mathf.Max(1.5f, 1.6f * scale) : Mathf.Max(1f, 1.2f * scale);
                 Color edge = selected ? AccentColor : BorderColor;
-                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMax, row.Rect.yMin + thickness), edge);
-                DrawQuad(vh, new Vector2(row.Rect.xMin, row.Rect.yMax - thickness), row.Rect.max, edge);
-                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMin + thickness, row.Rect.yMax), edge);
-                DrawQuad(vh, new Vector2(row.Rect.xMax - thickness, row.Rect.yMin), row.Rect.max, edge);
+                LogRoundedRect.DrawBorder(vh, row.Rect, rowCorner, thickness, edge, 6);
             }
 
             private static void DrawColorPreview(VertexHelper vh, Row row, float scale)
             {
                 if (row.GetColor == null) return;
 
-                DrawQuad(vh, row.Rect.min, row.Rect.max, PanelColor);
-                DrawQuad(vh, row.Rect.min, row.Rect.max, row.GetColor());
-
-                float t = Mathf.Max(1f, 1.2f * scale);
-                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMax, row.Rect.yMin + t), BorderColor);
-                DrawQuad(vh, new Vector2(row.Rect.xMin, row.Rect.yMax - t), row.Rect.max, BorderColor);
-                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMin + t, row.Rect.yMax), BorderColor);
-                DrawQuad(vh, new Vector2(row.Rect.xMax - t, row.Rect.yMin), row.Rect.max, BorderColor);
+                float corner = Mathf.Min(LogRoundedRect.SmallRadius * scale, row.Rect.height * 0.35f);
+                LogRoundedRect.DrawFilled(vh, row.Rect, corner, PanelColor, 6);
+                LogRoundedRect.DrawFilled(vh, row.Rect, corner, row.GetColor(), 6);
+                LogRoundedRect.DrawBorder(vh, row.Rect, corner,
+                    Mathf.Max(1f, 1.2f * scale), BorderColor, 6);
             }
             
             private static void DrawButton(VertexHelper vh, Row row, float scale, bool dirty)
@@ -169,13 +171,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 Color fill = dirty ? new Color(0.20f, 0.52f, 0.88f, 0.95f) : new Color(1f, 1f, 1f, 0.10f);
                 Color edge = dirty ? new Color(0.55f, 0.82f, 1f, 0.95f) : BorderColor;
 
-                DrawQuad(vh, row.Rect.min, row.Rect.max, fill);
-
-                float t = Mathf.Max(1f, 1.2f * scale);
-                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMax, row.Rect.yMin + t), edge);
-                DrawQuad(vh, new Vector2(row.Rect.xMin, row.Rect.yMax - t), row.Rect.max, edge);
-                DrawQuad(vh, row.Rect.min, new Vector2(row.Rect.xMin + t, row.Rect.yMax), edge);
-                DrawQuad(vh, new Vector2(row.Rect.xMax - t, row.Rect.yMin), row.Rect.max, edge);
+                float corner = Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.35f);
+                LogRoundedRect.DrawFilled(vh, row.Rect, corner, fill, 6);
+                LogRoundedRect.DrawBorder(vh, row.Rect, corner,
+                    Mathf.Max(1f, 1.2f * scale), edge, 6);
             }
 
             private static void DrawToggle(VertexHelper vh, Row row, float scale)
@@ -185,19 +184,19 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 Rect box = row.Bars[0];
                 bool on = row.GetToggle();
 
-                DrawQuad(vh, box.min, box.max, on ? AccentColor : TrackColor);
-                DrawQuad(vh,
-                    new Vector2(box.x, box.y),
-                    new Vector2(box.xMax, box.yMax),
-                    new Color(0f, 0f, 0f, on ? 0f : 0.25f));
+                float corner = Mathf.Min(LogRoundedRect.SmallRadius * scale,
+                    Mathf.Min(box.width, box.height) * LogRoundedRect.CapsuleRatio);
+                LogRoundedRect.DrawFilled(vh, box, corner, on ? AccentColor : TrackColor, 6);
+                LogRoundedRect.DrawFilled(vh, box, corner,
+                    new Color(0f, 0f, 0f, on ? 0f : 0.25f), 6);
 
                 if (on)
                 {
                     float inset = Mathf.Max(1f, 3f * scale);
-                    DrawQuad(vh,
-                        new Vector2(box.x + inset, box.y + inset),
-                        new Vector2(box.xMax - inset, box.yMax - inset),
-                        new Color(0.05f, 0.06f, 0.09f, 1f));
+                    Rect inner = new Rect(box.x + inset, box.y + inset,
+                        Mathf.Max(0f, box.width - inset * 2f), Mathf.Max(0f, box.height - inset * 2f));
+                    LogRoundedRect.DrawFilled(vh, inner, Mathf.Max(0f, corner - inset),
+                        new Color(0.05f, 0.06f, 0.09f, 1f), 6);
                 }
             }
 

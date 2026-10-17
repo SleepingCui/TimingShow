@@ -137,6 +137,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 () => _draft.UiScale,
                 v => _draft.UiScale = v));
 
+            rows.Add(Slider("LogGraph_CornerScale", 0f, 2f, false, "F2",
+                () => _draft.CornerScale,
+                v => _draft.CornerScale = v));
+
             rows.Add(Slider("Label_PointSize", 1f, 12f, false, "F1",
                 () => _draft.PointSize,
                 v => _draft.PointSize = v));

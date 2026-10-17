@@ -130,6 +130,7 @@
     <Compile Include="Source\HUD\LogGraph\Charts\Xacc\LogXaccDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Common\LogChartDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\UI\LogChartUi.cs" />
+    <Compile Include="Source\HUD\LogGraph\UI\LogRoundedRect.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDeltaData.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Rolling\LogRollingData.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Rolling\LogRollingDrawer.cs" />

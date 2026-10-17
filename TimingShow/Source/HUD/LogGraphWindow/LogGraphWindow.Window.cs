@@ -93,6 +93,8 @@ namespace TimingShow.HUD.LogGraphWindow
         {
             if (_windowRect == null) return;
 
+            LogRoundedRect.SyncFromSettings();
+
             ApplyLayout(_windowRect.sizeDelta, _windowRect.anchoredPosition);
             RefreshStats();
 
@@ -141,10 +143,26 @@ namespace TimingShow.HUD.LogGraphWindow
                 _overviewDrawer.SetFont(font);
                 _overviewDrawer.ReloadAppearance();
             }
-            if (_chartButton != null) _chartButton.SetFont(font);
-            if (_playerButton != null) _playerButton.SetFont(font);
-            if (_chartMenu != null) _chartMenu.SetFont(font);
-            if (_playerMenu != null) _playerMenu.SetFont(font);
+            if (_chartButton != null)
+            {
+                _chartButton.SetFont(font);
+                _chartButton.SetVerticesDirty();
+            }
+            if (_playerButton != null)
+            {
+                _playerButton.SetFont(font);
+                _playerButton.SetVerticesDirty();
+            }
+            if (_chartMenu != null)
+            {
+                _chartMenu.SetFont(font);
+                _chartMenu.SetVerticesDirty();
+            }
+            if (_playerMenu != null)
+            {
+                _playerMenu.SetFont(font);
+                _playerMenu.SetVerticesDirty();
+            }
 
             if (_panel != null) _panel.MarkDirty();
             if (_settingsUI != null) _settingsUI.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);

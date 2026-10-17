@@ -169,18 +169,19 @@ namespace TimingShow.HUD.LogGraphWindow
                 float x1 = rect.xMax;
                 float y1 = rect.yMax;
                 float border = Mathf.Min(BorderThickness, Mathf.Min(w, h) * 0.25f);
+                float corner = Mathf.Min(LogRoundedRect.WindowRadius * UiScale, Mathf.Min(w, h) * 0.5f);
                 float titleTop = y1 - border;
                 float titleBottom = Mathf.Max(y0 + border, titleTop - HeaderHeight);
-                
-                DrawQuad(vh, new Vector2(x0, y0), new Vector2(x1, y1), PanelColor);
-                DrawQuad(vh, new Vector2(x0, y0), new Vector2(x1, y0 + border), BorderColor);
-                DrawQuad(vh, new Vector2(x0, y1 - border), new Vector2(x1, y1), BorderColor);
-                DrawQuad(vh, new Vector2(x0, y0), new Vector2(x0 + border, y1), BorderColor);
-                DrawQuad(vh, new Vector2(x1 - border, y0), new Vector2(x1, y1), BorderColor);
-                
-                if (titleTop > titleBottom)
+
+                Rect windowRect = new Rect(x0, y0, w, h);
+                LogRoundedRect.DrawFilled(vh, windowRect, corner, PanelColor, 8);
+                LogRoundedRect.DrawBorder(vh, windowRect, corner, border, BorderColor, 8);
+
+                if (titleTop > titleBottom && w > border * 2f)
                 {
-                    DrawQuad(vh, new Vector2(x0 + border, titleBottom), new Vector2(x1 - border, titleTop), TitleBarColor);
+                    float titleCorner = Mathf.Max(0f, corner - border);
+                    Rect titleRect = new Rect(x0 + border, titleBottom, w - border * 2f, titleTop - titleBottom);
+                    LogRoundedRect.DrawFilled(vh, titleRect, titleCorner, titleCorner, 0f, 0f, TitleBarColor, 8);
 
                     float headerEdge = Mathf.Max(1f, border * 0.5f);
                     Color headerEdgeColor = BorderColor;
@@ -195,7 +196,9 @@ namespace TimingShow.HUD.LogGraphWindow
                 float closeMinY = closeMaxY - CloseButtonSize;
                 if (closeMinX > x0 && closeMinY > y0)
                 {
-                    DrawQuad(vh, new Vector2(closeMinX, closeMinY), new Vector2(closeMaxX, closeMaxY), _hovered ? CloseHoverColor : CloseNormalColor);
+                    LogRoundedRect.DrawFilled(vh,
+                        new Rect(closeMinX, closeMinY, CloseButtonSize, CloseButtonSize),
+                        LogRoundedRect.ControlRadius * UiScale, _hovered ? CloseHoverColor : CloseNormalColor, 6);
 
                     float glyphThickness = Mathf.Max(1f, CloseGlyphThickness);
                     float glyphInset = CloseGlyphInset;
@@ -215,7 +218,9 @@ namespace TimingShow.HUD.LogGraphWindow
                 if (setMinX > x0 && setMinY > y0)
                 {
                     Color setColor = _settingsActive ? SettingsButtonActiveColor : (_settingsHovered ? SettingsButtonHoverColor : CloseNormalColor);
-                    DrawQuad(vh, new Vector2(setMinX, setMinY), new Vector2(setMaxX, setMaxY), setColor);
+                    LogRoundedRect.DrawFilled(vh,
+                        new Rect(setMinX, setMinY, SettingsButtonSize, SettingsButtonSize),
+                        LogRoundedRect.ControlRadius * UiScale, setColor, 6);
 
                     float barThickness = Mathf.Max(1f, CloseGlyphThickness);
                     float barLeft = setMinX + CloseGlyphInset * 0.75f;
@@ -235,14 +240,14 @@ namespace TimingShow.HUD.LogGraphWindow
                     Rect graph = GraphContainerRect(w, h);
                     if (graph.width > 2f && graph.height > 2f)
                     {
-                        DrawQuad(vh, new Vector2(graph.xMin, graph.yMin), new Vector2(graph.xMax, graph.yMax), GraphContainerColor);
+                        LogRoundedRect.DrawFilled(vh, graph, LogRoundedRect.InnerPanelRadius * UiScale, GraphContainerColor, 6);
                     }
                 }
                 
                 Rect sidebar = SidebarRect(w, h);
                 if (_settingsActive && sidebar.width > 0f && sidebar.height > 0f)
                 {
-                    DrawQuad(vh, new Vector2(sidebar.xMin, sidebar.yMin), new Vector2(sidebar.xMax, sidebar.yMax), StatsPanelColor);
+                    LogRoundedRect.DrawFilled(vh, sidebar, LogRoundedRect.InnerPanelRadius * UiScale, StatsPanelColor, 6);
 
                     float dividerThickness = Mathf.Max(1f, border * 0.5f);
                     float dividerX = sidebar.xMin - StatsPanelGap * 0.5f;

@@ -385,6 +385,8 @@ namespace TimingShow.HUD.LogGraphWindow
 
         private static void Build(TimingLogData data)
         {
+            LogRoundedRect.SyncFromSettings();
+
             float screenWidth = Screen.width;
             float screenHeight = Screen.height;
             

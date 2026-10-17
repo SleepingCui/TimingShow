@@ -70,6 +70,12 @@ namespace TimingShow.HUD
             _windowSlider.Initialize(5f, 500f, 5f, _windowSize, OnSliderChanged);
         }
 
+        internal override void ReloadAppearance()
+        {
+            base.ReloadAppearance();
+            if (_windowSlider != null) _windowSlider.SetVerticesDirty();
+        }
+
         internal void SetData(RollingData data, bool isAngle)
         {
             if (ReferenceEquals(_data, data) && _isAngle == isAngle) return;

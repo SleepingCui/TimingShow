@@ -8,6 +8,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
         private sealed class Draft
         {
             public float UiScale = 1.25f;
+            public float CornerScale = 0.4f;
             public float PointSize = 3f;
             public int MaxRenderPoints = 800;
             public bool IgnoreOutliers;
@@ -31,6 +32,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 if (s == null) return d;
 
                 d.UiScale = s.LogGraph_UIScale;
+                d.CornerScale = s.LogGraph_CornerScale;
                 d.PointSize = s.LogGraph_PointSize;
                 d.MaxRenderPoints = s.LogGraph_MaxRenderPoints;
                 d.IgnoreOutliers = s.LogGraph_IgnoreOutliers;
@@ -55,6 +57,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 if (s == null) return;
 
                 s.LogGraph_UIScale = UiScale;
+                s.LogGraph_CornerScale = CornerScale;
                 s.LogGraph_PointSize = PointSize;
                 s.LogGraph_MaxRenderPoints = MaxRenderPoints;
                 s.LogGraph_IgnoreOutliers = IgnoreOutliers;

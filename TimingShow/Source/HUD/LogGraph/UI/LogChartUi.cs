@@ -112,15 +112,12 @@ namespace TimingShow.HUD
             float h = rect.height;
             if (w <= 0f || h <= 0f) return;
 
-            Vector2 min = new Vector2(rect.xMin, rect.yMin);
-            Vector2 max = new Vector2(rect.xMax, rect.yMax);
-            DrawQuad(vh, min, max, _active ? ActiveColor : (_hovered ? HoverColor : NormalColor));
+            float corner = Mathf.Min(w, h) * LogRoundedRect.CapsuleRatio;
+            Color fill = _active ? ActiveColor : (_hovered ? HoverColor : NormalColor);
+            LogRoundedRect.DrawFilled(vh, rect, corner, fill, 8);
 
             float border = Mathf.Max(1f, Mathf.Min(w, h) * 0.06f);
-            DrawQuad(vh, new Vector2(min.x, min.y), new Vector2(max.x, min.y + border), BorderColor);
-            DrawQuad(vh, new Vector2(min.x, max.y - border), new Vector2(max.x, max.y), BorderColor);
-            DrawQuad(vh, new Vector2(min.x, min.y), new Vector2(min.x + border, max.y), BorderColor);
-            DrawQuad(vh, new Vector2(max.x - border, min.y), new Vector2(max.x, max.y), BorderColor);
+            LogRoundedRect.DrawBorder(vh, rect, corner, border, BorderColor, 8);
         }
 
         private static void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
@@ -247,10 +244,14 @@ namespace TimingShow.HUD
             float centerY = rect.yMin + height * 0.5f;
             float trackHalf = Mathf.Max(1f, height * 0.10f);
 
-            DrawQuad(vh, new Vector2(rect.xMin + pad, centerY - trackHalf),
-                new Vector2(rect.xMax - pad, centerY + trackHalf), TrackColor);
-            DrawQuad(vh, new Vector2(rect.xMin + pad, centerY - trackHalf),
-                new Vector2(rect.xMin + pad + usable * t, centerY + trackHalf), FillColor);
+            Rect trackRect = new Rect(rect.xMin + pad, centerY - trackHalf, usable, trackHalf * 2f);
+            float trackRadius = trackRect.height * LogRoundedRect.CapsuleRatio;
+            LogRoundedRect.DrawFilled(vh, trackRect, trackRadius, TrackColor, 8);
+            if (t > 0f)
+            {
+                Rect fillRect = new Rect(trackRect.xMin, trackRect.yMin, usable * t, trackRect.height);
+                LogRoundedRect.DrawFilled(vh, fillRect, trackRadius, FillColor, 8);
+            }
 
             float handleRadius = Mathf.Max(3f, height * 0.32f);
             float handleX = rect.xMin + pad + usable * t;
@@ -521,7 +522,8 @@ namespace TimingShow.HUD
             float h = rect.height;
             if (w <= 0f || h <= 0f) return;
 
-            DrawQuad(vh, new Vector2(rect.xMin, rect.yMin), new Vector2(rect.xMax, rect.yMax), PanelColor);
+            float panelCorner = Mathf.Min(LogRoundedRect.MenuRadius, Mathf.Min(w, h) * 0.25f);
+            LogRoundedRect.DrawFilled(vh, rect, panelCorner, PanelColor, 8);
 
             for (int i = 0; i < _itemCount; i++)
             {
@@ -534,15 +536,13 @@ namespace TimingShow.HUD
                     {
                         color.a = Mathf.Clamp01(RowSelectedColor.a + RowHoverColor.a);
                     }
-                    DrawQuad(vh, new Vector2(rect.xMin + 2f, bottom), new Vector2(rect.xMax - 2f, top), color);
+                    Rect rowRect = new Rect(rect.xMin + 2f, bottom, rect.width - 4f, _rowHeight);
+                    LogRoundedRect.DrawFilled(vh, rowRect,
+                        Mathf.Min(LogRoundedRect.MenuItemRadius, _rowHeight * 0.25f), color, 6);
                 }
             }
 
-            float border = 1f;
-            DrawQuad(vh, new Vector2(rect.xMin, rect.yMin), new Vector2(rect.xMax, rect.yMin + border), BorderColor);
-            DrawQuad(vh, new Vector2(rect.xMin, rect.yMax - border), new Vector2(rect.xMax, rect.yMax), BorderColor);
-            DrawQuad(vh, new Vector2(rect.xMin, rect.yMin), new Vector2(rect.xMin + border, rect.yMax), BorderColor);
-            DrawQuad(vh, new Vector2(rect.xMax - border, rect.yMin), new Vector2(rect.xMax, rect.yMax), BorderColor);
+            LogRoundedRect.DrawBorder(vh, rect, panelCorner, 1f, BorderColor, 8);
         }
 
         private static void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)

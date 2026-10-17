@@ -174,6 +174,7 @@ namespace TimingShow
         
         public bool LogGraph_Enabled = true;
         public float LogGraph_UIScale = 1.25f;
+        public float LogGraph_CornerScale = 0.4f;
         public float LogGraph_WindowWidth = 1440f;
         public float LogGraph_WindowHeight = 670f;
         public bool LogGraph_UseHitAxis;
@@ -372,6 +373,7 @@ namespace TimingShow
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
             LogGraph_PointSize = Mathf.Clamp(LogGraph_PointSize, 1f, 12f);
             LogGraph_UIScale = Mathf.Clamp(LogGraph_UIScale, 0.75f, 3f);
+            LogGraph_CornerScale = Mathf.Clamp(LogGraph_CornerScale, 0f, 2f);
             
             if (LogGraph_WindowWidth > 0f) LogGraph_WindowWidth = Mathf.Clamp(LogGraph_WindowWidth, 480f, 1920f);
             if (LogGraph_WindowHeight > 0f) LogGraph_WindowHeight = Mathf.Clamp(LogGraph_WindowHeight, 260f, 1080f);
