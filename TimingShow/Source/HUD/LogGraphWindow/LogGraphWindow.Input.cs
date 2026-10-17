@@ -11,6 +11,12 @@ namespace TimingShow.HUD.LogGraphWindow
             if (_windowRect == null) return;
 
             Vector2 screen = eventData != null ? eventData.position : (Vector2)Input.mousePosition;
+            if (_ignoreNextClick)
+            {
+                _ignoreNextClick = false;
+                return;
+            }
+
             Vector2 local;
             if (!ScreenToLocal(screen, out local)) return;
 
@@ -18,13 +24,10 @@ namespace TimingShow.HUD.LogGraphWindow
             bool onClose = HitCloseButton(local, size);
             bool onSettings = !onClose && HitSettingsButton(local, size);
 
-            bool onDistributionToggle;
-            bool onViewToggle = HitViewToggle(local, size, out onDistributionToggle) && !onClose && !onSettings;
-            if (!onViewToggle) onDistributionToggle = false;
-
-            if (onViewToggle)
+            if (_chartMenuOpen || _playerMenuOpen)
             {
-                SetDistributionView(onDistributionToggle);
+                _ignoreNextClick = true;
+                CloseMenus();
                 return;
             }
 
@@ -87,6 +90,8 @@ namespace TimingShow.HUD.LogGraphWindow
         
         private void UpdateInputFallback()
         {
+            if (_ignoreNextClick && Input.GetMouseButtonUp(0)) _ignoreNextClick = false;
+
             Vector2 screen = Input.mousePosition;
             if (!Application.isFocused)
             {
@@ -149,7 +154,8 @@ namespace TimingShow.HUD.LogGraphWindow
             
             float wheel = Input.mouseScrollDelta.y;
             if (!Mathf.Approximately(wheel, 0f)
-                && !_distributionView
+                && _view == GraphView.Scatter
+                && !_chartMenuOpen && !_playerMenuOpen
                 && (_settingsUI == null || !_settingsUI.IsOpen)
                 && IsPointerInsideGraphArea(screen))
             {
@@ -184,12 +190,26 @@ namespace TimingShow.HUD.LogGraphWindow
 
             if (!Input.GetMouseButtonDown(0)) return;
 
+            if (_ignoreNextClick)
+            {
+                _ignoreNextClick = false;
+                return;
+            }
+
+            if (_chartMenuOpen || _playerMenuOpen)
+            {
+                if (IsPointerInsideOpenMenu(screen) || IsPointerInsideSelectorButton(screen)) return;
+                _ignoreNextClick = true;
+                CloseMenus();
+                return;
+            }
+
             Vector2 local;
             if (!ScreenToLocal(screen, out local)) return;
 
             Vector2 size = _windowRect.sizeDelta;
             if (!HitRect(local, size)) return;
-            
+
             if (HitCloseButton(local, size))
             {
                 _pendingButton = PendingButton.Close;
@@ -202,13 +222,6 @@ namespace TimingShow.HUD.LogGraphWindow
                 return;
             }
 
-            bool onDistributionToggle;
-            if (HitViewToggle(local, size, out onDistributionToggle))
-            {
-                SetDistributionView(onDistributionToggle);
-                return;
-            }
-            
             if (HitResizeGrip(local, size))
             {
                 _resizing = true;
@@ -237,7 +250,7 @@ namespace TimingShow.HUD.LogGraphWindow
                 return;
             }
             
-            if (_drawer != null && !_distributionView && IsPointerInsideGraphArea(screen))
+            if (_drawer != null && _view == GraphView.Scatter && IsPointerInsideGraphArea(screen))
             {
                 if (_drawer.TryPlayerLegendClick(screen)) return;
                 _graphPanActive = true;
@@ -247,6 +260,32 @@ namespace TimingShow.HUD.LogGraphWindow
             
         }
 
+
+        private bool IsPointerInsideOpenMenu(Vector2 screenPosition)
+        {
+            if (_chartMenuOpen && _chartMenu != null
+                && RectTransformUtility.RectangleContainsScreenPoint(_chartMenu.rectTransform, screenPosition, null))
+                return true;
+
+            if (_playerMenuOpen && _playerMenu != null
+                && RectTransformUtility.RectangleContainsScreenPoint(_playerMenu.rectTransform, screenPosition, null))
+                return true;
+
+            return false;
+        }
+
+        private bool IsPointerInsideSelectorButton(Vector2 screenPosition)
+        {
+            if (_chartButton != null && _chartButton.gameObject.activeInHierarchy
+                && RectTransformUtility.RectangleContainsScreenPoint(_chartButton.rectTransform, screenPosition, null))
+                return true;
+
+            if (_playerButton != null && _playerButton.gameObject.activeInHierarchy
+                && RectTransformUtility.RectangleContainsScreenPoint(_playerButton.rectTransform, screenPosition, null))
+                return true;
+
+            return false;
+        }
 
         private bool IsPointerInsideGraphArea(Vector2 screenPosition)
         {

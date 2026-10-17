@@ -25,8 +25,6 @@ namespace TimingShow.HUD.LogGraphWindow
             private bool _hovered;
             private bool _settingsHovered;
             private bool _settingsActive;
-            private int _viewHover = -1;
-            private bool _viewDistribution;
 
             protected override void Awake()
             {
@@ -77,23 +75,6 @@ namespace TimingShow.HUD.LogGraphWindow
                 SetVerticesDirty();
             }
 
-            internal void SetViewHover(int index)
-            {
-                if (_viewHover == index) return;
-
-                _viewHover = index;
-                SetVerticesDirty();
-            }
-
-            internal void SetViewDistribution(bool distribution)
-            {
-                if (_viewDistribution == distribution) return;
-
-                _viewDistribution = distribution;
-                SetVerticesDirty();
-            }
-            
-            
 
             public void OnPointerDown(PointerEventData eventData)
             {
@@ -247,22 +228,6 @@ namespace TimingShow.HUD.LogGraphWindow
                         DrawThickLine(vh, new Vector2(barLeft, barCenter), new Vector2(barLeft + (barRight - barLeft) * 0.75f, barCenter), barThickness, Color.white);
                         DrawThickLine(vh, new Vector2(barLeft, barCenter + barSpacing), new Vector2(barRight, barCenter + barSpacing), barThickness, Color.white);
                     }
-                }
-                
-                Rect scatterToggle;
-                Rect distributionToggle;
-                ViewToggleRects(new Vector2(w, h), out scatterToggle, out distributionToggle);
-                if (scatterToggle.width > 1f)
-                {
-                    Color scatterToggleColor = !_viewDistribution
-                        ? SettingsButtonActiveColor
-                        : (_viewHover == 0 ? SettingsButtonHoverColor : CloseNormalColor);
-                    Color distributionToggleColor = _viewDistribution
-                        ? SettingsButtonActiveColor
-                        : (_viewHover == 1 ? SettingsButtonHoverColor : CloseNormalColor);
-
-                    DrawQuad(vh, new Vector2(scatterToggle.xMin, scatterToggle.yMin), new Vector2(scatterToggle.xMax, scatterToggle.yMax), scatterToggleColor);
-                    DrawQuad(vh, new Vector2(distributionToggle.xMin, distributionToggle.yMin), new Vector2(distributionToggle.xMax, distributionToggle.yMax), distributionToggleColor);
                 }
                 
                 if (!_settingsActive)

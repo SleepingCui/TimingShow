@@ -63,7 +63,7 @@ jobs:
           }
           Set-Content -Path $assemblyInfo -Value $updated -Encoding utf8
 
-          $infoPath = "TimingShow.Loader.UMM/Info.json"
+          $infoPath = "TimingShow/Info.json"
           if (-not (Test-Path $infoPath)) {
             throw "Missing file: $infoPath"
           }

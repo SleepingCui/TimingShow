@@ -1,24 +1,25 @@
 using System.Globalization;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace TimingShow.HUD
 {
-    public class LogDistributionDrawer : MaskableGraphic
+    public class LogXaccDrawer : MaskableGraphic
     {
-        private const int YTickCount = 3;
-        private const int XTickCount = 3;
-        private const int YGridDivisions = 4;
+        private const int YTickCount = 5;
+        private const int XTickCount = 5;
+        private const int YGridDivisions = YTickCount - 1;
+        private const int XGridDivisions = XTickCount - 1;
+        private const float MaxY = 100f;
+        private const float MinYRange = 1f;
 
-        private static readonly Color MeanLineColor = new Color(1f, 0.7176471f, 0.3019608f, 1f);
-        private static readonly Color SigmaLineColor = new Color(0.3098039f, 0.7647059f, 0.9686275f, 0.6f);
-        private static readonly Color ClipWarningColor = new Color(1f, 0.78f, 0.32f, 0.92f);
         private static readonly Color TipBgColor = new Color(0f, 0f, 0f, 0.90f);
         private static readonly Color TipTextColor = new Color(0.95f, 0.96f, 0.98f, 1f);
 
-        private DistributionStats _stats;
-        private bool _isAngle;
+        private XaccData _data;
+        private int _selectedPlayer = -1;
         private bool _initialized;
         private TMP_FontAsset _font;
 
@@ -26,27 +27,30 @@ namespace TimingShow.HUD
         private TextMeshProUGUI[] _xLabels;
         private TextMeshProUGUI _yAxisTitle;
         private TextMeshProUGUI _xAxisTitle;
-        private TextMeshProUGUI _meanLabel;
-        private TextMeshProUGUI _sigmaHighLabel;
-        private TextMeshProUGUI _sigmaLowLabel;
-        private TextMeshProUGUI _clipLabel;
+        private TextMeshProUGUI _legendLabel;
         private TextMeshProUGUI _emptyLabel;
         private TextMeshProUGUI _tipLabel;
 
-        private int _hoverBin = -1;
+        private int _hoverOrdinal;
         private bool _tipLayoutDirty = true;
-        private bool _textDirty = true;
         private Vector2 _tipMin;
         private Vector2 _tipMax;
 
+        private bool _textDirty = true;
         private float _lastWidth = -1f;
         private float _lastHeight = -1f;
         private float _uiScale = 1.25f;
         private float _fontSize = 13f;
-        private float _yMax = 1f;
-        private float _labelWidth = 0f;
+        private float _labelWidth;
+        private float _yMin;
+        private float _yMax = MaxY;
+        private int _xMax = 1;
         private Rect _plot = new Rect(0f, 0f, 0f, 0f);
         private bool _hasPlot;
+        private int _visibleSeriesCount;
+
+        private readonly StringBuilder _legendBuilder = new StringBuilder(64);
+        private readonly StringBuilder _tipBuilder = new StringBuilder(128);
 
         private static Settings LogSettings { get { return ModContext.Settings; } }
 
@@ -61,32 +65,8 @@ namespace TimingShow.HUD
 
         private Color BgColor { get { Settings s = LogSettings; return s != null ? s.LogGraph_BgColor : new Color(0f, 0f, 0f, 0.60f); } }
         private Color GridColor { get { Settings s = LogSettings; return s != null ? s.LogGraph_GridColor : new Color(1f, 1f, 1f, 0.16f); } }
-        private Color BarColor { get { Settings s = LogSettings; return s != null ? s.LogGraph_PointColor : new Color(0.30f, 0.76f, 1f, 1f); } }
-        private Color CurveColor { get { Settings s = LogSettings; return s != null ? s.LogGraph_AvgLineColor : new Color(1f, 0.85f, 0.20f, 0.95f); } }
-        private Color ZeroLineColor { get { Settings s = LogSettings; return s != null ? s.LogGraph_ZeroLineColor : new Color(1f, 1f, 1f, 0.65f); } }
+        private Color LineColor { get { Settings s = LogSettings; return s != null ? s.LogGraph_PointColor : new Color(0.30f, 0.76f, 1f, 1f); } }
         private Color AxisTextColor { get { Settings s = LogSettings; return s != null ? s.LogGraph_AxisTextColor : new Color(0.80f, 0.80f, 0.80f, 1f); } }
-
-        private Color BarBorderColor
-        {
-            get
-            {
-                Color c = Color.Lerp(BarColor, Color.white, 0.45f);
-                c.a = Mathf.Clamp01(Mathf.Max(c.a, 0.85f));
-                return c;
-            }
-        }
-
-        private Color BarHoverColor
-        {
-            get
-            {
-                Color c = Color.Lerp(BarColor, Color.white, 0.35f);
-                c.a = Mathf.Clamp01(Mathf.Max(c.a, 0.98f));
-                return c;
-            }
-        }
-
-        private string UnitSuffix { get { return _isAngle ? "\u00b0" : "ms"; } }
 
         protected override void Awake()
         {
@@ -118,23 +98,23 @@ namespace TimingShow.HUD
 
             _yAxisTitle = CreateText("YAxisTitle", TextAlignmentOptions.BottomLeft, new Vector2(0f, 0f));
             _xAxisTitle = CreateText("XAxisTitle", TextAlignmentOptions.Top, new Vector2(0.5f, 1f));
-            _meanLabel = CreateText("MeanLabel", TextAlignmentOptions.BottomLeft, new Vector2(0f, 0f));
-            _sigmaHighLabel = CreateText("SigmaHighLabel", TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
-            _sigmaLowLabel = CreateText("SigmaLowLabel", TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
-            _clipLabel = CreateText("ClipLabel", TextAlignmentOptions.TopRight, new Vector2(1f, 1f));
+            _legendLabel = CreateText("LegendLabel", TextAlignmentOptions.TopRight, new Vector2(1f, 0f));
+            _legendLabel.richText = true;
             _emptyLabel = CreateText("EmptyLabel", TextAlignmentOptions.Midline, new Vector2(0.5f, 0.5f));
             _tipLabel = CreateText("TipLabel", TextAlignmentOptions.TopLeft, new Vector2(0f, 0f));
+            _tipLabel.richText = true;
             if (_tipLabel != null) _tipLabel.gameObject.SetActive(false);
 
             ApplyFont();
             InvalidateLayout();
         }
 
-        internal void SetData(DistributionStats stats, bool isAngle)
+        internal void SetData(XaccData data, int selectedPlayerId)
         {
-            if (ReferenceEquals(_stats, stats) && _isAngle == isAngle) return;
-            _stats = stats;
-            _isAngle = isAngle;
+            if (ReferenceEquals(_data, data) && _selectedPlayer == selectedPlayerId) return;
+
+            _data = data;
+            _selectedPlayer = selectedPlayerId;
             InvalidateLayout();
         }
 
@@ -149,6 +129,12 @@ namespace TimingShow.HUD
         internal void ReloadAppearance()
         {
             ApplyFont();
+            InvalidateLayout();
+        }
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
             InvalidateLayout();
         }
 
@@ -167,10 +153,7 @@ namespace TimingShow.HUD
             ApplyFontTo(_xLabels);
             ApplyFontTo(_yAxisTitle);
             ApplyFontTo(_xAxisTitle);
-            ApplyFontTo(_meanLabel);
-            ApplyFontTo(_sigmaHighLabel);
-            ApplyFontTo(_sigmaLowLabel);
-            ApplyFontTo(_clipLabel);
+            ApplyFontTo(_legendLabel);
             ApplyFontTo(_emptyLabel);
             ApplyFontTo(_tipLabel);
         }
@@ -226,7 +209,6 @@ namespace TimingShow.HUD
                 _textDirty = false;
                 _tipLayoutDirty = true;
                 ApplyTextLayout(_lastWidth, _lastHeight);
-                MarkLabelsDirty();
             }
 
             UpdateHover();
@@ -235,7 +217,7 @@ namespace TimingShow.HUD
         protected override void OnDisable()
         {
             base.OnDisable();
-            _hoverBin = -1;
+            _hoverOrdinal = 0;
             _tipLayoutDirty = true;
         }
 
@@ -250,27 +232,6 @@ namespace TimingShow.HUD
             return true;
         }
 
-        private void MarkLabelsDirty()
-        {
-            if (_yLabels != null)
-                for (int i = 0; i < _yLabels.Length; i++) MarkDirty(_yLabels[i]);
-            if (_xLabels != null)
-                for (int i = 0; i < _xLabels.Length; i++) MarkDirty(_xLabels[i]);
-            MarkDirty(_yAxisTitle);
-            MarkDirty(_xAxisTitle);
-            MarkDirty(_meanLabel);
-            MarkDirty(_sigmaHighLabel);
-            MarkDirty(_sigmaLowLabel);
-            MarkDirty(_clipLabel);
-        }
-
-        private static void MarkDirty(TextMeshProUGUI text)
-        {
-            if (text == null || !text.gameObject.activeInHierarchy) return;
-            text.SetVerticesDirty();
-            text.SetLayoutDirty();
-        }
-
         private void ComputeLayout(float width, float height)
         {
             _uiScale = Scale;
@@ -280,15 +241,7 @@ namespace TimingShow.HUD
             float gap = 6f * _uiScale;
             float margin = 3f * _uiScale;
 
-            _yMax = 1f;
-            if (_stats != null && _stats.HasData)
-            {
-                float maxCount = _stats.MaxBinCount;
-                float curveMax = _stats.HasCurve ? _stats.CurveMax : 0f;
-                float top = Mathf.Max(maxCount, curveMax);
-                if (!(top > 0f) || float.IsNaN(top) || float.IsInfinity(top)) top = 1f;
-                _yMax = top * 1.10f;
-            }
+            ComputeRanges();
 
             float labelWidth = 0f;
             for (int i = 0; i < YTickCount; i++)
@@ -306,44 +259,89 @@ namespace TimingShow.HUD
             _hasPlot = plotWidth > 4f && plotHeight > 4f;
         }
 
+        private void ComputeRanges()
+        {
+            _yMin = 0f;
+            _yMax = MaxY;
+            _xMax = 1;
+            _visibleSeriesCount = 0;
+
+            if (_data == null || _data.Series == null)
+                return;
+
+            float minValue = float.MaxValue;
+            bool hasValue = false;
+
+            for (int p = 0; p < _data.Series.Length; p++)
+            {
+                XaccSeries series = _data.Series[p];
+                if (series == null || !HasValidValue(series)) continue;
+                if (!IsSeriesVisible(series.PlayerId)) continue;
+
+                _visibleSeriesCount++;
+                if (series.HitCount > _xMax) _xMax = series.HitCount;
+                if (series.MinValue < minValue) minValue = series.MinValue;
+                hasValue = true;
+            }
+
+            if (!hasValue) return;
+
+            float floorMin = Mathf.Floor(minValue - 1f);
+            if (floorMin < 0f) floorMin = 0f;
+            if (MaxY - minValue < 1f) floorMin = Mathf.Floor(minValue * 10f) / 10f;
+            _yMin = floorMin;
+            if (_yMax - _yMin < MinYRange) _yMin = Mathf.Max(0f, _yMax - MinYRange);
+        }
+
+        private bool HasValidValue(XaccSeries series)
+        {
+            return series != null && series.HasData && series.ValidCount > 0;
+        }
+
+        private bool IsSeriesVisible(int playerId)
+        {
+            return _selectedPlayer < 0 || _selectedPlayer == playerId;
+        }
+
         private void ApplyTextLayout(float width, float height)
         {
             if (!_initialized) return;
 
-            bool hasData = _stats != null && _stats.HasData && _hasPlot;
+            bool hasData = _data != null && _data.HasData && _hasPlot && _visibleSeriesCount > 0;
+
             SetActive(_emptyLabel, !hasData);
             SetActive(_yAxisTitle, hasData);
             SetActive(_xAxisTitle, hasData);
             for (int i = 0; i < YTickCount; i++) SetActive(_yLabels[i], hasData);
             for (int i = 0; i < XTickCount; i++) SetActive(_xLabels[i], hasData);
+            SetActive(_legendLabel, hasData && _visibleSeriesCount > 1);
+
+            _tipLayoutDirty = true;
 
             if (!hasData)
             {
-                SetText(_emptyLabel, i18n.T("LogGraph_DistNoData"));
+                _hoverOrdinal = 0;
+                SetActive(_tipLabel, false);
+                SetText(_emptyLabel, i18n.T("LogGraph_XaccNoData"));
                 _emptyLabel.color = AxisTextColor;
                 _emptyLabel.fontSize = _fontSize;
-                Place(_emptyLabel, new Vector2(width * 0.5f, height * 0.5f), new Vector2(Mathf.Max(40f, width - 20f), _fontSize * 2f), new Vector2(0.5f, 0.5f));
-                SetActive(_meanLabel, false);
-                SetActive(_sigmaHighLabel, false);
-                SetActive(_sigmaLowLabel, false);
-                SetActive(_clipLabel, false);
+                Place(_emptyLabel, new Vector2(width * 0.5f, height * 0.5f),
+                    new Vector2(Mathf.Max(40f, width - 20f), _fontSize * 2f), new Vector2(0.5f, 0.5f));
                 return;
             }
-
-            float axisMin = _stats.AxisMin;
-            float axisMax = _stats.AxisMax;
 
             for (int i = 0; i < YTickCount; i++)
             {
                 TextMeshProUGUI text = _yLabels[i];
                 float y = _plot.yMin + _plot.height * i / (YTickCount - 1);
-                Place(text, new Vector2(_plot.xMin - AxisLabelGap, y),
+                Place(text, new Vector2(_plot.xMin - 6f * _uiScale, y),
                     new Vector2(Mathf.Max(30f, _labelWidth + 8f), _fontSize * 1.6f), new Vector2(1f, 0.5f));
                 SetText(text, YLabelContent(i));
                 text.color = AxisTextColor;
                 text.fontSize = _fontSize * 0.95f;
             }
 
+            string previousXLabel = null;
             for (int i = 0; i < XTickCount; i++)
             {
                 TextMeshProUGUI text = _xLabels[i];
@@ -351,136 +349,91 @@ namespace TimingShow.HUD
                 float x = _plot.xMin + _plot.width * t;
                 Place(text, new Vector2(x, _plot.yMin - 1f * _uiScale),
                     new Vector2(_plot.width, _fontSize * 1.5f), new Vector2(0.5f, 1f));
-                SetText(text, FormatAxisValue(axisMin + (axisMax - axisMin) * t));
+
+                string label = XLabelContent(t);
+                SetText(text, label == previousXLabel ? "" : label);
+                previousXLabel = label;
                 text.color = AxisTextColor;
                 text.fontSize = _fontSize * 0.95f;
             }
 
-            SetText(_yAxisTitle, i18n.T("LogGraph_DistAxisCount"));
+            SetText(_yAxisTitle, i18n.T("LogGraph_XaccAxisY"));
             _yAxisTitle.color = AxisTextColor;
             _yAxisTitle.fontSize = _fontSize * 0.95f;
             Place(_yAxisTitle, new Vector2(_plot.xMin, _plot.yMax + 2f * _uiScale),
                 new Vector2(Mathf.Max(40f, _plot.width * 0.6f), _fontSize * 1.5f), new Vector2(0f, 0f));
 
-            SetText(_xAxisTitle, string.Format(i18n.T("LogGraph_DistAxisOffset"), UnitSuffix));
+            SetText(_xAxisTitle, i18n.T("LogGraph_XaccAxisX"));
             _xAxisTitle.color = AxisTextColor;
             _xAxisTitle.fontSize = _fontSize * 0.95f;
             Place(_xAxisTitle, new Vector2(_plot.center.x, _plot.yMin - _fontSize * 1.45f),
                 new Vector2(_plot.width, _fontSize * 1.5f), new Vector2(0.5f, 1f));
 
-            float mean = (float)_stats.Mean;
-            bool meanVisible = IsFinite(mean) && mean >= axisMin && mean <= axisMax;
-            SetActive(_meanLabel, meanVisible);
-            if (meanVisible)
+            UpdateLegend();
+        }
+
+        private void UpdateLegend()
+        {
+            _legendBuilder.Length = 0;
+            int visible = 0;
+
+            for (int p = 0; p < _data.Series.Length; p++)
             {
-                SetText(_meanLabel, string.Format(i18n.T("LogGraph_DistMeanLabel"), FormatValue(_stats.Mean) + UnitSuffix));
-                _meanLabel.color = MeanLineColor;
-                _meanLabel.fontSize = _fontSize * 0.95f;
-                Place(_meanLabel, new Vector2(XToPx(mean) + 3f * _uiScale, _plot.yMin + 2f * _uiScale),
-                    new Vector2(120f * _uiScale, _fontSize * 1.5f), new Vector2(0f, 0f));
+                XaccSeries series = _data.Series[p];
+                if (!HasValidValue(series) || !IsSeriesVisible(series.PlayerId)) continue;
+
+                if (visible > 0) _legendBuilder.Append("  ");
+                _legendBuilder.Append("<color=#");
+                _legendBuilder.Append(ColorUtility.ToHtmlStringRGB(LineColorFor(series.PlayerId, _visibleSeriesCount)));
+                _legendBuilder.Append('>');
+                _legendBuilder.Append(Coop.Label(series.PlayerId));
+                _legendBuilder.Append("</color>");
+                visible++;
             }
 
-            float sigma = (float)_stats.StdDev;
-            bool sigmaVisible = sigma > 0f && IsFinite(sigma);
-            float high = mean + sigma;
-            float low = mean - sigma;
-            bool highVisible = sigmaVisible && IsFinite(high) && high >= axisMin && high <= axisMax;
-            bool lowVisible = sigmaVisible && IsFinite(low) && low >= axisMin && low <= axisMax;
-
-            SetActive(_sigmaHighLabel, highVisible);
-            if (highVisible)
-            {
-                SetText(_sigmaHighLabel, i18n.T("LogGraph_DistSigmaHigh"));
-                _sigmaHighLabel.color = SigmaLineColor;
-                _sigmaHighLabel.fontSize = _fontSize * 0.95f;
-                Place(_sigmaHighLabel, new Vector2(XToPx(high) + 3f * _uiScale, _plot.yMax - 2f * _uiScale),
-                    new Vector2(80f * _uiScale, _fontSize * 1.5f), new Vector2(0f, 1f));
-            }
-
-            SetActive(_sigmaLowLabel, lowVisible);
-            if (lowVisible)
-            {
-                SetText(_sigmaLowLabel, i18n.T("LogGraph_DistSigmaLow"));
-                _sigmaLowLabel.color = SigmaLineColor;
-                _sigmaLowLabel.fontSize = _fontSize * 0.95f;
-                Place(_sigmaLowLabel, new Vector2(XToPx(low) + 3f * _uiScale, _plot.yMax - _fontSize * 1.6f - 2f * _uiScale),
-                    new Vector2(80f * _uiScale, _fontSize * 1.5f), new Vector2(0f, 1f));
-            }
-
-            bool clipped = _stats.ClippedCount > 0;
-            SetActive(_clipLabel, clipped);
-            if (clipped)
-            {
-                SetText(_clipLabel, string.Format(i18n.T("LogGraph_DistClipped"), _stats.ClippedCount));
-                _clipLabel.color = ClipWarningColor;
-                _clipLabel.fontSize = _fontSize * 0.9f;
-                Place(_clipLabel, new Vector2(_plot.xMax, _plot.yMax + 2f * _uiScale),
-                    new Vector2(Mathf.Max(60f, _plot.width), _fontSize * 1.5f), new Vector2(1f, 0f));
-            }
+            SetText(_legendLabel, _legendBuilder.ToString());
+            _legendLabel.color = AxisTextColor;
+            _legendLabel.fontSize = _fontSize * 0.95f;
+            Place(_legendLabel, new Vector2(_plot.xMax, _plot.yMax + 2f * _uiScale),
+                new Vector2(Mathf.Max(1f, _plot.width * 0.8f), _fontSize * 1.5f), new Vector2(1f, 0f));
         }
 
         private void UpdateHover()
         {
-            int bin = -1;
+            int ordinal = 0;
 
-            if (_initialized && _hasPlot && _stats != null && _stats.HasData && rectTransform != null)
+            if (_initialized && _hasPlot && _data != null && _data.HasData && _visibleSeriesCount > 0
+                && rectTransform != null)
             {
                 Vector2 local;
-                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, Input.mousePosition, null, out local))
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                        rectTransform, Input.mousePosition, null, out local))
                 {
                     if (local.x >= _plot.xMin && local.x <= _plot.xMax
                         && local.y >= _plot.yMin && local.y <= _plot.yMax)
                     {
-                        bin = BinAt(local.x);
+                        float t = _plot.width > 1e-4f ? (local.x - _plot.xMin) / _plot.width : 0f;
+                        int max = Mathf.Max(1, _xMax);
+                        ordinal = 1 + Mathf.RoundToInt(Mathf.Clamp01(t) * (max - 1));
+                        if (ordinal < 1) ordinal = 1;
+                        if (ordinal > max) ordinal = max;
                     }
                 }
             }
 
-            if (bin == _hoverBin && !_tipLayoutDirty) return;
+            if (ordinal == _hoverOrdinal && !_tipLayoutDirty) return;
 
-            _hoverBin = bin;
+            _hoverOrdinal = ordinal;
             _tipLayoutDirty = false;
             RefreshTip();
             SetVerticesDirty();
-        }
-
-        private int BinAt(float localX)
-        {
-            if (_stats == null || _stats.Bins == null) return -1;
-
-            HistogramBin[] bins = _stats.Bins;
-            for (int i = 0; i < bins.Length; i++)
-            {
-                float x0;
-                float x1;
-                if (!BinXRange(i, out x0, out x1)) continue;
-                if (localX >= x0 && localX <= x1) return i;
-            }
-
-            return -1;
-        }
-
-        private bool BinXRange(int index, out float x0, out float x1)
-        {
-            x0 = 0f;
-            x1 = 0f;
-            if (_stats == null || _stats.Bins == null || !_hasPlot) return false;
-            if (index < 0 || index >= _stats.Bins.Length) return false;
-
-            x0 = XToPx(_stats.Bins[index].Start);
-            x1 = XToPx(_stats.Bins[index].End);
-            if (x1 < x0) { float swap = x0; x0 = x1; x1 = swap; }
-            if (x1 - x0 < 0.5f) x1 = x0 + 0.5f;
-
-            return IsFinite(x0) && IsFinite(x1);
         }
 
         private void RefreshTip()
         {
             if (_tipLabel == null) return;
 
-            if (_hoverBin < 0 || _stats == null || !_stats.HasData || !_hasPlot
-                || _stats.Bins == null || _hoverBin >= _stats.Bins.Length)
+            if (_hoverOrdinal <= 0 || _data == null || !_data.HasData || !_hasPlot || _visibleSeriesCount <= 0)
             {
                 SetActive(_tipLabel, false);
                 _tipMin = Vector2.zero;
@@ -488,24 +441,35 @@ namespace TimingShow.HUD
                 return;
             }
 
-            float x0;
-            float x1;
-            if (!BinXRange(_hoverBin, out x0, out x1))
+            _tipBuilder.Length = 0;
+            _tipBuilder.Append(string.Format(i18n.T("LogGraph_XaccTipHit"), _hoverOrdinal));
+
+            for (int p = 0; p < _data.Series.Length; p++)
             {
-                SetActive(_tipLabel, false);
-                _tipMin = Vector2.zero;
-                _tipMax = Vector2.zero;
-                return;
+                XaccSeries series = _data.Series[p];
+                if (!HasValidValue(series) || !IsSeriesVisible(series.PlayerId)) continue;
+
+                _tipBuilder.Append('\n');
+                _tipBuilder.Append("<color=#");
+                _tipBuilder.Append(ColorUtility.ToHtmlStringRGB(LineColorFor(series.PlayerId, _visibleSeriesCount)));
+                _tipBuilder.Append('>');
+                _tipBuilder.Append(Coop.Label(series.PlayerId));
+                _tipBuilder.Append("  ");
+
+                float value = GetValueAt(series, _hoverOrdinal);
+                if (float.IsNaN(value) || !IsFinite(value))
+                {
+                    _tipBuilder.Append('-');
+                }
+                else
+                {
+                    _tipBuilder.Append(value.ToString("R", CultureInfo.InvariantCulture));
+                    _tipBuilder.Append('%');
+                }
+                _tipBuilder.Append("</color>");
             }
 
-            HistogramBin bin = _stats.Bins[_hoverBin];
-            int valid = _stats.ValidCount > 0 ? _stats.ValidCount : 1;
-            float share = 100f * bin.Count / valid;
-
-            string line1 = string.Format(i18n.T("LogGraph_DistTipRange"), FormatValue(bin.Start), FormatValue(bin.End), UnitSuffix);
-            string line2 = string.Format(i18n.T("LogGraph_DistTipCount"), bin.Count, share.ToString("F1", CultureInfo.InvariantCulture));
-            string content = line1 + "\n" + line2;
-
+            string content = _tipBuilder.ToString();
             float tipFontSize = _fontSize * 0.92f;
             SetText(_tipLabel, content);
             _tipLabel.color = TipTextColor;
@@ -514,9 +478,9 @@ namespace TimingShow.HUD
             float padX = 6f * _uiScale;
             float padY = 4f * _uiScale;
 
+            Vector2 preferred = _tipLabel.GetPreferredValues(content);
             float contentWidth;
             float contentHeight;
-            Vector2 preferred = _tipLabel.GetPreferredValues(content);
             if (IsFinite(preferred.x) && preferred.x > 0f && IsFinite(preferred.y) && preferred.y > 0f)
             {
                 contentWidth = preferred.x;
@@ -524,17 +488,20 @@ namespace TimingShow.HUD
             }
             else
             {
-                contentWidth = Mathf.Max(EstimateTextWidth(line1, tipFontSize), EstimateTextWidth(line2, tipFontSize));
-                contentHeight = tipFontSize * 2.2f;
+                contentWidth = EstimateTextWidth("P1  100.00%", tipFontSize) + 20f;
+                contentHeight = tipFontSize * 1.2f * Mathf.Max(2, _visibleSeriesCount + 1);
             }
 
             float boxWidth = contentWidth + padX * 2f;
             float boxHeight = contentHeight + padY * 2f;
 
+            Vector2 mouseLocal;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                rectTransform, Input.mousePosition, null, out mouseLocal);
+
             Rect rect = rectTransform.rect;
-            float minX = (x0 + x1) * 0.5f - boxWidth * 0.5f;
-            float minY = YToPx(bin.Count) + 8f * _uiScale;
-            if (!IsFinite(minY)) minY = _plot.yMin;
+            float minX = XToPx(_hoverOrdinal) + 10f * _uiScale;
+            float minY = mouseLocal.y + 10f * _uiScale;
 
             float lowX = rect.xMin + 2f * _uiScale;
             float lowY = rect.yMin + 2f * _uiScale;
@@ -551,25 +518,199 @@ namespace TimingShow.HUD
             SetActive(_tipLabel, true);
         }
 
+        private static float GetValueAt(XaccSeries series, int ordinal)
+        {
+            if (series == null || series.Values == null) return float.NaN;
+
+            int index = ordinal - 1;
+            if (index < 0 || index >= series.Values.Length) return float.NaN;
+            return series.Values[index];
+        }
+
         private string YLabelContent(int index)
         {
-            float value = _yMax * index / (YTickCount - 1);
+            float span = _yMax - _yMin;
+            float value = _yMin + span * index / (YTickCount - 1);
             if (!IsFinite(value)) value = 0f;
-            int rounded = Mathf.RoundToInt(value);
-            if (rounded < 0) rounded = 0;
-            return rounded.ToString(CultureInfo.InvariantCulture);
+            return value.ToString("F1", CultureInfo.InvariantCulture) + "%";
         }
 
-        private static string FormatAxisValue(float value)
+        private string XLabelContent(float t)
         {
-            if (!IsFinite(value)) return "0";
-            return value.ToString("F1", CultureInfo.InvariantCulture);
+            int max = Mathf.Max(1, _xMax);
+            int value = Mathf.RoundToInt(1f + (max - 1) * t);
+            return value.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static string FormatValue(double value)
+        protected override void OnPopulateMesh(VertexHelper vh)
         {
-            if (double.IsNaN(value) || double.IsInfinity(value)) return "-";
-            return value.ToString("F2", CultureInfo.InvariantCulture);
+            vh.Clear();
+
+            Rect local = rectTransform != null ? rectTransform.rect : new Rect(0f, 0f, 0f, 0f);
+            float width = local.width;
+            float height = local.height;
+            if (!(width > 0f) || !(height > 0f)) return;
+
+            EnsureLayout();
+
+            DrawQuad(vh, Vector2.zero, new Vector2(width, height), BgColor);
+
+            if (_data == null || !_data.HasData || !_hasPlot || _visibleSeriesCount <= 0) return;
+
+            Color grid = GridColor;
+            grid.a *= 0.75f;
+            float gridHalf = 0.6f * _uiScale;
+            for (int i = 0; i <= YGridDivisions; i++)
+            {
+                float y = _plot.yMin + _plot.height * i / YGridDivisions;
+                DrawSegment(vh, new Vector2(_plot.xMin, y), new Vector2(_plot.xMax, y), gridHalf, grid);
+            }
+            for (int i = 0; i <= XGridDivisions; i++)
+            {
+                float x = _plot.xMin + _plot.width * i / XGridDivisions;
+                DrawSegment(vh, new Vector2(x, _plot.yMin), new Vector2(x, _plot.yMax), gridHalf, grid);
+            }
+
+            for (int p = 0; p < _data.Series.Length; p++)
+            {
+                XaccSeries series = _data.Series[p];
+                if (!HasValidValue(series) || !IsSeriesVisible(series.PlayerId)) continue;
+                DrawSeries(vh, series, LineColorFor(series.PlayerId, _visibleSeriesCount));
+            }
+
+            Color frame = GridColor;
+            frame.a = Mathf.Clamp01(frame.a);
+            float frameHalf = 0.7f * _uiScale;
+            Vector2 bl = new Vector2(_plot.xMin, _plot.yMin);
+            Vector2 br = new Vector2(_plot.xMax, _plot.yMin);
+            Vector2 tr = new Vector2(_plot.xMax, _plot.yMax);
+            Vector2 tl = new Vector2(_plot.xMin, _plot.yMax);
+            DrawSegment(vh, bl, br, frameHalf, frame);
+            DrawSegment(vh, br, tr, frameHalf, frame);
+            DrawSegment(vh, tr, tl, frameHalf, frame);
+            DrawSegment(vh, tl, bl, frameHalf, frame);
+
+            DrawHover(vh);
+        }
+
+        private void DrawHover(VertexHelper vh)
+        {
+            if (_hoverOrdinal <= 0 || !_hasPlot) return;
+
+            float x = XToPx(_hoverOrdinal);
+            Color cross = AxisTextColor;
+            cross.a *= 0.55f;
+            DrawDashedVertical(vh, x, 5f * _uiScale, 4f * _uiScale, 0.8f * _uiScale, cross);
+
+            float markerHalf = 2.2f * _uiScale;
+            for (int p = 0; p < _data.Series.Length; p++)
+            {
+                XaccSeries series = _data.Series[p];
+                if (!HasValidValue(series) || !IsSeriesVisible(series.PlayerId)) continue;
+
+                float value = GetValueAt(series, _hoverOrdinal);
+                if (float.IsNaN(value) || !IsFinite(value)) continue;
+
+                float y = YToPx(value);
+                Vector2 min = new Vector2(x - markerHalf, y - markerHalf);
+                Vector2 max = new Vector2(x + markerHalf, y + markerHalf);
+                DrawQuad(vh, min, max, LineColorFor(series.PlayerId, _visibleSeriesCount));
+            }
+
+            if (_tipMax.x > _tipMin.x && _tipMax.y > _tipMin.y)
+            {
+                DrawQuad(vh, _tipMin, _tipMax, TipBgColor);
+
+                Color tipBorder = GridColor;
+                tipBorder.a = 0.75f;
+                float tipHalf = 0.6f * _uiScale;
+                Vector2 tipBl = new Vector2(_tipMin.x, _tipMin.y);
+                Vector2 tipBr = new Vector2(_tipMax.x, _tipMin.y);
+                Vector2 tipTr = new Vector2(_tipMax.x, _tipMax.y);
+                Vector2 tipTl = new Vector2(_tipMin.x, _tipMax.y);
+                DrawSegment(vh, tipBl, tipBr, tipHalf, tipBorder);
+                DrawSegment(vh, tipBr, tipTr, tipHalf, tipBorder);
+                DrawSegment(vh, tipTr, tipTl, tipHalf, tipBorder);
+                DrawSegment(vh, tipTl, tipBl, tipHalf, tipBorder);
+            }
+        }
+
+        private void DrawDashedVertical(VertexHelper vh, float x, float dash, float gap, float halfWidth, Color color)
+        {
+            if (!IsFinite(x)) return;
+            if (!(dash > 0.1f))
+            {
+                DrawSegment(vh, new Vector2(x, _plot.yMin), new Vector2(x, _plot.yMax), halfWidth, color);
+                return;
+            }
+            if (!(gap > 0f)) gap = dash;
+
+            float y = _plot.yMin;
+            float end = _plot.yMax;
+            int guard = 0;
+            while (y < end && guard++ < 1000)
+            {
+                float stop = Mathf.Min(y + dash, end);
+                DrawSegment(vh, new Vector2(x, y), new Vector2(x, stop), halfWidth, color);
+                y = stop + gap;
+            }
+        }
+
+        private void DrawSeries(VertexHelper vh, XaccSeries series, Color color)
+        {
+            float[] xs = series.RenderX;
+            float[] ys = series.RenderY;
+            if (xs == null || ys == null) return;
+
+            int count = Mathf.Min(xs.Length, ys.Length);
+            if (count <= 0) return;
+
+            float halfWidth = 1.2f * _uiScale;
+            Vector2 previous = Vector2.zero;
+            bool hasPrevious = false;
+
+            for (int i = 0; i < count; i++)
+            {
+                float value = ys[i];
+                if (float.IsNaN(value) || !IsFinite(value))
+                {
+                    hasPrevious = false;
+                    continue;
+                }
+
+                Vector2 point = new Vector2(XToPx(xs[i]), YToPx(value));
+                if (!IsFinite(point))
+                {
+                    hasPrevious = false;
+                    continue;
+                }
+
+                if (hasPrevious) DrawSegment(vh, previous, point, halfWidth, color);
+                previous = point;
+                hasPrevious = true;
+            }
+        }
+
+        private Color LineColorFor(int playerId, int visibleSeriesCount)
+        {
+            if (visibleSeriesCount <= 1) return LineColor;
+            return Coop.PlayerColor(playerId);
+        }
+
+        private float XToPx(float ordinal)
+        {
+            int max = Mathf.Max(1, _xMax);
+            if (max <= 1) return _plot.xMin;
+            float t = (ordinal - 1f) / (max - 1f);
+            return _plot.xMin + Mathf.Clamp01(t) * _plot.width;
+        }
+
+        private float YToPx(float value)
+        {
+            float span = _yMax - _yMin;
+            if (!IsFinite(value) || !(span > 1e-6f)) return _plot.yMin;
+            float t = (value - _yMin) / span;
+            return _plot.yMin + Mathf.Clamp01(t) * _plot.height;
         }
 
         private static float EstimateTextWidth(string content, float fontSize)
@@ -581,6 +722,11 @@ namespace TimingShow.HUD
         private static bool IsFinite(float value)
         {
             return !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+
+        private static bool IsFinite(Vector2 value)
+        {
+            return IsFinite(value.x) && IsFinite(value.y);
         }
 
         private static void SetActive(TextMeshProUGUI text, bool active)
@@ -604,171 +750,6 @@ namespace TimingShow.HUD
             rect.pivot = pivot;
             rect.sizeDelta = size;
             rect.anchoredPosition = position;
-        }
-
-        private float XToPx(float value)
-        {
-            float min = _stats.AxisMin;
-            float span = _stats.AxisMax - min;
-            if (!IsFinite(value) || !(Mathf.Abs(span) > 1e-9f)) return _plot.center.x;
-            float t = (value - min) / span;
-            if (!IsFinite(t)) return _plot.center.x;
-            return _plot.xMin + Mathf.Clamp01(t) * _plot.width;
-        }
-
-        private float YToPx(float count)
-        {
-            if (!IsFinite(count) || !(_yMax > 0f)) return _plot.yMin;
-            return _plot.yMin + Mathf.Clamp01(count / _yMax) * _plot.height;
-        }
-
-        protected override void OnPopulateMesh(VertexHelper vh)
-        {
-            vh.Clear();
-
-            Rect local = rectTransform != null ? rectTransform.rect : new Rect(0f, 0f, 0f, 0f);
-            float width = local.width;
-            float height = local.height;
-            if (!(width > 0f) || !(height > 0f)) return;
-
-            EnsureLayout();
-
-            DrawQuad(vh, Vector2.zero, new Vector2(width, height), BgColor);
-
-            if (_stats == null || !_stats.HasData || !_hasPlot) return;
-
-            float axisMin = _stats.AxisMin;
-            float axisMax = _stats.AxisMax;
-            float axisSpan = axisMax - axisMin;
-            if (!IsFinite(axisSpan) || !(axisSpan > 0f)) return;
-
-            Color grid = GridColor;
-            grid.a *= 0.75f;
-            float gridHalf = 0.6f * _uiScale;
-            for (int i = 0; i <= YGridDivisions; i++)
-            {
-                float y = _plot.yMin + _plot.height * i / YGridDivisions;
-                DrawSegment(vh, new Vector2(_plot.xMin, y), new Vector2(_plot.xMax, y), gridHalf, grid);
-            }
-            for (int i = 0; i < XTickCount; i++)
-            {
-                float x = _plot.xMin + _plot.width * i / (XTickCount - 1);
-                DrawSegment(vh, new Vector2(x, _plot.yMin), new Vector2(x, _plot.yMax), gridHalf, grid);
-            }
-
-            Color bar = BarColor;
-            bar.a = Mathf.Clamp01(bar.a) * 0.85f;
-            Color barBorder = BarBorderColor;
-            Color barHover = BarHoverColor;
-            Color barHoverBorder = Color.white;
-            float barBorderHalf = 0.6f * _uiScale;
-            HistogramBin[] bins = _stats.Bins;
-            for (int i = 0; i < bins.Length; i++)
-            {
-                if (bins[i].Count <= 0) continue;
-                float x0;
-                float x1;
-                if (!BinXRange(i, out x0, out x1)) continue;
-                float top = YToPx(bins[i].Count);
-                bool hovered = i == _hoverBin;
-                DrawQuad(vh, new Vector2(x0, _plot.yMin), new Vector2(x1, top), hovered ? barHover : bar);
-                DrawBarOutline(vh, x0, x1, _plot.yMin, top, barBorderHalf, hovered ? barHoverBorder : barBorder);
-            }
-
-            if (_stats.HasCurve && _stats.CurveX != null && _stats.CurveY != null)
-            {
-                int count = Mathf.Min(_stats.CurveX.Length, _stats.CurveY.Length);
-                Vector2 previous = Vector2.zero;
-                bool hasPrevious = false;
-                for (int i = 0; i < count; i++)
-                {
-                    Vector2 point = new Vector2(XToPx(_stats.CurveX[i]), YToPx(_stats.CurveY[i]));
-                    if (hasPrevious) DrawSegment(vh, previous, point, 1.4f * _uiScale, CurveColor);
-                    previous = point;
-                    hasPrevious = true;
-                }
-            }
-
-            if (0f >= axisMin && 0f <= axisMax)
-            {
-                float zeroX = XToPx(0f);
-                DrawSegment(vh, new Vector2(zeroX, _plot.yMin), new Vector2(zeroX, _plot.yMax), 0.8f * _uiScale, ZeroLineColor);
-            }
-
-            float mean = (float)_stats.Mean;
-            if (IsFinite(mean) && mean >= axisMin && mean <= axisMax)
-                DrawDashedVertical(vh, XToPx(mean), 5f * _uiScale, 5f * _uiScale, 1f * _uiScale, MeanLineColor);
-
-            float sigma = (float)_stats.StdDev;
-            if (sigma > 0f && IsFinite(sigma))
-            {
-                float high = mean + sigma;
-                float low = mean - sigma;
-                if (IsFinite(high) && high >= axisMin && high <= axisMax)
-                    DrawDashedVertical(vh, XToPx(high), 3f * _uiScale, 3f * _uiScale, 0.75f * _uiScale, SigmaLineColor);
-                if (IsFinite(low) && low >= axisMin && low <= axisMax)
-                    DrawDashedVertical(vh, XToPx(low), 3f * _uiScale, 3f * _uiScale, 0.75f * _uiScale, SigmaLineColor);
-            }
-
-            Color frame = GridColor;
-            frame.a = Mathf.Clamp01(frame.a);
-            float frameHalf = 0.7f * _uiScale;
-            Vector2 bl = new Vector2(_plot.xMin, _plot.yMin);
-            Vector2 br = new Vector2(_plot.xMax, _plot.yMin);
-            Vector2 tr = new Vector2(_plot.xMax, _plot.yMax);
-            Vector2 tl = new Vector2(_plot.xMin, _plot.yMax);
-            DrawSegment(vh, bl, br, frameHalf, frame);
-            DrawSegment(vh, br, tr, frameHalf, frame);
-            DrawSegment(vh, tr, tl, frameHalf, frame);
-            DrawSegment(vh, tl, bl, frameHalf, frame);
-
-            if (_hoverBin >= 0 && _tipMax.x > _tipMin.x && _tipMax.y > _tipMin.y)
-            {
-                DrawQuad(vh, _tipMin, _tipMax, TipBgColor);
-
-                Color tipBorder = GridColor;
-                tipBorder.a = 0.75f;
-                float tipHalf = 0.6f * _uiScale;
-                Vector2 tipBl = new Vector2(_tipMin.x, _tipMin.y);
-                Vector2 tipBr = new Vector2(_tipMax.x, _tipMin.y);
-                Vector2 tipTr = new Vector2(_tipMax.x, _tipMax.y);
-                Vector2 tipTl = new Vector2(_tipMin.x, _tipMax.y);
-                DrawSegment(vh, tipBl, tipBr, tipHalf, tipBorder);
-                DrawSegment(vh, tipBr, tipTr, tipHalf, tipBorder);
-                DrawSegment(vh, tipTr, tipTl, tipHalf, tipBorder);
-                DrawSegment(vh, tipTl, tipBl, tipHalf, tipBorder);
-            }
-        }
-
-        private void DrawDashedVertical(VertexHelper vh, float x, float dash, float gap, float halfWidth, Color color)
-        {
-            if (!IsFinite(x)) return;
-            if (!(dash > 0.1f)) { DrawSegment(vh, new Vector2(x, _plot.yMin), new Vector2(x, _plot.yMax), halfWidth, color); return; }
-            if (!(gap > 0f)) gap = dash;
-
-            float y = _plot.yMin;
-            float end = _plot.yMax;
-            int guard = 0;
-            while (y < end && guard++ < 1000)
-            {
-                float stop = Mathf.Min(y + dash, end);
-                DrawSegment(vh, new Vector2(x, y), new Vector2(x, stop), halfWidth, color);
-                y = stop + gap;
-            }
-        }
-
-        private static void DrawBarOutline(VertexHelper vh, float x0, float x1, float bottom, float top, float halfWidth, Color color)
-        {
-            if (!(top > bottom) || !(x1 > x0)) return;
-
-            Vector2 bl = new Vector2(x0, bottom);
-            Vector2 br = new Vector2(x1, bottom);
-            Vector2 tr = new Vector2(x1, top);
-            Vector2 tl = new Vector2(x0, top);
-            DrawSegment(vh, bl, br, halfWidth, color);
-            DrawSegment(vh, br, tr, halfWidth, color);
-            DrawSegment(vh, tr, tl, halfWidth, color);
-            DrawSegment(vh, tl, bl, halfWidth, color);
         }
 
         private static void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
@@ -802,16 +783,6 @@ namespace TimingShow.HUD
             vh.AddVert(new Vector3(to.x - normal.x, to.y - normal.y), color, Vector2.zero);
             vh.AddTriangle(start, start + 1, start + 2);
             vh.AddTriangle(start, start + 2, start + 3);
-        }
-
-        private static bool IsFinite(Vector2 value)
-        {
-            return IsFinite(value.x) && IsFinite(value.y);
-        }
-
-        private static float AxisLabelGap
-        {
-            get { return 6f * (LogSettings != null ? Mathf.Clamp(LogSettings.LogGraph_UIScale, 0.75f, 3f) : 1.25f); }
         }
     }
 }

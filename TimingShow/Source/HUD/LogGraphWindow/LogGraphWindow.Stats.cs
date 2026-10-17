@@ -63,10 +63,32 @@ namespace TimingShow.HUD.LogGraphWindow
                 ComputeStats();
             }
 
-            PushDistributionData();
+            PushViewData();
 
-            if (_distributionView) UpdateDistributionStatTexts();
-            else UpdateStatTexts();
+            switch (_view)
+            {
+                case GraphView.Distribution:
+                    UpdateDistributionStatTexts();
+                    break;
+                case GraphView.Delta:
+                    UpdateDeltaStatTexts();
+                    break;
+                case GraphView.Rolling:
+                    UpdateRollingStatTexts();
+                    break;
+                case GraphView.ReturnMap:
+                    UpdateReturnStatTexts();
+                    break;
+                case GraphView.Combo:
+                    UpdateComboStatTexts();
+                    break;
+                case GraphView.Acf:
+                    UpdateAcfStatTexts();
+                    break;
+                default:
+                    UpdateStatTexts();
+                    break;
+            }
         }
 
         private void ComputeStats()
@@ -79,6 +101,8 @@ namespace TimingShow.HUD.LogGraphWindow
 
             _playerCount = _data != null && _data.PlayerCount > 0 ? _data.PlayerCount : 1;
             if (_playerCount > 4) _playerCount = 4;
+
+            EnsureXaccData();
 
             for (int p = 0; p < 4; p++)
             {
@@ -144,6 +168,8 @@ namespace TimingShow.HUD.LogGraphWindow
         private void OnPlayerFilterChanged()
         {
             _statsComputed = false;
+            ClearChartCaches();
+            UpdatePlayerButtonLabel();
             RefreshStats();
         }
         
@@ -274,6 +300,128 @@ namespace TimingShow.HUD.LogGraphWindow
                 if (clipped > 0) title = title + "  |  " + string.Format(i18n.T("LogGraph_DistClipped"), clipped);
                 if (_statsTitleText.text != title) _statsTitleText.text = title;
             }
+        }
+
+        private void UpdateDeltaStatTexts()
+        {
+            DeltaData data = _deltaData;
+            bool hasData = data != null && data.HasData;
+            string unit = UnitSuffix;
+
+            ApplyChartStats(
+                new[] { "LogGraph_DeltaPairs", "LogGraph_DeltaMeanAbs", "LogGraph_DeltaMedianAbs", "LogGraph_DeltaMean" },
+                new[]
+                {
+                    hasData ? data.PairCount.ToString() : "-",
+                    hasData ? FormatStat(data.MeanAbs, 2) + unit : "-",
+                    hasData ? FormatStat(data.MedianAbs, 2) + unit : "-",
+                    hasData ? FormatSigned(data.Mean, 2) + unit : "-"
+                });
+        }
+
+        private void UpdateRollingStatTexts()
+        {
+            RollingData data = _rollingData;
+            bool hasData = data != null && data.HasData;
+            string unit = UnitSuffix;
+
+            ApplyChartStats(
+                new[] { "LogGraph_RollingHead", "LogGraph_RollingTail", "LogGraph_RollingDrift" },
+                new[]
+                {
+                    hasData ? FormatStat(data.HeadMean, 2) + unit : "-",
+                    hasData ? FormatStat(data.TailMean, 2) + unit : "-",
+                    hasData ? FormatSigned(data.Drift, 2) + unit : "-",
+                    ""
+                });
+        }
+
+        private void UpdateReturnStatTexts()
+        {
+            ReturnData data = _returnData;
+            bool hasData = data != null && data.HasData;
+
+            string verdict = "-";
+            if (hasData && !double.IsNaN(data.Correlation))
+            {
+                if (data.Correlation < -0.3) verdict = i18n.T("LogGraph_ReturnOvercorrect");
+                else if (data.Correlation > 0.3) verdict = i18n.T("LogGraph_ReturnDrift");
+                else verdict = i18n.T("LogGraph_ReturnIndependent");
+            }
+
+            ApplyChartStats(
+                new[] { "LogGraph_ReturnPairs", "LogGraph_ReturnCorr", "LogGraph_ReturnVerdict" },
+                new[]
+                {
+                    hasData ? data.PairCount.ToString() : "-",
+                    hasData ? FormatStat(data.Correlation, 3) : "-",
+                    verdict,
+                    ""
+                });
+        }
+
+        private void UpdateComboStatTexts()
+        {
+            ComboData data = _comboData;
+            bool hasData = data != null && data.HasData;
+
+            ApplyChartStats(
+                new[] { "LogGraph_ComboStreaks", "LogGraph_ComboLongest", "LogGraph_ComboAverage" },
+                new[]
+                {
+                    hasData ? data.RunCount.ToString() : "-",
+                    hasData ? data.LongestRun.ToString() : "-",
+                    hasData ? data.AverageRun.ToString("F1", System.Globalization.CultureInfo.InvariantCulture) : "-",
+                    ""
+                });
+        }
+
+        private void UpdateAcfStatTexts()
+        {
+            AcfData data = _acfData;
+            bool hasData = data != null && data.HasData;
+            AcfEntry lag1 = hasData ? data.Lag1 : null;
+            AcfEntry strongest = hasData ? data.Strongest : null;
+
+            string lag1Pairs = lag1 != null ? lag1.Pairs.ToString() : "-";
+            string lag1R = lag1 != null ? FormatStat(lag1.R, 3) : "-";
+            string strongestLag = strongest != null ? "lag " + strongest.Lag : "-";
+            string strongestR = strongest != null ? FormatStat(strongest.R, 3) : "-";
+
+            ApplyChartStats(
+                new[] { "LogGraph_AcfPairs", "LogGraph_AcfLag1", "LogGraph_AcfStrongest", "LogGraph_AcfStrongestR" },
+                new[] { lag1Pairs, lag1R, strongestLag, strongestR });
+        }
+
+        private void ApplyChartStats(string[] labelKeys, string[] values)
+        {
+            for (int i = 0; i < StatsRowCount; i++)
+            {
+                string label = i < labelKeys.Length ? (i18n.T(labelKeys[i]) ?? "").ToUpperInvariant() : "";
+                if (_statLabels[i] != null && _statLabels[i].text != label) _statLabels[i].text = label;
+
+                string value = i < values.Length ? values[i] : "";
+                if (_statValues[i] != null && _statValues[i].text != value) _statValues[i].text = value;
+            }
+
+            if (_statsTitleText != null)
+            {
+                string title = i18n.T("LogGraph_StatsTitle");
+                if (_statsTitleText.text != title) _statsTitleText.text = title;
+            }
+        }
+
+        private string UnitSuffix
+        {
+            get { return _data != null && _data.IsAngle ? "°" : "ms"; }
+        }
+
+        private static string FormatSigned(double value, int digits)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value)) return "-";
+            string text = value.ToString("F" + digits, System.Globalization.CultureInfo.InvariantCulture);
+            if (value > 0.0) text = "+" + text;
+            return text;
         }
 
         private static string FormatStat(double value, int digits)

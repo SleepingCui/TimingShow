@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using TMPro;
 
 namespace TimingShow.HUD.LogGraphWindow
 {
@@ -44,6 +45,7 @@ namespace TimingShow.HUD.LogGraphWindow
         {
             if (_settingsUI == null) return;
 
+            CloseMenus();
             _settingsUI.Toggle();
             if (_windowRect != null) ApplyLayout(_windowRect.sizeDelta, _windowRect.anchoredPosition);
 
@@ -77,7 +79,7 @@ namespace TimingShow.HUD.LogGraphWindow
         
         private void SyncSettingsInteraction()
         {
-            bool suspended = (_settingsUI != null && _settingsUI.IsOpen) || _distributionView;
+            bool suspended = (_settingsUI != null && _settingsUI.IsOpen) || _view != GraphView.Scatter;
             if (_drawer != null) _drawer.InteractionSuspended = suspended;
 
             if (suspended && _graphPanActive)
@@ -101,6 +103,48 @@ namespace TimingShow.HUD.LogGraphWindow
                 _distributionDrawer.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);
                 _distributionDrawer.ReloadAppearance();
             }
+
+            if (_xaccDrawer != null)
+            {
+                _xaccDrawer.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);
+                _xaccDrawer.ReloadAppearance();
+            }
+
+            TMP_FontAsset font = _drawer != null ? _drawer.GraphFontAsset : null;
+            if (_deltaDrawer != null)
+            {
+                _deltaDrawer.SetFont(font);
+                _deltaDrawer.ReloadAppearance();
+            }
+            if (_rollingDrawer != null)
+            {
+                _rollingDrawer.SetFont(font);
+                _rollingDrawer.ReloadAppearance();
+            }
+            if (_returnDrawer != null)
+            {
+                _returnDrawer.SetFont(font);
+                _returnDrawer.ReloadAppearance();
+            }
+            if (_comboDrawer != null)
+            {
+                _comboDrawer.SetFont(font);
+                _comboDrawer.ReloadAppearance();
+            }
+            if (_acfDrawer != null)
+            {
+                _acfDrawer.SetFont(font);
+                _acfDrawer.ReloadAppearance();
+            }
+            if (_overviewDrawer != null)
+            {
+                _overviewDrawer.SetFont(font);
+                _overviewDrawer.ReloadAppearance();
+            }
+            if (_chartButton != null) _chartButton.SetFont(font);
+            if (_playerButton != null) _playerButton.SetFont(font);
+            if (_chartMenu != null) _chartMenu.SetFont(font);
+            if (_playerMenu != null) _playerMenu.SetFont(font);
 
             if (_panel != null) _panel.MarkDirty();
             if (_settingsUI != null) _settingsUI.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);
@@ -218,7 +262,6 @@ namespace TimingShow.HUD.LogGraphWindow
                 {
                     _panel.SetHover(false);
                     _panel.SetSettingsHover(false);
-                    _panel.SetViewHover(-1);
                 }
                 return;
             }
@@ -228,7 +271,6 @@ namespace TimingShow.HUD.LogGraphWindow
             {
                 _panel.SetHover(false);
                 _panel.SetSettingsHover(false);
-                _panel.SetViewHover(-1);
                 return;
             }
 
@@ -236,11 +278,6 @@ namespace TimingShow.HUD.LogGraphWindow
             bool onClose = HitCloseButton(local, size);
             _panel.SetHover(onClose);
             _panel.SetSettingsHover(!onClose && HitSettingsButton(local, size));
-
-            bool onDistributionToggle;
-            bool onViewToggle = HitViewToggle(local, size, out onDistributionToggle) && !onClose;
-            if (!onViewToggle) onDistributionToggle = false;
-            _panel.SetViewHover(onViewToggle ? (onDistributionToggle ? 1 : 0) : -1);
         }
 
         private static Vector2 WorldToScreen(Vector3 world)

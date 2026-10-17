@@ -38,10 +38,13 @@ namespace TimingShow.HUD
 
         public static DistributionStats Compute(List<TimingScatterSample> samples, int binCount)
         {
-            DistributionStats stats = new DistributionStats();
-            if (binCount < 1) binCount = 1;
-            stats.BinCount = binCount;
-            if (samples == null || samples.Count == 0) return stats;
+            if (samples == null || samples.Count == 0)
+            {
+                DistributionStats empty = new DistributionStats();
+                if (binCount < 1) binCount = 1;
+                empty.BinCount = binCount;
+                return empty;
+            }
 
             List<double> values = new List<double>(Math.Min(samples.Count, 1 << 16));
             for (int i = 0; i < samples.Count; i++)
@@ -53,6 +56,16 @@ namespace TimingShow.HUD
                 if (float.IsNaN(value) || float.IsInfinity(value)) continue;
                 values.Add(value);
             }
+
+            return ComputeValues(values, binCount, true);
+        }
+
+        public static DistributionStats ComputeValues(List<double> values, int binCount, bool buildCurve)
+        {
+            DistributionStats stats = new DistributionStats();
+            if (binCount < 1) binCount = 1;
+            stats.BinCount = binCount;
+            if (values == null || values.Count == 0) return stats;
 
             int count = values.Count;
             stats.ValidCount = count;
@@ -165,7 +178,7 @@ namespace TimingShow.HUD
             stats.ClippedCount = clipped;
             stats.MaxBinCount = maxBinCount;
 
-            BuildCurve(stats, mean, stdDev, maxBinCount);
+            if (buildCurve) BuildCurve(stats, mean, stdDev, maxBinCount);
             return stats;
         }
 

@@ -37,6 +37,11 @@ namespace TimingShow.HUD
             if (handler != null) handler();
         }
         
+        protected override void ResetPlayerFilter()
+        {
+            _playerFilter = _playerCount > 1 ? 0 : -1;
+        }
+
         public void LoadLog(TimingLogData data)
         {
             _samples = data != null && data.Samples != null ? data.Samples : new List<TimingScatterSample>();

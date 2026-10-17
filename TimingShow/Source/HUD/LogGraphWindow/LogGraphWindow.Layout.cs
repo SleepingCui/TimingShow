@@ -24,12 +24,6 @@ namespace TimingShow.HUD.LogGraphWindow
                 MetaFontSize, TitleMetaColor, TextAlignmentOptions.MidlineRight);
             if (_metaText != null && string.IsNullOrEmpty(meta)) _metaText.gameObject.SetActive(false);
 
-            _viewScatterText = CreateHeaderText(parent, "ViewToggleScatter", i18n.T("LogGraph_ViewScatter"),
-                ViewToggleFontSize, TitleSecondaryColor, TextAlignmentOptions.Center);
-            _viewDistributionText = CreateHeaderText(parent, "ViewToggleDistribution", i18n.T("LogGraph_ViewDistribution"),
-                ViewToggleFontSize, TitleSecondaryColor, TextAlignmentOptions.Center);
-            if (_viewScatterText != null) _viewScatterText.gameObject.SetActive(false);
-            if (_viewDistributionText != null) _viewDistributionText.gameObject.SetActive(false);
         }
 
         private static TextMeshProUGUI CreateHeaderText(Transform parent, string name, string content,
@@ -55,8 +49,10 @@ namespace TimingShow.HUD.LogGraphWindow
             ApplyTitleFont(_titleText, asset);
             ApplyTitleFont(_fileText, asset);
             ApplyTitleFont(_metaText, asset);
-            ApplyTitleFont(_viewScatterText, asset);
-            ApplyTitleFont(_viewDistributionText, asset);
+            if (_chartButton != null) _chartButton.SetFont(asset);
+            if (_playerButton != null) _playerButton.SetFont(asset);
+            if (_chartMenu != null) _chartMenu.SetFont(asset);
+            if (_playerMenu != null) _playerMenu.SetFont(asset);
         }
 
         private static void ApplyTitleFont(TextMeshProUGUI text, TMP_FontAsset asset)
@@ -122,6 +118,7 @@ namespace TimingShow.HUD.LogGraphWindow
             _windowRect.anchoredPosition = position;
             
             ApplyHeaderLayout(size);
+            PositionSelectorAndMenus(size);
             RefreshTitle();
             
             bool settingsOpen = _settingsUI != null && _settingsUI.IsOpen;
@@ -192,13 +189,15 @@ namespace TimingShow.HUD.LogGraphWindow
             float titleFontSize = hasFile ? Mathf.Max(8f, TitleFontSize * fit) : TitleFontSize;
             float fileFontSize = Mathf.Max(8f, SecondaryTitleFontSize * fit);
             
-            float reserved = TitleLeftPadding + TitleRightPadding;
-            float metaWidth = Mathf.Min(MetaWidth, Mathf.Max(0f, (size.x - reserved) * 0.5f));
-            float metaReserve = hasMeta ? metaWidth + TitleMetaGap : 0f;
+            bool hasPlayer = _playerCount > 1;
+            Rect chartRect;
+            Rect playerRect;
+            SelectorRects(size, hasPlayer, out chartRect, out playerRect);
+            float selectorsLeft = hasPlayer ? playerRect.xMin : chartRect.xMin;
 
-            bool showViewToggle = ViewToggleFits(size.x);
-            float toggleReserve = showViewToggle ? ViewToggleTotalWidth + TitleMetaGap : 0f;
-            float titleWidth = Mathf.Max(0f, size.x - reserved - metaReserve - toggleReserve);
+            float metaWidth = Mathf.Min(MetaWidth, Mathf.Max(0f, (size.x - TitleLeftPadding - TitleRightPadding) * 0.4f));
+            float titleWidth = Mathf.Max(0f,
+                selectorsLeft - (hasMeta ? metaWidth + TitleMetaGap * 2f : TitleMetaGap) - TitleLeftPadding);
 
             if (!Mathf.Approximately(_titleText.fontSize, titleFontSize)) _titleText.fontSize = titleFontSize;
             _titleText.alignment = hasFile ? TextAlignmentOptions.Left : TextAlignmentOptions.MidlineLeft;
@@ -232,110 +231,30 @@ namespace TimingShow.HUD.LogGraphWindow
                 rect.anchorMin = new Vector2(0f, 1f);
                 rect.anchorMax = new Vector2(0f, 1f);
                 rect.pivot = new Vector2(1f, 1f);
-                rect.anchoredPosition = new Vector2(size.x - TitleRightPadding, -pad);
+                rect.anchoredPosition = new Vector2(selectorsLeft - TitleMetaGap, -pad);
                 rect.sizeDelta = new Vector2(metaWidth, titleHeight);
             }
-
-            ApplyViewToggleLayout(size, showViewToggle);
         }
 
-        private static float MetaReserveWidth(float windowWidth)
-        {
-            LogGraphWindow instance = _instance;
-            bool hasMeta = instance != null && instance._metaText != null
-                && instance._metaText.gameObject.activeSelf
-                && !string.IsNullOrEmpty(instance._metaText.text);
-            if (!hasMeta) return 0f;
+        private static float ChartSelectorWidth { get { return 150f * UiScale; } }
+        private static float PlayerSelectorWidth { get { return 64f * UiScale; } }
+        private static float SelectorGap { get { return 4f * UiScale; } }
 
-            float reserved = TitleLeftPadding + TitleRightPadding;
-            float metaWidth = Mathf.Min(MetaWidth, Mathf.Max(0f, (windowWidth - reserved) * 0.5f));
-            return metaWidth + TitleMetaGap;
+        private static float SelectorHeight
+        {
+            get { return Mathf.Clamp(20f * UiScale, 12f, Mathf.Max(12f, HeaderHeight - HeaderPadding * 2f)); }
         }
 
-        private static bool ViewToggleFits(float windowWidth)
+        private static void SelectorRects(Vector2 size, bool hasPlayer, out Rect chart, out Rect player)
         {
-            float available = windowWidth - TitleLeftPadding - TitleRightPadding - MetaReserveWidth(windowWidth);
-            return available >= ViewToggleTotalWidth + TitleMetaGap + 60f * UiScale;
-        }
+            float height = SelectorHeight;
+            float y = size.y - HeaderPadding - height;
+            float right = size.x - TitleRightPadding;
 
-        private static void ViewToggleRects(Vector2 size, out Rect scatter, out Rect distribution)
-        {
-            scatter = new Rect(0f, 0f, 0f, 0f);
-            distribution = new Rect(0f, 0f, 0f, 0f);
-            if (!ViewToggleFits(size.x)) return;
-
-            float right = size.x - TitleRightPadding - MetaReserveWidth(size.x);
-            float left = right - ViewToggleTotalWidth;
-            if (left < TitleLeftPadding) return;
-
-            float titleLine = Mathf.Max(1f, TitleFontSize * TextLineRatio);
-            float height = Mathf.Min(ViewToggleHeight, titleLine);
-            float bottom = size.y - HeaderPadding - height - (titleLine - height) * 0.5f;
-
-            scatter = new Rect(left, bottom, ViewToggleItemWidth, height);
-            distribution = new Rect(left + ViewToggleItemWidth, bottom, ViewToggleItemWidth, height);
-        }
-
-        private void ApplyViewToggleLayout(Vector2 size, bool visible)
-        {
-            if (_viewScatterText == null || _viewDistributionText == null) return;
-
-            SetTextActive(_viewScatterText, visible);
-            SetTextActive(_viewDistributionText, visible);
-            if (!visible) return;
-
-            Rect scatterRect;
-            Rect distributionRect;
-            ViewToggleRects(size, out scatterRect, out distributionRect);
-            if (scatterRect.width <= 1f) return;
-
-            PlaceToggleText(_viewScatterText, scatterRect, !_distributionView);
-            PlaceToggleText(_viewDistributionText, distributionRect, _distributionView);
-        }
-
-        private static void PlaceToggleText(TextMeshProUGUI text, Rect rect, bool active)
-        {
-            if (!Mathf.Approximately(text.fontSize, ViewToggleFontSize)) text.fontSize = ViewToggleFontSize;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = active ? TitlePrimaryColor : TitleSecondaryColor;
-
-            RectTransform rectTransform = text.rectTransform;
-            rectTransform.anchorMin = new Vector2(0f, 0f);
-            rectTransform.anchorMax = new Vector2(0f, 0f);
-            rectTransform.pivot = new Vector2(0f, 0f);
-            rectTransform.anchoredPosition = new Vector2(rect.xMin, rect.yMin);
-            rectTransform.sizeDelta = new Vector2(rect.width, rect.height);
-        }
-
-        private static void SetTextActive(TextMeshProUGUI text, bool active)
-        {
-            if (text == null) return;
-            if (text.gameObject.activeSelf != active) text.gameObject.SetActive(active);
-        }
-
-        private static bool HitViewToggle(Vector2 local, Vector2 size, out bool distribution)
-        {
-            distribution = false;
-
-            Rect scatterRect;
-            Rect distributionRect;
-            ViewToggleRects(size, out scatterRect, out distributionRect);
-            if (scatterRect.width <= 1f) return false;
-
-            if (local.x >= scatterRect.xMin && local.x <= scatterRect.xMax
-                && local.y >= scatterRect.yMin && local.y <= scatterRect.yMax)
-            {
-                return true;
-            }
-
-            if (local.x >= distributionRect.xMin && local.x <= distributionRect.xMax
-                && local.y >= distributionRect.yMin && local.y <= distributionRect.yMax)
-            {
-                distribution = true;
-                return true;
-            }
-
-            return false;
+            chart = new Rect(right - ChartSelectorWidth, y, ChartSelectorWidth, height);
+            player = hasPlayer
+                ? new Rect(chart.xMin - SelectorGap - PlayerSelectorWidth, y, PlayerSelectorWidth, height)
+                : new Rect(0f, 0f, 0f, 0f);
         }
 
         private void ApplyStatsLayout(Vector2 size, float contentHeight, float statsWidth)

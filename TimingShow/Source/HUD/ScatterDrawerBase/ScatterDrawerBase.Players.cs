@@ -19,7 +19,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private readonly TMP_Text[] _legendTexts = new TMP_Text[4];
         private readonly LegendItem[] _legendItems = new LegendItem[4];
         private int _legendItemCount;
-        private int _playerFilter = -1;
+        protected int _playerFilter = -1;
 
         public int SelectedPlayerId { get { return _playerFilter; } }
 
@@ -186,9 +186,18 @@ namespace TimingShow.HUD.ScatterDrawerBase
             return true;
         }
 
-        protected void ResetPlayerFilter()
+        protected virtual void ResetPlayerFilter()
         {
             _playerFilter = -1;
+        }
+
+        internal void SetPlayerFilter(int playerId)
+        {
+            if (playerId < 0 || playerId >= ScatterPlayerCount) playerId = -1;
+            if (_playerFilter == playerId) return;
+
+            _playerFilter = playerId;
+            NotifyPlayerFilterChanged();
         }
 
         private void TogglePlayerFilter(int playerId)

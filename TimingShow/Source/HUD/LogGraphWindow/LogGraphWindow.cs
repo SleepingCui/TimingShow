@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -15,6 +16,13 @@ namespace TimingShow.HUD.LogGraphWindow
         private const string PlotAreaObjectName = "PlotArea";
         private const string GraphAreaObjectName = "GraphArea";
         private const string DistributionAreaObjectName = "DistributionArea";
+        private const string XaccAreaObjectName = "XaccArea";
+        private const string DeltaAreaObjectName = "DeltaArea";
+        private const string RollingAreaObjectName = "RollingArea";
+        private const string ReturnAreaObjectName = "ReturnArea";
+        private const string ComboAreaObjectName = "ComboArea";
+        private const string AcfAreaObjectName = "AcfArea";
+        private const string OverviewAreaObjectName = "OverviewArea";
 
         private const int CanvasSortingOrder = 320;
 
@@ -60,9 +68,6 @@ namespace TimingShow.HUD.LogGraphWindow
         private const float BaseAxisGutterTop = 8f;
         private const float BaseAxisLabelGap = 6f;
         private const float BaseAxisLabelMargin = 3f;
-        private const float BaseViewToggleHeight = 18f;
-        private const float BaseViewToggleItemWidth = 48f;
-        private const float BaseViewToggleFontSize = 10.5f;
         private const float TextLineRatio = 1.35f;
         
         private static float UiScale
@@ -108,11 +113,6 @@ namespace TimingShow.HUD.LogGraphWindow
         private static float AxisGutterTop => BaseAxisGutterTop * UiScale;
         private static float AxisLabelGap => BaseAxisLabelGap * UiScale;
         private static float AxisLabelMargin => BaseAxisLabelMargin * UiScale;
-        private static float ViewToggleHeight => BaseViewToggleHeight * UiScale;
-        private static float ViewToggleItemWidth => BaseViewToggleItemWidth * UiScale;
-        private static float ViewToggleFontSize => BaseViewToggleFontSize * UiScale;
-        private static float ViewToggleTotalWidth => ViewToggleItemWidth * 2f;
-        
         private static float TitleRightPadding => CloseButtonSize + SettingsButtonSize + CloseButtonInset * 3f + ButtonGap;
         
         private static float ContentWidth(float windowWidth) => Mathf.Max(0f, windowWidth - ContentInset * 2f);
@@ -322,10 +322,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private LogDistributionDrawer _distributionDrawer;
         private RectTransform _distributionRect;
         private DistributionStats _distributionStats;
-        private TextMeshProUGUI _viewScatterText;
-        private TextMeshProUGUI _viewDistributionText;
         private TMP_FontAsset _graphFont;
-        private bool _distributionView;
         private enum PendingButton { None, Close, Settings }
         private PendingButton _pendingButton = PendingButton.None;
         
@@ -488,24 +485,94 @@ namespace TimingShow.HUD.LogGraphWindow
             window._distributionDrawer = distributionDrawer;
             window._distributionRect = distributionRect;
 
+            RectTransform xaccRect;
+            GameObject xaccGo = CreateChartArea(graphContainerGo.transform, XaccAreaObjectName,
+                out xaccRect);
+            LogXaccDrawer xaccDrawer = xaccGo.AddComponent<LogXaccDrawer>();
+            window._xaccDrawer = xaccDrawer;
+            window._xaccRect = xaccRect;
+
+            GameObject deltaGo = CreateChartArea(graphContainerGo.transform, DeltaAreaObjectName,
+                out window._deltaRect);
+            window._deltaDrawer = deltaGo.AddComponent<LogDistributionDrawer>();
+
+            GameObject rollingGo = CreateChartArea(graphContainerGo.transform, RollingAreaObjectName,
+                out window._rollingRect);
+            window._rollingDrawer = rollingGo.AddComponent<LogRollingDrawer>();
+            window._rollingDrawer.WindowSizeChanged = window.OnRollingWindowChanged;
+
+            GameObject returnGo = CreateChartArea(graphContainerGo.transform, ReturnAreaObjectName,
+                out window._returnRect);
+            window._returnDrawer = returnGo.AddComponent<LogReturnDrawer>();
+
+            GameObject comboGo = CreateChartArea(graphContainerGo.transform, ComboAreaObjectName,
+                out window._comboRect);
+            window._comboDrawer = comboGo.AddComponent<LogComboDrawer>();
+
+            GameObject acfGo = CreateChartArea(graphContainerGo.transform, AcfAreaObjectName,
+                out window._acfRect);
+            window._acfDrawer = acfGo.AddComponent<LogAcfDrawer>();
+
+            GameObject overviewGo = CreateChartArea(graphContainerGo.transform, OverviewAreaObjectName,
+                out window._overviewRect);
+            window._overviewDrawer = overviewGo.AddComponent<LogOverviewDrawer>();
+
             TMP_FontAsset graphFont = null;
             if (drawer != null)
             {
                 drawer.LoadLog(data);
-                graphFont = drawer.GraphFontAsset;  
+                graphFont = drawer.GraphFontAsset;
             }
 
             window._graphFont = graphFont;
             if (window._distributionDrawer != null) window._distributionDrawer.Initialize(graphFont);
-            if (distributionGo != null) distributionGo.SetActive(false);
+            if (window._xaccDrawer != null) window._xaccDrawer.Initialize(graphFont);
+            if (window._deltaDrawer != null) window._deltaDrawer.Initialize(graphFont);
+            if (window._rollingDrawer != null) window._rollingDrawer.Initialize(graphFont);
+            if (window._returnDrawer != null) window._returnDrawer.Initialize(graphFont);
+            if (window._comboDrawer != null) window._comboDrawer.Initialize(graphFont);
+            if (window._acfDrawer != null) window._acfDrawer.Initialize(graphFont);
+            if (window._overviewDrawer != null) window._overviewDrawer.Initialize(graphFont);
+
+            window._viewAreas = new RectTransform[ViewCount];
+            window._viewAreas[(int)GraphView.Scatter] = plotAreaRect;
+            window._viewAreas[(int)GraphView.Distribution] = distributionRect;
+            window._viewAreas[(int)GraphView.Xacc] = xaccRect;
+            window._viewAreas[(int)GraphView.Delta] = window._deltaRect;
+            window._viewAreas[(int)GraphView.Rolling] = window._rollingRect;
+            window._viewAreas[(int)GraphView.ReturnMap] = window._returnRect;
+            window._viewAreas[(int)GraphView.Combo] = window._comboRect;
+            window._viewAreas[(int)GraphView.Acf] = window._acfRect;
+            window._viewAreas[(int)GraphView.Overview] = window._overviewRect;
+
+            for (int i = 0; i < window._viewAreas.Length; i++)
+            {
+                if (window._viewAreas[i] != null)
+                    window._viewAreas[i].gameObject.SetActive(i == (int)window._view);
+            }
 
             window.ApplyHeaderFonts(graphFont);
-            
+
             window._data = data;
             window.CreateStatsTexts(windowGo.transform, graphFont);
             window.RefreshStats();
             window._settingsUI = GraphSettingsUI.Create(windowRect, window, graphFont);
+            window.CreateChartUi(graphFont);
             window.ApplyLayout(size, position);
+        }
+
+        private static GameObject CreateChartArea(Transform parent, string name, out RectTransform rect)
+        {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            rect = go.GetComponent<RectTransform>();
+            if (rect == null) rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = Vector2.zero;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            return go;
         }
         
         private void Update()
@@ -533,6 +600,9 @@ namespace TimingShow.HUD.LogGraphWindow
                 return;
             }
             
+            if ((_chartMenuOpen || _playerMenuOpen) && Input.GetKeyDown(KeyCode.Escape))
+                CloseMenus();
+
             SyncSettingsInteraction();
             UpdateBoundsDiagnostics();
             if (!_dragging) RefreshButtonHover(Input.mousePosition);
