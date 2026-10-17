@@ -83,7 +83,7 @@ namespace TimingShow.Options
                 if (ModContext.Settings.Title_UseJudgeColor)
                 {
                     if (!HitMarginCompat.IsGame34)
-                        Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", 40);
+                        Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", OptionsWidgets.ContentIndent + 20f);
                 }
                 Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.Title_Bump, "Toggle_Bump");
@@ -112,7 +112,7 @@ namespace TimingShow.Options
                 string replaceArrow = _foldoutReplaceSettings ? "▲" : "▼";
                 GUILayout.BeginHorizontal();
                 {
-                    GUILayout.Space(20);
+                    GUILayout.Space(OptionsWidgets.ContentIndent);
                     if (GUILayout.Button($"{i18n.T("Setting_Title")} {replaceArrow}", GUILayout.ExpandWidth(false)))
                         _foldoutReplaceSettings = !_foldoutReplaceSettings;
                 }
@@ -122,7 +122,7 @@ namespace TimingShow.Options
 
                 GUILayout.BeginHorizontal();
                 {
-                    GUILayout.Space(20);
+                    GUILayout.Space(OptionsWidgets.ContentIndent);
                     GUILayout.BeginVertical();
                     {
                         Toggle(ref ModContext.Settings.ReplaceFailOverload, "Toggle_FailOverload", 0);
@@ -196,7 +196,7 @@ namespace TimingShow.Options
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
                     if (!HitMarginCompat.IsGame34)
-                        Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", 40);
+                        Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", OptionsWidgets.ContentIndent + 20f);
                 }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.HUD_Bump, "Toggle_Bump");
@@ -258,7 +258,7 @@ namespace TimingShow.Options
             Toggle(ref useCustomFont, "Toggle_CustomFont");
 
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(OptionsWidgets.ContentIndent);
             GUILayout.Label(i18n.T("Label_FontPath"), GUILayout.Width(100));
             string displayPath = string.IsNullOrWhiteSpace(fontPath) ? i18n.T("Label_GameFont") : fontPath;
             GUILayout.Label(displayPath, GUILayout.MinWidth(240), GUILayout.MaxWidth(450));
@@ -415,7 +415,7 @@ namespace TimingShow.Options
 
                 // logdir
                 GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
+                GUILayout.Space(OptionsWidgets.ContentIndent);
                 GUILayout.Label(i18n.T("Label_LogDir"), GUILayout.Width(140));
                 string absolutePath = OptionLogList.AbsLogPath(ModContext.Settings.LogDirectory);
                 string displayPath = string.IsNullOrWhiteSpace(absolutePath) ? "None" : absolutePath;
@@ -434,7 +434,7 @@ namespace TimingShow.Options
                 
                 // lbl buffersize
                 GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
+                GUILayout.Space(OptionsWidgets.ContentIndent);
                 GUILayout.Label(i18n.T("Label_BufferSize"), GUILayout.Width(140));
 
                 if (_bufferSizeText == null) _bufferSizeText = ModContext.Settings.LogBufferSizeKB.ToString();

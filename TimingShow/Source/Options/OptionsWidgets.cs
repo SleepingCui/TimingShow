@@ -4,6 +4,8 @@ namespace TimingShow.Options
 {
     internal static class OptionsWidgets
     {
+        public const float ContentIndent = 40f;
+
         private static GUIStyle _activeButtonStyle;
         private static GUIStyle _richToggleStyle;
 
@@ -42,6 +44,11 @@ namespace TimingShow.Options
 
         private const string ArrowExpanded = "◢";
         private const string ArrowCollapsed = "▶";
+        
+        private const float ArrowWidth = 13f;
+        private const int ArrowFontSize = 13;
+        private const int ArrowExpandedFontSize = 18;
+        private const int ArrowRightMargin = 2;
 
         private static GUIStyle ExpandStyle
         {
@@ -51,10 +58,10 @@ namespace TimingShow.Options
                 {
                     _expandStyle = new GUIStyle
                     {
-                        fixedWidth = 14f,
-                        fontSize = 14,
+                        fixedWidth = ArrowWidth,
+                        fontSize = ArrowFontSize,
                         alignment = TextAnchor.MiddleCenter,
-                        margin = new RectOffset(0, 4, 1, 1)
+                        margin = new RectOffset(0, ArrowRightMargin, 1, 1)
                     };
 
                     Color color = Color.white;
@@ -71,6 +78,21 @@ namespace TimingShow.Options
             }
         }
 
+        private static GUIStyle _expandExpandedStyle;
+
+        private static GUIStyle ExpandExpandedStyle
+        {
+            get
+            {
+                if (_expandExpandedStyle == null)
+                {
+                    _expandExpandedStyle = new GUIStyle(ExpandStyle);
+                    _expandExpandedStyle.fontSize = ArrowExpandedFontSize;
+                }
+                return _expandExpandedStyle;
+            }
+        }
+
         
         public static void FoldoutToggle(string label, ref bool toggle, ref bool foldout)
         {
@@ -78,8 +100,15 @@ namespace TimingShow.Options
 
             if (toggle)
             {
-                bool expandedNext = GUILayout.Toggle(foldout, foldout ? ArrowExpanded : ArrowCollapsed, ExpandStyle);
+                GUIStyle arrowStyle = foldout ? ExpandExpandedStyle : ExpandStyle;
+                bool expandedNext = GUILayout.Toggle(foldout, foldout ? ArrowExpanded : ArrowCollapsed, arrowStyle);
                 if (expandedNext != foldout) foldout = expandedNext;
+            }
+            else
+            {
+                // Reserve the exact same layout footprint as the arrow toggle so
+                // every checkbox in the list starts at the same x.
+                GUILayout.Toggle(false, string.Empty, ExpandStyle);
             }
 
             toggle = GUILayout.Toggle(toggle, label, GUILayout.ExpandWidth(false));
@@ -110,14 +139,14 @@ namespace TimingShow.Options
             }
         }
 
-        public static bool ToggleWithDescription(bool value, string labelKey, string descKey, string extraDescriptionHtml = "", float indent = 20, string extraLabelHtml = "")
+        public static bool ToggleWithDescription(bool value, string labelKey, string descKey, string extraDescriptionHtml = "", float indent = ContentIndent, string extraLabelHtml = "")
         {
             bool newValue = GUILayout.Toggle(value, i18n.T(labelKey) + extraLabelHtml, RichToggleStyle);
             IndentedLabel($"<color=#888888>{i18n.T(descKey)}</color>{extraDescriptionHtml}", indent);
             return newValue;
         }
 
-        public static void IndentedLabel(string text, float indent = 20)
+        public static void IndentedLabel(string text, float indent = ContentIndent)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(indent);
@@ -134,7 +163,7 @@ namespace TimingShow.Options
             AlignButtons(ref align);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(ContentIndent);
             GUILayout.Label(i18n.T("Label_Format"), GUILayout.Width(100));
             format = GUILayout.TextField(format, GUILayout.Width(200));
             GUILayout.EndHorizontal();
@@ -145,7 +174,7 @@ namespace TimingShow.Options
         public static void SliderFloat(string labelKey, ref float value, float min, float max)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(ContentIndent);
             GUILayout.Label(i18n.T(labelKey) + $"{value:F2}", GUILayout.Width(120));
             value = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(120));
             GUILayout.EndHorizontal();
@@ -154,13 +183,13 @@ namespace TimingShow.Options
         public static void SliderInt(string labelKey, ref int value, int min, int max)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(ContentIndent);
             GUILayout.Label(i18n.T(labelKey) + $"{value}", GUILayout.Width(120));
             value = Mathf.RoundToInt(GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(100)));
             GUILayout.EndHorizontal();
         }
 
-        public static void Toggle(ref bool value, string labelKey, float indent = 20)
+        public static void Toggle(ref bool value, string labelKey, float indent = ContentIndent)
         {
             GUILayout.BeginHorizontal();
             if (indent > 0) GUILayout.Space(indent);
@@ -171,7 +200,7 @@ namespace TimingShow.Options
         public static void IntField(string labelKey, ref string text, ref int value, int min, int max, int fallback, float labelWidth = 120)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(ContentIndent);
             GUILayout.Label(i18n.T(labelKey), GUILayout.Width(labelWidth));
             if (text == null) text = value.ToString();
             string newText = GUILayout.TextField(text, GUILayout.Width(80));
@@ -194,7 +223,7 @@ namespace TimingShow.Options
         public static void RatioModeButtons()
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(ContentIndent);
             GUILayout.Label(i18n.T("Label_RatioMode"), GUILayout.Width(120));
 
             string[] labels =
@@ -221,7 +250,7 @@ namespace TimingShow.Options
         public static void AlignButtons(ref int align)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(ContentIndent);
             GUILayout.Label(i18n.T("Label_Align"), GUILayout.Width(100));
 
             string[] labels = { i18n.T("Btn_Left"), i18n.T("Btn_Center"), i18n.T("Btn_Right") };
@@ -236,7 +265,7 @@ namespace TimingShow.Options
         public static void ColorPicker(string label, ref Color color)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(ContentIndent);
             GUILayout.Label(label, GUILayout.Width(100));
             GUILayout.Label("R", GUILayout.Width(15));
             color.r = GUILayout.HorizontalSlider(color.r, 0f, 1f, GUILayout.Width(50));
