@@ -6,9 +6,15 @@ $gameDir = "E:\Games\Steam\steamapps\common\A Dance of Fire and Ice"
 
 $modDir = Join-Path $gameDir "Mods\TimingShow"
 
-Write-Host "=== Building TimingShow ===" -ForegroundColor Cyan
+Write-Host "=== Packing embedded assets ===" -ForegroundColor Cyan
 Set-Location $projectDir
-msbuild TimingShow\TimingShow.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+& (Join-Path $projectDir "tools\Pack-EmbeddedAssets.ps1")
+if (-not $?) { throw "Embedded asset packing failed" }
+
+Write-Host "=== Building TimingShow ===" -ForegroundColor Cyan
+# Rebuild the shared assembly: an incremental build can skip embedding a
+# regenerated .dfl, leaving the old font inside TimingShow.dll.
+msbuild TimingShow\TimingShow.csproj /t:Rebuild /p:Configuration=Release /p:Platform="AnyCPU"
 if ($LASTEXITCODE -ne 0) { throw "TimingShow build failed" }
 
 Write-Host "=== Building TimingShow.Loader.UMM ===" -ForegroundColor Cyan
@@ -87,6 +93,20 @@ Copy-Item `
 Copy-Item `
     -Path ".\TimingShow\bin\Release\lang.json" `
     -Destination $modDir `
+    -Force
+
+# The runtime only extracts bundled assets when the destination is missing.
+# Copy the current fonts/license over the deployed copies so a rebuilt font is
+# actually used instead of a stale file left from a previous run.
+$assetsDir = Join-Path $modDir "assets"
+New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
+Copy-Item `
+    -Path ".\TimingShow\assets\SourceHanSansSC-Regular.otf" `
+    -Destination $assetsDir `
+    -Force
+Copy-Item `
+    -Path ".\TimingShow\assets\OFL.txt" `
+    -Destination $assetsDir `
     -Force
 
 
