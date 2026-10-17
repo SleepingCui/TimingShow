@@ -159,23 +159,10 @@ namespace TimingShow.Options
             else
             {
                 Rect viewport = GUILayoutUtility.GetRect(1f, 1f, LogListHeight, LogListHeight, GUILayout.ExpandWidth(true));
-                HandleLogListScroll(viewport);
                 DrawVirtualLogList(viewport, ref _logListScroll);
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
-        }
-
-        private static void HandleLogListScroll(Rect viewport)
-        {
-            Event current = Event.current;
-            if (current == null || current.type != EventType.ScrollWheel) return;
-            if (!viewport.Contains(current.mousePosition)) return;
-
-            float contentHeight = _logEntries.Count * _logRowHeight;
-            float max = Mathf.Max(0f, contentHeight - viewport.height);
-            _logListScroll.y = Mathf.Clamp(_logListScroll.y + current.delta.y * _logRowHeight * 3f, 0f, max);
-            current.Use();
         }
 
         private static void DrawVirtualLogList(Rect viewport, ref Vector2 scroll)
@@ -183,16 +170,24 @@ namespace TimingShow.Options
             if (_logRowHeight <= 0f) _logRowHeight = MeasureRowHeight();
             float rowHeight = _logRowHeight;
 
+            int count = _logEntries.Count;
+            float contentHeight = Mathf.Max(viewport.height, count * rowHeight);
+            float scrollbarWidth = GUI.skin.verticalScrollbar != null
+                ? GUI.skin.verticalScrollbar.fixedWidth
+                : 16f;
+            bool needsScrollbar = contentHeight > viewport.height;
+            Rect contentRect = new Rect(0f, 0f,
+                Mathf.Max(1f, viewport.width - (needsScrollbar ? scrollbarWidth : 0f)), contentHeight);
+
             Event current = Event.current;
-            if (current != null && current.type == EventType.Layout) return;
-
-            int budget = LogListDrawBudget;
-
-            GUI.BeginClip(viewport);
+            scroll = GUI.BeginScrollView(viewport, scroll, contentRect, false, false);
             try
             {
+                if (current != null && current.type == EventType.Layout) return;
+
+                int budget = LogListDrawBudget;
                 int first = Mathf.Max(0, Mathf.FloorToInt(scroll.y / rowHeight));
-                int last = Mathf.Min(_logEntries.Count - 1, Mathf.FloorToInt((scroll.y + viewport.height) / rowHeight));
+                int last = Mathf.Min(count - 1, Mathf.FloorToInt((scroll.y + viewport.height) / rowHeight));
                 int drawn = 0;
 
                 for (int i = first; i <= last; i++)
@@ -203,8 +198,8 @@ namespace TimingShow.Options
                     if (drawn >= budget) break;
                     drawn++;
 
-                    float top = i * rowHeight - scroll.y;
-                    DrawLogRow(entry, new Rect(0f, top, viewport.width, rowHeight));
+                    float top = i * rowHeight;
+                    DrawLogRow(entry, new Rect(0f, top, contentRect.width, rowHeight));
                 }
             }
             catch (Exception e)
@@ -213,7 +208,7 @@ namespace TimingShow.Options
             }
             finally
             {
-                GUI.EndClip();
+                GUI.EndScrollView();
             }
         }
 
