@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 
 $files = @(
-    'NotoSansSC-Regular.otf',
+    'SourceHanSansSC-Regular.otf',
     'OFL.txt'
 )
 

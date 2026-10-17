@@ -1,6 +1,7 @@
-Noto Sans SC
-Copyright © 2014, 2015 Adobe Systems Incorporated (http://www.adobe.com/).
+Source Han Sans SC (思源黑体)
+Copyright © 2014-2025 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
 Licensed under the SIL Open Font License, Version 1.1.
+Distributed here as the unmodified official SourceHanSansSC-Regular.otf.
 
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
 

@@ -97,10 +97,25 @@ namespace TimingShow.HUD
             if (custom)
             {
                 TMP_FontAsset asset = base.ResolveGraphFont();
-                if (asset != null && asset.atlasPopulationMode == AtlasPopulationMode.Dynamic) return asset;
+                if (asset != null && asset.atlasPopulationMode == AtlasPopulationMode.Dynamic)
+                {
+                    AddBundledFallback(asset);
+                    return asset;
+                }
             }
 
             return LogGraphFont.Resolve();
+        }
+
+        private static void AddBundledFallback(TMP_FontAsset asset)
+        {
+            TMP_FontAsset fallback = LogGraphFont.Resolve();
+            if (fallback == null || ReferenceEquals(fallback, asset)) return;
+
+            if (asset.fallbackFontAssetTable == null)
+                asset.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            if (!asset.fallbackFontAssetTable.Contains(fallback))
+                asset.fallbackFontAssetTable.Add(fallback);
         }
         
         private static Settings LogSettings => ModContext.Settings;

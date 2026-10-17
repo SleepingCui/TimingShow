@@ -171,19 +171,19 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="embedded\NotoSansSC-Regular.otf.dfl" LogicalName="TimingShow.Assets.NotoSansSC-Regular.otf" />
+    <EmbeddedResource Include="embedded\SourceHanSansSC-Regular.otf.dfl" LogicalName="TimingShow.Assets.SourceHanSansSC-Regular.otf" />
     <EmbeddedResource Include="embedded\OFL.txt.dfl" LogicalName="TimingShow.Assets.OFL.txt" />
   </ItemGroup>
   <Target Name="PackEmbeddedAssets" BeforeTargets="PrepareResources"
-          Inputs="$(MSBuildProjectDirectory)\assets\NotoSansSC-Regular.otf;$(MSBuildProjectDirectory)\assets\OFL.txt"
-          Outputs="$(MSBuildProjectDirectory)\embedded\NotoSansSC-Regular.otf.dfl;$(MSBuildProjectDirectory)\embedded\OFL.txt.dfl">
+          Inputs="$(MSBuildProjectDirectory)\assets\SourceHanSansSC-Regular.otf;$(MSBuildProjectDirectory)\assets\OFL.txt"
+          Outputs="$(MSBuildProjectDirectory)\embedded\SourceHanSansSC-Regular.otf.dfl;$(MSBuildProjectDirectory)\embedded\OFL.txt.dfl">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\tools\Pack-EmbeddedAssets.ps1&quot;" />
   </Target>
   <ItemGroup>
     <None Include="lang.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="assets\NotoSansSC-Regular.otf" />
+    <None Include="assets\SourceHanSansSC-Regular.otf" />
     <None Include="assets\OFL.txt" />
   </ItemGroup>
   <ItemGroup />

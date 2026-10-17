@@ -11,9 +11,9 @@ namespace TimingShow.HUD
 
     internal static class LogGraphFont
     {
-        private const string BundledFontResource = "TimingShow.Assets.NotoSansSC-Regular.otf";
+        private const string BundledFontResource = "TimingShow.Assets.SourceHanSansSC-Regular.otf";
         private const string BundledLicenseResource = "TimingShow.Assets.OFL.txt";
-        private const string BundledFontFileName = "NotoSansSC-Regular.otf";
+        private const string BundledFontFileName = "SourceHanSansSC-Regular.otf";
         private const string BundledLicenseFileName = "OFL.txt";
 
         private const string CjkProbe = "字";
@@ -81,7 +81,7 @@ namespace TimingShow.HUD
                 AddFallback(_primary, hangul);
                 AddFallback(_primary, latin);
                 ModContext.Logger?.Log("Log graph font: "
-                    + (bundled != null ? "bundled Noto Sans SC" : "system font '" + _primary.name + "'"));
+                    + (bundled != null ? "bundled Source Han Sans SC" : "system font '" + _primary.name + "'"));
             }
             else
             {
@@ -112,13 +112,13 @@ namespace TimingShow.HUD
                     return null;
                 }
 
-                asset.name = "TimingShow_Bundled_NotoSansSC";
+                asset.name = "TimingShow_Bundled_SourceHanSansSC";
                 asset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
                 asset.isMultiAtlasTexturesEnabled = true;
 
                 _bundledSource = source;
 
-                if (!asset.TryAddCharacters("Aa0字あ", out string missing) || !string.IsNullOrEmpty(missing))
+                if (!asset.TryAddCharacters("Aa0字한あ", out string missing) || !string.IsNullOrEmpty(missing))
                 {
                     ModContext.Logger?.Log("Log graph font: bundled font missing probe glyphs: " + missing);
                 }
