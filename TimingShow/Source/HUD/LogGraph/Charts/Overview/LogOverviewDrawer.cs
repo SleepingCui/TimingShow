@@ -56,6 +56,14 @@ namespace TimingShow.HUD
 
         private const int CardCount = 4;
         private const int MaxMargins = 16;
+        private const int MaxMetaEntries = 16;
+
+        private struct MetaEntry
+        {
+            public string Label;
+            public string Value;
+            public bool Warning;
+        }
 
         private OverviewData _data;
         private TimingLogData _log;
@@ -67,15 +75,18 @@ namespace TimingShow.HUD
         private Rect _xaccRect;
         private Rect _metaRect;
         private readonly List<int> _marginCodes = new List<int>(MaxMargins);
+        private readonly List<MetaEntry> _metaEntries = new List<MetaEntry>(MaxMetaEntries);
 
         private TextMeshProUGUI[] _cardTitles;
         private TextMeshProUGUI[] _cardValues;
         private TextMeshProUGUI[] _cardSubs;
         private TextMeshProUGUI[] _marginLabelTexts;
         private TextMeshProUGUI[] _marginValueTexts;
+        private TextMeshProUGUI[] _metaColumnLabels;
         private TextMeshProUGUI _xaccLabel;
-        private TextMeshProUGUI _metaLabel;
         private TextMeshProUGUI _emptyLabel;
+        private const int MaxMetaColumns = 4;
+        private readonly StringBuilder _metaBuilder = new StringBuilder(512);
 
         protected override void CreateTextComponents()
         {
@@ -97,10 +108,16 @@ namespace TimingShow.HUD
                 _marginValueTexts[i] = CreateText("MarginValue" + i, TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
             }
 
+            _metaColumnLabels = new TextMeshProUGUI[MaxMetaColumns];
+            for (int i = 0; i < MaxMetaColumns; i++)
+            {
+                _metaColumnLabels[i] = CreateText("MetaColumn" + i, TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
+                _metaColumnLabels[i].richText = true;
+                _metaColumnLabels[i].textWrappingMode = TextWrappingModes.Normal;
+                _metaColumnLabels[i].overflowMode = TextOverflowModes.Truncate;
+            }
+
             _xaccLabel = CreateText("XaccLabel", TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f));
-            _metaLabel = CreateText("MetaLabel", TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
-            _metaLabel.textWrappingMode = TextWrappingModes.Normal;
-            _metaLabel.overflowMode = TextOverflowModes.Ellipsis;
             _emptyLabel = CreateText("EmptyLabel", TextAlignmentOptions.Midline, new Vector2(0.5f, 0.5f));
         }
 
@@ -153,7 +170,8 @@ namespace TimingShow.HUD
                 SetActive(_marginValueTexts[i], false);
             }
             SetActive(_xaccLabel, false);
-            SetActive(_metaLabel, false);
+            for (int i = 0; i < MaxMetaColumns; i++)
+                SetActive(_metaColumnLabels[i], false);
         }
 
         private void LayoutCards(float width, float height)
@@ -315,22 +333,69 @@ namespace TimingShow.HUD
             float metaTop = _marginRect.yMin - gap;
             _metaRect = new Rect(pad, pad, width - pad * 2f, Mathf.Max(1f, metaTop - pad));
 
-            SetActive(_metaLabel, true);
-            string content = BuildMetaText();
-            int lines = 1;
-            for (int i = 0; i < content.Length; i++)
+            BuildMetaEntries();
+
+            int count = Mathf.Min(_metaEntries.Count, MaxMetaEntries);
+            if (count == 0)
             {
-                if (content[i] == '\n') lines++;
+                for (int i = 0; i < MaxMetaColumns; i++)
+                    SetActive(_metaColumnLabels[i], false);
+                return;
             }
 
-            float availableHeight = _metaRect.height - 20f * UiScale;
-            float fitFont = availableHeight / Mathf.Max(1f, lines * 1.25f);
-            _metaLabel.fontSize = Mathf.Clamp(Mathf.Min(FontSize * 0.95f, fitFont), 8f, FontSize);
-            _metaLabel.color = AxisTextColor;
-            Place(_metaLabel, new Vector2(_metaRect.x + 12f * UiScale, _metaRect.yMax - 10f * UiScale),
-                new Vector2(_metaRect.width - 24f * UiScale, availableHeight),
-                new Vector2(0f, 1f));
-            SetText(_metaLabel, content);
+            float innerWidth = Mathf.Max(1f, _metaRect.width - 24f * UiScale);
+            float minColumnWidth = 240f * UiScale;
+            float columnGap = 22f * UiScale;
+            int columns = Mathf.Clamp(
+                Mathf.FloorToInt((innerWidth + columnGap) / (minColumnWidth + columnGap)),
+                1, MaxMetaColumns);
+            int rows = Mathf.Max(1, Mathf.CeilToInt(count / (float)columns));
+            float columnWidth = Mathf.Max(1f,
+                (innerWidth - columnGap * (columns - 1)) / columns);
+
+            float availableHeight = Mathf.Max(1f, _metaRect.height - 20f * UiScale);
+            float fontSize = Mathf.Clamp(
+                Mathf.Min(FontSize * 0.9f, availableHeight / Mathf.Max(1f, rows * 1.3f)),
+                8f, FontSize);
+            string keyHex = ColorToHex(MutedTextColor);
+            string valueHex = ColorToHex(ValueTextColor);
+            string warningHex = ColorToHex(new Color(1f, 0.78f, 0.32f, 1f));
+
+            for (int column = 0; column < columns; column++)
+            {
+                int start = column * rows;
+                if (start >= count) break;
+
+                _metaBuilder.Length = 0;
+                int end = Mathf.Min(count, start + rows);
+                for (int i = start; i < end; i++)
+                {
+                    if (_metaBuilder.Length > 0) _metaBuilder.Append('\n');
+
+                    MetaEntry entry = _metaEntries[i];
+                    _metaBuilder.Append("<color=#");
+                    _metaBuilder.Append(keyHex);
+                    _metaBuilder.Append('>');
+                    _metaBuilder.Append(entry.Label);
+                    _metaBuilder.Append("</color>  <color=#");
+                    _metaBuilder.Append(entry.Warning ? warningHex : valueHex);
+                    _metaBuilder.Append('>');
+                    _metaBuilder.Append(entry.Value);
+                    _metaBuilder.Append("</color>");
+                }
+
+                TextMeshProUGUI label = _metaColumnLabels[column];
+                SetActive(label, true);
+                label.fontSize = fontSize;
+                label.color = AxisTextColor;
+                Place(label, new Vector2(_metaRect.x + 12f * UiScale + column * (columnWidth + columnGap),
+                        _metaRect.yMax - 10f * UiScale),
+                    new Vector2(columnWidth, availableHeight), new Vector2(0f, 1f));
+                SetText(label, _metaBuilder.ToString());
+            }
+
+            for (int i = columns; i < MaxMetaColumns; i++)
+                SetActive(_metaColumnLabels[i], false);
         }
 
         private void BuildMarginCodes()
@@ -361,47 +426,52 @@ namespace TimingShow.HUD
             return MarginLabels[code];
         }
 
-        private string BuildMetaText()
+        private void BuildMetaEntries()
         {
-            if (_log == null) return "";
+            _metaEntries.Clear();
+            if (_log == null)
+            {
+                ModContext.Logger?.Error("[LogOverview] metadata unavailable: log data is null");
+                return;
+            }
 
-            StringBuilder sb = new StringBuilder(320);
-            AppendMeta(sb, i18n.T("LogGraph_MetaSong"), _log.SongName);
-            AppendMeta(sb, i18n.T("LogGraph_MetaLevelPath"), _log.LevelPath);
+            AddMeta(i18n.T("LogGraph_MetaSong"), _log.SongName);
+            AddMeta(i18n.T("LogGraph_MetaLevelPath"), _log.LevelPath);
             if (!string.IsNullOrEmpty(_log.FilePath))
             {
                 string file;
                 try { file = Path.GetFileName(_log.FilePath); }
                 catch { file = _log.FilePath; }
-                AppendMeta(sb, i18n.T("LogGraph_MetaFile"), file);
+                AddMeta(i18n.T("LogGraph_MetaFile"), file);
             }
-            AppendMeta(sb, i18n.T("LogGraph_MetaFormatVersion"),
+            AddMeta(i18n.T("LogGraph_MetaFormatVersion"),
                 _log.FormatVersion > 0 ? "v" + _log.FormatVersion.ToString(CultureInfo.InvariantCulture) : "Unknown");
-            AppendMeta(sb, i18n.T("LogGraph_MetaAnalysisTime"), FormatTimestamp(_log.Timestamp));
-            AppendMeta(sb, i18n.T("LogGraph_MetaJudgeVersion"),
+            AddMeta(i18n.T("LogGraph_MetaAnalysisTime"), FormatTimestamp(_log.Timestamp));
+            AddMeta(i18n.T("LogGraph_MetaJudgeVersion"),
                 _log.JudgeCodeVersion > 0 ? "v" + _log.JudgeCodeVersion.ToString(CultureInfo.InvariantCulture) : "Unknown");
-            AppendMeta(sb, i18n.T("LogGraph_MetaHitMarginVersion"),
+            AddMeta(i18n.T("LogGraph_MetaHitMarginVersion"),
                 string.IsNullOrEmpty(_log.HitMarginVersionText) ? "Unknown" : _log.HitMarginVersionText);
-            AppendMeta(sb, i18n.T("LogGraph_MetaBpm"), FormatNumber(_log.Bpm, "F2"));
-            AppendMeta(sb, i18n.T("LogGraph_MetaSpeed"), FormatNumber(_log.Speed, "F2"));
-            AppendMeta(sb, i18n.T("LogGraph_MetaPitch"), FormatNumber(_log.Pitch, "F3"));
-            AppendMeta(sb, i18n.T("LogGraph_MetaValueMode"),
+            AddMeta(i18n.T("LogGraph_MetaBpm"), FormatNumber(_log.Bpm, "F2"));
+            AddMeta(i18n.T("LogGraph_MetaSpeed"), FormatNumber(_log.Speed, "F2"));
+            AddMeta(i18n.T("LogGraph_MetaPitch"), FormatNumber(_log.Pitch, "F3"));
+            AddMeta(i18n.T("LogGraph_MetaValueMode"),
                 i18n.T(_log.IsAngle ? "LogGraph_MetaAngle" : "LogGraph_MetaTiming"));
-            AppendMeta(sb, i18n.T("LogGraph_MetaPlayerCount"), _log.PlayerCount.ToString(CultureInfo.InvariantCulture));
-            AppendMeta(sb, i18n.T("LogGraph_MetaRecordCount"),
+            AddMeta(i18n.T("LogGraph_MetaPlayerCount"), _log.PlayerCount.ToString(CultureInfo.InvariantCulture));
+            AddMeta(i18n.T("LogGraph_MetaRecordCount"),
                 _data != null ? _data.TotalHits.ToString("#,0", CultureInfo.InvariantCulture) : "0");
             if (_log.Truncated)
-                sb.AppendLine(i18n.T("LogGraph_MetaTruncated"));
-            return sb.ToString();
+                AddMeta(i18n.T("LogGraph_MetaTruncated"), "⚠", true);
         }
 
-        private static void AppendMeta(StringBuilder sb, string label, string value)
+        private void AddMeta(string label, string value, bool warning = false)
         {
-            if (string.IsNullOrEmpty(value)) value = "Unknown";
-            sb.Append(label);
-            sb.Append(": ");
-            sb.Append(value);
-            sb.Append('\n');
+            if (_metaEntries.Count >= MaxMetaEntries) return;
+
+            MetaEntry entry = new MetaEntry();
+            entry.Label = label;
+            entry.Value = string.IsNullOrEmpty(value) ? "Unknown" : value;
+            entry.Warning = warning;
+            _metaEntries.Add(entry);
         }
 
         private static string FormatTimestamp(long timestamp)
