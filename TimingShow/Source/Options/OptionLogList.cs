@@ -30,6 +30,8 @@ namespace TimingShow.Options
         private static readonly List<string> _deleteCompleted = new List<string>();
         private static readonly object DeleteSync = new object();
         private static Vector2 _logListScroll;
+        private static string _searchQuery = string.Empty;
+        private static readonly List<LogListEntry> _visibleEntries = new List<LogListEntry>();
         private static string _logListDirectory;
         private static bool _logListDirty = true;
 
@@ -137,24 +139,36 @@ namespace TimingShow.Options
             {
                 ModContext.Settings.LogSort = (ModContext.Settings.LogSort + 1) % 3;
                 _logEntries.Sort(CompareLogEntries);
+                RebuildVisibleEntries();
             }
-            long totalBytes = 0;
-            for (int i = 0; i < _logEntries.Count; i++) totalBytes += _logEntries[i].Length;
-            GUILayout.Label(string.Format(i18n.T("LogSummary"), _logEntries.Count, FormatFileSize(totalBytes)), GUILayout.ExpandWidth(true));
-            if (!ModContext.Settings.AnalyzerBridgeEnabled)
+
+            GUILayout.Label(i18n.T("Label_SearchLogs"), GUILayout.Width(42));
+            string newQuery = GUILayout.TextField(_searchQuery ?? string.Empty, GUILayout.Width(200));
+            if (!string.Equals(newQuery, _searchQuery, StringComparison.Ordinal))
             {
-                GUILayout.Space(10);
-                GUILayout.Label(i18n.T("LogAnalyzerBridgeDisabled"), _warningLabelStyle, GUILayout.ExpandWidth(false));
+                _searchQuery = newQuery;
+                RebuildVisibleEntries();
+                _logListScroll.y = 0f;
             }
+            if (!string.IsNullOrEmpty(_searchQuery) && GUILayout.Button("×", GUILayout.Width(24)))
+            {
+                _searchQuery = string.Empty;
+                RebuildVisibleEntries();
+                _logListScroll.y = 0f;
+            }
+
+            long totalBytes = 0;
+            for (int i = 0; i < _visibleEntries.Count; i++) totalBytes += _visibleEntries[i].Length;
+            GUILayout.Label(string.Format(i18n.T("LogSummary"), _visibleEntries.Count, FormatFileSize(totalBytes)), GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
 
             DrawLogGraphPendingOverlay();
 
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical(GUI.skin.box);
-            if (_logEntries.Count == 0)
+            if (_visibleEntries.Count == 0)
             {
-                GUILayout.Label(i18n.T("Label_NoLogs"));
+                GUILayout.Label(i18n.T(_logEntries.Count > 0 ? "Label_NoMatchingLogs" : "Label_NoLogs"));
             }
             else
             {
@@ -170,7 +184,7 @@ namespace TimingShow.Options
             if (_logRowHeight <= 0f) _logRowHeight = MeasureRowHeight();
             float rowHeight = _logRowHeight;
 
-            int count = _logEntries.Count;
+            int count = _visibleEntries.Count;
             float contentHeight = Mathf.Max(viewport.height, count * rowHeight);
             float scrollbarWidth = GUI.skin.verticalScrollbar != null
                 ? GUI.skin.verticalScrollbar.fixedWidth
@@ -192,7 +206,7 @@ namespace TimingShow.Options
 
                 for (int i = first; i <= last; i++)
                 {
-                    LogListEntry entry = _logEntries[i];
+                    LogListEntry entry = _visibleEntries[i];
                     if (TimingLogger.IsFileBeingWritten(entry.FullPath)) continue;
 
                     if (drawn >= budget) break;
@@ -243,10 +257,11 @@ namespace TimingShow.Options
             const float timeWidth = 145f;
             const float deleteWidth = 70f;
 
+            bool analyzerEnabled = ModContext.Settings.AnalyzerBridgeEnabled;
             string analyzeLabel = i18n.T("Btn_AnalyzeLog");
             string graphLabel = i18n.T("Btn_ViewLogGraph");
             string openFileLabel = i18n.T("Btn_OpenLogFile");
-            float analyzeWidth = MeasureButtonWidth(analyzeLabel, 70f);
+            float analyzeWidth = analyzerEnabled ? MeasureButtonWidth(analyzeLabel, 70f) : 0f;
             float graphWidth = MeasureButtonWidth(graphLabel, 70f);
             float openWidth = MeasureButtonWidth(openFileLabel, 70f);
 
@@ -263,9 +278,12 @@ namespace TimingShow.Options
             GUI.Label(new Rect(x, rowY, timeWidth, labelHeight), FormatTimestamp(entry.Timestamp));
             x += timeWidth;
 
-            if (GUI.Button(new Rect(x, buttonY, analyzeWidth, buttonHeight), analyzeLabel))
-                OpenLogInAnalyzer(entry.FullPath);
-            x += analyzeWidth;
+            if (analyzerEnabled)
+            {
+                if (GUI.Button(new Rect(x, buttonY, analyzeWidth, buttonHeight), analyzeLabel))
+                    OpenLogInAnalyzer(entry.FullPath);
+                x += analyzeWidth;
+            }
 
             if (GUI.Button(new Rect(x, buttonY, graphWidth, buttonHeight), graphLabel))
                 OpenLogGraphWindow(entry.FullPath);
@@ -365,6 +383,30 @@ namespace TimingShow.Options
             _logEntries.AddRange(result.Entries);
             _logListDirectory = result.Directory;
             _logListDirty = false;
+            RebuildVisibleEntries();
+        }
+
+        private static void RebuildVisibleEntries()
+        {
+            _visibleEntries.Clear();
+            string query = (_searchQuery ?? string.Empty).Trim();
+            for (int i = 0; i < _logEntries.Count; i++)
+            {
+                LogListEntry entry = _logEntries[i];
+                if (query.Length == 0
+                    || Contains(entry.FileName, query)
+                    || Contains(entry.SongName, query)
+                    || Contains(entry.FullPath, query))
+                {
+                    _visibleEntries.Add(entry);
+                }
+            }
+        }
+
+        private static bool Contains(string value, string query)
+        {
+            return !string.IsNullOrEmpty(value)
+                && value.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static LogListEntry ReadLogEntry(string filePath, ref bool cacheDirty)
@@ -939,6 +981,7 @@ namespace TimingShow.Options
             for (int i = 0; i < completed.Count; i++)
                 RemoveLogEntry(completed[i]);
 
+            RebuildVisibleEntries();
             _logListDirty = true;
         }
 
@@ -953,11 +996,16 @@ namespace TimingShow.Options
 
         private static void RemoveActiveLogEntries()
         {
+            bool removed = false;
             for (int i = _logEntries.Count - 1; i >= 0; i--)
             {
                 if (TimingLogger.IsFileBeingWritten(_logEntries[i].FullPath))
+                {
                     _logEntries.RemoveAt(i);
+                    removed = true;
+                }
             }
+            if (removed) RebuildVisibleEntries();
         }
 
         private static void SetButtonTextColor(GUIStyle style, Color color)

@@ -218,7 +218,7 @@ namespace TimingShow
         public bool UseJsonWriter;
         public bool AutoReloadInEditor;
 
-        public bool AnalyzerBridgeEnabled = true;
+        public bool AnalyzerBridgeEnabled;
         public int AnalyzerBridgePort;
         public int AnalyzerBridgeTimeoutSec = LogAnalyzerBridge.DefaultTimeoutSeconds;
 

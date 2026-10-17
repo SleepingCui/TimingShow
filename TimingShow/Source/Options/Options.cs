@@ -574,8 +574,8 @@ namespace TimingShow.Options
             string debugFoldoutArrow = _showDebugSettings ? "▲" : "▼";
             if (GUILayout.Button($"{i18n.T("Btn_Debug")} {debugFoldoutArrow}", GUILayout.Width(150)))
                 _showDebugSettings = !_showDebugSettings;
-
-            IndentedLabel(i18n.T("Desc_DebugWarning"));
+            
+            IndentedLabel($"<color=#888888>{i18n.T("Desc_DebugWarning")}</color>");
 
             if (!_showDebugSettings) return;
 
