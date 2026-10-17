@@ -175,7 +175,7 @@ namespace TimingShow.Options
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(ContentIndent);
-            GUILayout.Label(i18n.T(labelKey) + $"{value:F2}", GUILayout.Width(120));
+            GUILayout.Label(i18n.T(labelKey) + $"{value:F2}", GUILayout.ExpandWidth(false));
             value = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(120));
             GUILayout.EndHorizontal();
         }
@@ -184,7 +184,7 @@ namespace TimingShow.Options
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(ContentIndent);
-            GUILayout.Label(i18n.T(labelKey) + $"{value}", GUILayout.Width(120));
+            GUILayout.Label(i18n.T(labelKey) + $"{value}", GUILayout.ExpandWidth(false));
             value = Mathf.RoundToInt(GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(100)));
             GUILayout.EndHorizontal();
         }
