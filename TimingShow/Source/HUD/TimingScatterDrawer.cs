@@ -31,19 +31,21 @@ namespace TimingShow.HUD
             }
         }
         
-        private const float BandAnimationDuration = 0.4f; // seconds, matches AccurateJudgementBar
+        private static readonly Color DefaultBorderColor = new Color(1f, 1f, 1f, 0.35f);
+
+        protected override bool ShowBorder => ModContext.Settings != null && ModContext.Settings.TimingScatter_ShowBorder;
+        protected override Color BorderColor => ModContext.Settings != null ? ModContext.Settings.TimingScatter_BorderColor : DefaultBorderColor;
+
+        private const float BandAnimationDuration = 0.4f; 
 
         private bool _bandWindowValid;
         private bool _bandAnimating;
         private float _bandAnimStartedAt;
-
-        // Current (animated) values used for drawing.
+        
         private float _bandPerfectMs;
         private float _bandElPerfectMs;
         private float _bandPassMs;
         private float _bandXpMs;
-
-        // Transition endpoints.
         private float _bandPerfectTarget;
         private float _bandElPerfectTarget;
         private float _bandPassTarget;
@@ -151,22 +153,10 @@ namespace TimingShow.HUD
             SetVerticesDirty();
         }
 
-        private void DrawBand(VertexHelper vh, float w, float h, float rangeY, float minY, float fromMs, float toMs, Color color)
-        {
-            float y0 = Mathf.Clamp01((fromMs - minY) / rangeY) * h;
-            float y1 = Mathf.Clamp01((toMs - minY) / rangeY) * h;
-            if (y1 - y0 < 0.5f) return;
-
-            DrawQuad(vh, new Vector2(0f, y0), new Vector2(w, y1), color);
-        }
-        
-
         internal const float ThresholdLenientBpm = 220f;
         internal const float ThresholdNormalBpm = 310f;
         internal const float ThresholdStrictBpm = 500f;
         private const float PassAngleMsScale = 20000f;
-
-        // Reference (AccurateJudgementBar) window parameters.
         private const float MinWindowMs = 25f;
         private const float PerfectBaseMs = 20f;
         private const float ElPerfectBaseMs = 30f;
@@ -224,16 +214,6 @@ namespace TimingShow.HUD
             }
         }
         
-        internal static float GetEffectiveTempoBpm()
-        {
-            // Kept for compatibility with the old band-window code path.
-            return GetWindowBpm();
-        }
-
-        /// <summary>
-        /// Effective floor BPM used by the judgement windows:
-        /// bpm * pitch * speed / marginScale / speedTrial.
-        /// </summary>
         internal static float GetWindowBpm()
         {
             try
@@ -340,6 +320,24 @@ namespace TimingShow.HUD
             float speedTrial = Mathf.Max(0.001f, ReadGameSpeedTrial());
             float xpMs = 60000f / windowBpm * 12.5f / 180f / speedTrial;
             return Mathf.Max(xpMs, XpMinWindowMs);
+        }
+        
+        internal static void GetLogWindowMs(float windowBpm, float passThresholdBpm,
+            out float perfectMs, out float elPerfectMs, out float passMs)
+        {
+            float threshold = Mathf.Clamp(passThresholdBpm, 100f, 600f);
+            float safeBpm = windowBpm > 0f ? windowBpm : threshold;
+            float passBase = PassAngleMsScale / threshold;
+
+            perfectMs = CalcWindow(safeBpm, 1f, 30f, PerfectBaseMs);
+            elPerfectMs = CalcWindow(safeBpm, 1f, 45f, ElPerfectBaseMs);
+            passMs = CalcWindow(safeBpm, 1f, 60f, passBase);
+        }
+
+        internal static float GetLogXpWindowMs(float windowBpm)
+        {
+            if (!(windowBpm > 0f)) return 0f;
+            return Mathf.Max(60000f / windowBpm * 12.5f / 180f, XpMinWindowMs);
         }
     }
 }

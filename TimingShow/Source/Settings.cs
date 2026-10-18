@@ -122,6 +122,7 @@ namespace TimingShow
         public bool ShowXACCGraph;
         public bool XACCGraph_ShowEnd;
         public bool XACCGraph_ShowPerfInfo;
+        public bool XACCGraph_ShowBorder;
         public float XACCGraph_X = 0.05f;
         public float XACCGraph_Y = 0.50f;
         public float XACCGraph_Width = 260f;
@@ -131,6 +132,7 @@ namespace TimingShow
 
         public Color XACCGraph_BgColor = new Color(0f, 0f, 0f, 0.6f);
         public Color XACCGraph_LineColor = new Color(0.2f, 0.9f, 0.3f, 1f);
+        public Color XACCGraph_BorderColor = new Color(1f, 1f, 1f, 0.35f);
         public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 1f);
         public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
@@ -152,6 +154,7 @@ namespace TimingShow
         public bool TimingScatter_UseJudgeColor = true;
         public bool TimingScatter_ShowZeroLine = true;
         public bool TimingScatter_ShowAvgLine = true;
+        public bool TimingScatter_ShowBorder;
         public bool TimingScatter_IgnoreOutliers;
         public bool TimingScatter_ShowPerfInfo;
         public bool TimingScatter_ShowJudgeBands = true;
@@ -165,6 +168,7 @@ namespace TimingShow
         public Color TimingScatter_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
         public Color TimingScatter_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
         public Color TimingScatter_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public Color TimingScatter_BorderColor = new Color(1f, 1f, 1f, 0.35f);
         public Color TimingScatter_BandPerfectColor = new Color(0.25f, 0.90f, 0.35f, 0.14f);
         public Color TimingScatter_BandElPerfectColor = new Color(1f, 0.85f, 0.20f, 0.12f);
         public Color TimingScatter_BandEarlyLateColor = new Color(0.95f, 0.40f, 0.30f, 0.10f);

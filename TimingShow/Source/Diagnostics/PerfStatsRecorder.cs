@@ -561,6 +561,7 @@ namespace TimingShow.Diagnostics
                 sb.AppendLine("Width x Height            : " + settings.TimingScatter_Width.ToString("F1", inv) + " x " + settings.TimingScatter_Height.ToString("F1", inv));
                 sb.AppendLine("ShowAvgLine               : " + settings.TimingScatter_ShowAvgLine);
                 sb.AppendLine("ShowZeroLine              : " + settings.TimingScatter_ShowZeroLine);
+                sb.AppendLine("ShowBorder                : " + settings.TimingScatter_ShowBorder);
                 sb.AppendLine("ShowJudgeBands            : " + settings.TimingScatter_ShowJudgeBands);
                 sb.AppendLine("ShowXpBand                : " + settings.TimingScatter_ShowXpBand);
                 sb.AppendLine("IgnoreOutliers            : " + settings.TimingScatter_IgnoreOutliers);

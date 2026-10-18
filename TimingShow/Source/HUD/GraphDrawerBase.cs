@@ -24,6 +24,9 @@ namespace TimingShow.HUD
         protected abstract int MaxPoints { get; }
         public abstract string GraphName { get; }
         protected virtual int DataVersion => ModContext.XAccVersion;
+
+        protected virtual bool ShowBorder => false;
+        protected virtual Color BorderColor => new Color(1f, 1f, 1f, 0.35f);
         
         protected virtual bool UseCustomFont => false;
         protected virtual string FontPath => "";
@@ -323,6 +326,8 @@ namespace TimingShow.HUD
                 hash = hash * 31 + BgColor.GetHashCode();
                 hash = hash * 31 + GridColor.GetHashCode();
                 hash = hash * 31 + LineColor.GetHashCode();
+                hash = hash * 31 + (ShowBorder ? 1 : 0);
+                hash = hash * 31 + BorderColor.GetHashCode();
                 hash = hash * 31 + (UseCustomFont ? 1 : 0);
                 hash = hash * 31 + (FontPath ?? "").GetHashCode();
                 hash = hash * 31 + (ShowPerfInfo ? 1 : 0);
@@ -720,6 +725,8 @@ namespace TimingShow.HUD
             DrawReferenceLines(vh, w, h);
             DrawSeries(vh, w, h);
 
+            if (ShowBorder) DrawBorderLines(vh, w, h);
+
             _perfVertexCount = vh.currentVertCount;
             _perfRedrawCount++;
 
@@ -740,6 +747,18 @@ namespace TimingShow.HUD
 
         protected virtual void DrawReferenceLines(VertexHelper vh, float w, float h)
         {
+        }
+
+        protected void DrawBorderLines(VertexHelper vh, float w, float h)
+        {
+            float scale = Mathf.Max(0.01f, Scale);
+            float thickness = Mathf.Max(0.5f, 1f * scale * 0.5f);
+            Color color = BorderColor;
+
+            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(w, 0f), thickness, color);
+            DrawSegment(vh, new Vector2(0f, 0f), new Vector2(0f, h), thickness, color);
+            DrawSegment(vh, new Vector2(0f, h), new Vector2(w, h), thickness, color);
+            DrawSegment(vh, new Vector2(w, 0f), new Vector2(w, h), thickness, color);
         }
 
         protected virtual void DrawSeries(VertexHelper vh, float w, float h)

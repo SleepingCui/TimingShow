@@ -22,6 +22,9 @@ namespace TimingShow.HUD
         protected override Color GridColor => ModContext.Settings.XACCGraph_GridColor;
         protected override Color LineColor => ModContext.Settings.XACCGraph_LineColor;
 
+        protected override bool ShowBorder => ModContext.Settings != null && ModContext.Settings.XACCGraph_ShowBorder;
+        protected override Color BorderColor => ModContext.Settings != null ? ModContext.Settings.XACCGraph_BorderColor : new Color(1f, 1f, 1f, 0.35f);
+
         protected override int MaxPoints => ModContext.Settings.XACCGraph_MaxPoints > 0 ? ModContext.Settings.XACCGraph_MaxPoints : 250;
         public override string GraphName => "XACC";
 

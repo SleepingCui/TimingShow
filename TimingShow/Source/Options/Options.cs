@@ -297,6 +297,7 @@ namespace TimingShow.Options
             {
                 Toggle(ref ModContext.Settings.XACCGraph_ShowEnd, "Toggle_ShowEnd");
                 Toggle(ref ModContext.Settings.XACCGraph_ShowPerfInfo, "Toggle_ShowPerfInfo");
+                Toggle(ref ModContext.Settings.XACCGraph_ShowBorder, "Toggle_ShowBorder");
                 SliderFloat("Label_XOffset", ref ModContext.Settings.XACCGraph_X, 0.0f, 1.0f);
                 SliderFloat("Label_YOffset", ref ModContext.Settings.XACCGraph_Y, 0.0f, 1.0f);
                 SliderFloat("Label_GraphWidth", ref ModContext.Settings.XACCGraph_Width, 80f, 1200f);
@@ -309,6 +310,8 @@ namespace TimingShow.Options
                 ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor);
                 ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor);
                 ColorPicker(i18n.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor);
+                if (ModContext.Settings.XACCGraph_ShowBorder)
+                    ColorPicker(i18n.T("Label_BorderColor"), ref ModContext.Settings.XACCGraph_BorderColor);
 
                 DrawHUDFontSettings(ref ModContext.Settings.XACCGraph_UseCustomFont, ref ModContext.Settings.XACCGraph_FontPath);
             }
@@ -336,6 +339,7 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.TimingScatter_UseJudgeColor, "Toggle_UseJudgeColor");
                 Toggle(ref ModContext.Settings.TimingScatter_ShowZeroLine, "Toggle_ShowZeroLine");
                 Toggle(ref ModContext.Settings.TimingScatter_ShowAvgLine, "Toggle_ShowAvgLine");
+                Toggle(ref ModContext.Settings.TimingScatter_ShowBorder, "Toggle_ShowBorder");
                 Toggle(ref ModContext.Settings.TimingScatter_ShowJudgeBands, "Toggle_ShowJudgeBands");
                 if (ModContext.Settings.TimingScatter_ShowJudgeBands)
                 {
@@ -360,6 +364,8 @@ namespace TimingShow.Options
                 ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.TimingScatter_ZeroLineColor);
                 ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.TimingScatter_AvgLineColor);
                 ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.TimingScatter_AxisTextColor);
+                if (ModContext.Settings.TimingScatter_ShowBorder)
+                    ColorPicker(i18n.T("Label_BorderColor"), ref ModContext.Settings.TimingScatter_BorderColor);
 
                 DrawHUDFontSettings(ref ModContext.Settings.TimingScatter_UseCustomFont, ref ModContext.Settings.TimingScatter_FontPath);
             }
