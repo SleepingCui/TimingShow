@@ -241,6 +241,10 @@ namespace TimingShow
 
         public int LogListDrawBudget = 60;
 
+        public bool LogAutoClean;
+
+        public int LogKeepCount = 50;
+
         public bool Diag_GraphBounds;
         public bool Diag_PerfLogEnabled;
         public bool Diag_InputTrace;

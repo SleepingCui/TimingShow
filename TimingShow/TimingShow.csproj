@@ -161,6 +161,7 @@
     <Compile Include="Source\Logging\ColorConverter.cs" />
     <Compile Include="Source\Logging\TimingLogger.cs" />
     <Compile Include="Source\Logging\TimingLoggerBinary.cs" />
+    <Compile Include="Source\Logging\LogRetention.cs" />
     <Compile Include="Source\Logging\TimingLogReader.cs" />
     <Compile Include="Source\Logging\VarInt.cs" />
     <Compile Include="Source\Options\OptionLogList.cs" />

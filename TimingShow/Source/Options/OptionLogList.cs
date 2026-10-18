@@ -22,6 +22,7 @@ namespace TimingShow.Options
         private static GUIStyle _deleteArmedButtonStyle;
         private static GUIStyle _warningLabelStyle;
         private static GUIStyle _logNameLabelStyle;
+        private static GUIStyle _summaryLabelStyle;
         private static readonly GUIContent _measureContent = new GUIContent();
 
         private static readonly List<LogListEntry> _logEntries = new List<LogListEntry>();
@@ -34,6 +35,10 @@ namespace TimingShow.Options
         private static readonly List<LogListEntry> _visibleEntries = new List<LogListEntry>();
         private static string _logListDirectory;
         private static bool _logListDirty = true;
+        private static string _keepFirstText;
+        private static int _autoCleanSeenVersion;
+
+        private const int MaxKeepLogCount = 100000;
 
         private const float LogListHeight = 180f;
         private static float _logRowHeight;
@@ -100,6 +105,8 @@ namespace TimingShow.Options
         {
             _logListDirectory = null;
             _logListDirty = true;
+            _keepFirstText = null;
+            LogRetention.RequestCleanup();
             try { RequestLogScan(GetLogDirectory()); }
             catch (Exception e) { ModContext.Logger.Error("Failed to refresh logs on config open: " + e.Message); }
         }
@@ -109,6 +116,13 @@ namespace TimingShow.Options
             EnsureStyles();
             ProcessDeleteResults();
             ApplyLogScanResults();
+
+            int cleanVersion = LogRetention.CompletedVersion;
+            if (cleanVersion != _autoCleanSeenVersion)
+            {
+                _autoCleanSeenVersion = cleanVersion;
+                _logListDirty = true;
+            }
             ApplyLogGraphLoadResult();
             RemoveActiveLogEntries();
             UpdatePendingHintSnapshot();
@@ -143,7 +157,7 @@ namespace TimingShow.Options
             }
 
             GUILayout.Label(i18n.T("Label_SearchLogs"), GUILayout.Width(42));
-            string newQuery = GUILayout.TextField(_searchQuery ?? string.Empty, GUILayout.Width(200));
+            string newQuery = GUILayout.TextField(_searchQuery ?? string.Empty, GUILayout.Width(160));
             if (!string.Equals(newQuery, _searchQuery, StringComparison.Ordinal))
             {
                 _searchQuery = newQuery;
@@ -157,9 +171,11 @@ namespace TimingShow.Options
                 _logListScroll.y = 0f;
             }
 
+            DrawAutoCleanControls();
+
             long totalBytes = 0;
             for (int i = 0; i < _visibleEntries.Count; i++) totalBytes += _visibleEntries[i].Length;
-            GUILayout.Label(string.Format(i18n.T("LogSummary"), _visibleEntries.Count, FormatFileSize(totalBytes)), GUILayout.ExpandWidth(true));
+            GUILayout.Label(string.Format(i18n.T("LogSummary"), _visibleEntries.Count, FormatFileSize(totalBytes)), _summaryLabelStyle, GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
 
             DrawLogGraphPendingOverlay();
@@ -177,6 +193,39 @@ namespace TimingShow.Options
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
+        }
+
+        private static void DrawAutoCleanControls()
+        {
+            bool autoClean = ModContext.Settings.LogAutoClean;
+            bool newAutoClean = GUILayout.Toggle(autoClean, i18n.T("Toggle_LogAutoClean"), GUILayout.ExpandWidth(false));
+            if (newAutoClean != autoClean)
+            {
+                ModContext.Settings.LogAutoClean = newAutoClean;
+                if (newAutoClean) LogRetention.RequestCleanup();
+            }
+
+            GUILayout.Space(6f);
+            GUILayout.Label(i18n.T("Label_KeepLogsPrefix"), GUILayout.ExpandWidth(false));
+
+            if (_keepFirstText == null)
+                _keepFirstText = KeepFirstCount().ToString();
+
+            string newText = GUILayout.TextField(_keepFirstText, GUILayout.Width(50));
+            if (!string.Equals(newText, _keepFirstText, StringComparison.Ordinal))
+            {
+                _keepFirstText = newText;
+                int parsed;
+                if (int.TryParse(newText, out parsed) && parsed >= 0 && parsed <= MaxKeepLogCount)
+                    ModContext.Settings.LogKeepCount = parsed;
+            }
+
+            GUILayout.Label(i18n.T("Label_KeepLogsSuffix"), GUILayout.ExpandWidth(false));
+        }
+
+        private static int KeepFirstCount()
+        {
+            return Mathf.Clamp(ModContext.Settings.LogKeepCount, 0, MaxKeepLogCount);
         }
 
         private static void DrawVirtualLogList(Rect viewport, ref Vector2 scroll)
@@ -311,6 +360,8 @@ namespace TimingShow.Options
             _deleteButtonStyle = new GUIStyle(GUI.skin.button);
             _deleteArmedButtonStyle = new GUIStyle(_deleteButtonStyle);
             _warningLabelStyle = new GUIStyle(GUI.skin.label);
+            _summaryLabelStyle = new GUIStyle(GUI.skin.label);
+            _summaryLabelStyle.alignment = TextAnchor.MiddleRight;
             _logNameLabelStyle = new GUIStyle(GUI.skin.label);
             _logNameLabelStyle.wordWrap = false;
             _logNameLabelStyle.clipping = TextClipping.Clip;

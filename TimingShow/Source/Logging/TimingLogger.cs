@@ -142,10 +142,15 @@ namespace TimingShow.Logging
             {
                 TimingLoggerBinary.CloseSession();
                 _isCurrentSessionBinary = false;
+                LogRetention.RequestCleanup();
                 return;
             }
 
-            if (_writer == null) return;
+            if (_writer == null)
+            {
+                LogRetention.RequestCleanup();
+                return;
+            }
 
             try
             {
@@ -184,6 +189,7 @@ namespace TimingShow.Logging
                 _currentFilePath = null;
                 _playerBuffers = null;
                 _isCurrentSessionAngle = false;
+                LogRetention.RequestCleanup();
             }
         }
 
