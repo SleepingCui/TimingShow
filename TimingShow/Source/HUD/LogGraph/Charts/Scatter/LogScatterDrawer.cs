@@ -9,6 +9,7 @@ namespace TimingShow.HUD
 {
     public class LogScatterDrawer : ScatterBase
     {
+        private const float GridSpacingPx = 120f;
         private List<TimingScatterSample> _samples = new List<TimingScatterSample>();
         private int _dataVersion;
         private bool _isAngle;
@@ -84,6 +85,36 @@ namespace TimingShow.HUD
         protected override bool HintInFooter => true;
         protected override float GridAlphaScale => 0.6f;
         protected override bool ShowGrid => LogSettings == null || LogSettings.LogGraph_ShowGrid;
+
+        protected override void DrawGridLines(VertexHelper vh, float w, float h)
+        {
+            if (!ShowGrid)
+            {
+                base.DrawGridLines(vh, w, h);
+                return;
+            }
+
+            float scale = Mathf.Max(0.01f, Scale);
+            float halfWidth = Mathf.Max(0.25f, 1f * scale * 0.5f);
+
+            Color color = GridColor;
+            color.a = Mathf.Clamp(color.a * Mathf.Clamp01(GridAlphaScale), 0.10f, 0.65f);
+
+            int xDivisions = Mathf.Clamp(Mathf.RoundToInt(w / GridSpacingPx), 4, 24);
+            int yDivisions = Mathf.Clamp(Mathf.RoundToInt(h / GridSpacingPx), 4, 24);
+
+            for (int i = 1; i < xDivisions; i++)
+            {
+                float x = w * i / xDivisions;
+                DrawSegment(vh, new Vector2(x, 0f), new Vector2(x, h), halfWidth, color);
+            }
+
+            for (int i = 1; i < yDivisions; i++)
+            {
+                float y = h * i / yDivisions;
+                DrawSegment(vh, new Vector2(0f, y), new Vector2(w, y), halfWidth, color);
+            }
+        }
         
         public void ReloadAppearance()
         {
