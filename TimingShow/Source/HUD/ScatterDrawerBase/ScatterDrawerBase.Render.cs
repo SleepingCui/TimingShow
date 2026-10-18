@@ -294,7 +294,9 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
             int cursor = 0;
             bool hasPrev = false;
+            bool hasFirst = false;
             Vector2 prev = Vector2.zero;
+            Vector2 first = Vector2.zero;
 
             for (int i = 0; i < count; i++)
             {
@@ -305,10 +307,21 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 float ny = Mathf.Clamp01((avg - _minY) / rangeY);
                 Vector2 cur = new Vector2(nx * w, ny * h);
 
+                if (!hasFirst)
+                {
+                    first = cur;
+                    hasFirst = true;
+                }
+
                 if (hasPrev) DrawClippedSegment(vh, prev, cur, w, halfWidth, color);
                 prev = cur;
                 hasPrev = true;
             }
+
+            // The live view can start before the first sample. Extend the
+            // cumulative average to the left edge so the line is not partial.
+            if (hasFirst && first.x > 0.01f)
+                DrawClippedSegment(vh, new Vector2(0f, first.y), first, w, halfWidth, color);
 
             float currentAvg = _avgSmoothValid ? _avgSmoothValue : _avgCurrent;
             float tailNy = Mathf.Clamp01((currentAvg - _minY) / rangeY);
