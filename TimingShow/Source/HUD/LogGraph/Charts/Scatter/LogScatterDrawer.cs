@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using TimingShow.Logging;
 using ScatterBase = TimingShow.HUD.ScatterDrawerBase.ScatterDrawerBase;
 
@@ -11,6 +12,7 @@ namespace TimingShow.HUD
         private List<TimingScatterSample> _samples = new List<TimingScatterSample>();
         private int _dataVersion;
         private bool _isAngle;
+        private float _windowBpm;
         private int _playerCount = 1;
         public TMP_FontAsset GraphFontAsset => CurrentFontAsset;
 
@@ -46,6 +48,7 @@ namespace TimingShow.HUD
         {
             _samples = data != null && data.Samples != null ? data.Samples : new List<TimingScatterSample>();
             _isAngle = data != null && data.IsAngle;
+            _windowBpm = ComputeWindowBpm(data);
             _playerCount = data != null && data.PlayerCount > 0 ? data.PlayerCount : 1;
             _dataVersion++;
 
@@ -136,6 +139,64 @@ namespace TimingShow.HUD
         protected override Color ScatterZeroLineColor => LogSettings != null ? LogSettings.LogGraph_ZeroLineColor : new Color(1f, 1f, 1f, 0.65f);
         protected override Color ScatterAvgLineColor => LogSettings != null ? LogSettings.LogGraph_AvgLineColor : new Color(1f, 0.85f, 0.20f, 0.95f);
         protected override Color ScatterAxisTextColor => LogSettings != null ? LogSettings.LogGraph_AxisTextColor : new Color(0.80f, 0.80f, 0.80f, 1f);
+
+        private static float ComputeWindowBpm(TimingLogData data)
+        {
+            if (data == null || data.Bpm <= 0.0) return 0f;
+
+            double pitch = data.Pitch > 0.0 ? data.Pitch : 1.0;
+            double speed = data.Speed > 0.0 ? data.Speed : 1.0;
+            double windowBpm = data.Bpm * pitch * speed;
+            return windowBpm > 0.0 && !double.IsNaN(windowBpm) ? (float)windowBpm : 0f;
+        }
+
+        protected override void DrawBands(VertexHelper vh, float w, float h, Settings settings, float minY, float maxY)
+        {
+            if (settings == null || _isAngle) return;
+
+            float rangeY = Mathf.Max(0.01f, maxY - minY);
+
+            if (settings.LogGraph_ShowJudgeBands)
+            {
+                float perfectMs, elPerfectMs, passMs;
+                TimingScatterDrawer.GetLogWindowMs(_windowBpm, settings.LogGraph_BandThresholdBpm,
+                    out perfectMs, out elPerfectMs, out passMs);
+
+                if (passMs > 0f)
+                {
+                    DrawBand(vh, w, h, rangeY, minY, -passMs, -elPerfectMs, settings.LogGraph_BandEarlyLateColor);
+                    DrawBand(vh, w, h, rangeY, minY, elPerfectMs, passMs, settings.LogGraph_BandEarlyLateColor);
+                    DrawBand(vh, w, h, rangeY, minY, -elPerfectMs, -perfectMs, settings.LogGraph_BandElPerfectColor);
+                    DrawBand(vh, w, h, rangeY, minY, perfectMs, elPerfectMs, settings.LogGraph_BandElPerfectColor);
+                    DrawBand(vh, w, h, rangeY, minY, -perfectMs, perfectMs, settings.LogGraph_BandPerfectColor);
+                }
+            }
+
+            if (settings.LogGraph_ShowXpBand)
+            {
+                float xpMs = TimingScatterDrawer.GetLogXpWindowMs(_windowBpm);
+                if (xpMs > 0f) DrawBand(vh, w, h, rangeY, minY, -xpMs, xpMs, settings.LogGraph_BandXpColor);
+            }
+        }
+
+        protected override int ComputeSettingsHash()
+        {
+            unchecked
+            {
+                int hash = base.ComputeSettingsHash();
+                Settings s = LogSettings;
+                if (s == null) return hash;
+
+                hash = hash * 31 + (s.LogGraph_ShowJudgeBands ? 1 : 0);
+                hash = hash * 31 + (s.LogGraph_ShowXpBand ? 1 : 0);
+                hash = hash * 31 + s.LogGraph_BandThresholdBpm.GetHashCode();
+                hash = hash * 31 + s.LogGraph_BandPerfectColor.GetHashCode();
+                hash = hash * 31 + s.LogGraph_BandElPerfectColor.GetHashCode();
+                hash = hash * 31 + s.LogGraph_BandEarlyLateColor.GetHashCode();
+                hash = hash * 31 + s.LogGraph_BandXpColor.GetHashCode();
+                return hash;
+            }
+        }
 
         protected override int ScatterMaxRenderPoints
         {

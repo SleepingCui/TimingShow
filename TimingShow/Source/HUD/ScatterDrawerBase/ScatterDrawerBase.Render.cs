@@ -123,6 +123,15 @@ namespace TimingShow.HUD.ScatterDrawerBase
             DrawDetailPanel(vh, scale);
         }
 
+        protected void DrawBand(VertexHelper vh, float w, float h, float rangeY, float minY, float fromMs, float toMs, Color color)
+        {
+            float y0 = Mathf.Clamp01((fromMs - minY) / rangeY) * h;
+            float y1 = Mathf.Clamp01((toMs - minY) / rangeY) * h;
+            if (y1 - y0 < 0.5f) return;
+
+            DrawQuad(vh, new Vector2(0f, y0), new Vector2(w, y1), color);
+        }
+
         private void DrawPlotFrameLines(VertexHelper vh, float w, float h)
         {
             Color color = ScatterAxisTextColor;
@@ -317,9 +326,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 prev = cur;
                 hasPrev = true;
             }
-
-            // The live view can start before the first sample. Extend the
-            // cumulative average to the left edge so the line is not partial.
+            
             if (hasFirst && first.x > 0.01f)
                 DrawClippedSegment(vh, new Vector2(0f, first.y), first, w, halfWidth, color);
 

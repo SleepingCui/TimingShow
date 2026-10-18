@@ -115,7 +115,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             float rowHeight = Mathf.Min(BaseRowHeight * scale, available / content.Count - rowGap);
             rowHeight = Mathf.Max(12f, rowHeight);
             
-            float rowFontSize = Mathf.Clamp(Mathf.Min(fontSize, rowHeight / LineHeightRatio), 8f, fontSize);
+            float rowFontSize = Mathf.Clamp(Mathf.Min(fontSize * 0.9f, rowHeight / LineHeightRatio), 8f, fontSize);
 
             float y = top;
             for (int i = 0; i < content.Count; i++)
@@ -170,6 +170,15 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             rows.Add(Toggle("Toggle_ShowGrid",
                 () => _draft.ShowGrid,
                 v => _draft.ShowGrid = v));
+            rows.Add(Toggle("Toggle_ShowJudgeBands",
+                () => _draft.ShowJudgeBands,
+                v => _draft.ShowJudgeBands = v));
+            rows.Add(Toggle("Toggle_ShowXpBand",
+                () => _draft.ShowXpBand,
+                v => _draft.ShowXpBand = v));
+            rows.Add(Slider("Label_BandThresholdBpm", 100f, 600f, false, "F0",
+                () => _draft.BandThresholdBpm,
+                v => _draft.BandThresholdBpm = v));
             rows.Add(Toggle("Toggle_CustomFont",
                 () => _draft.UseCustomFont,
                 v => _draft.UseCustomFont = v));
@@ -367,41 +376,40 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             if (text == null) return;
 
             RectTransform rt = text.rectTransform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.zero;
             if (right)
             {
-                rt.anchorMin = new Vector2(1f, 1f);
-                rt.anchorMax = new Vector2(1f, 1f);
-                rt.pivot = new Vector2(1f, 1f);
-                rt.anchoredPosition = new Vector2(rect.x + rect.width - w, rect.y + rect.height - h);
+                rt.pivot = new Vector2(1f, 0f);
+                rt.anchoredPosition = new Vector2(rect.xMax, rect.yMin);
             }
             else
             {
-                rt.anchorMin = new Vector2(0f, 1f);
-                rt.anchorMax = new Vector2(0f, 1f);
-                rt.pivot = new Vector2(0f, 1f);
-                rt.anchoredPosition = new Vector2(rect.x, rect.y + rect.height - h);
+                rt.pivot = Vector2.zero;
+                rt.anchoredPosition = new Vector2(rect.xMin, rect.yMin);
             }
 
             rt.sizeDelta = new Vector2(Mathf.Max(1f, rect.width), Mathf.Max(1f, rect.height));
+            text.ForceMeshUpdate();
         }
 
         private TextMeshProUGUI CreateText(string name, string content, TextAlignmentOptions alignment,
             float fontSize, Color color)
         {
-            GameObject go = new GameObject(name);
+            GameObject go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(transform, false);
-            if (go.GetComponent<RectTransform>() == null) go.AddComponent<RectTransform>();
+            go.transform.localScale = Vector3.one;
+            go.transform.localRotation = Quaternion.identity;
 
             TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
+            if (_font != null) text.font = _font;
             text.text = content;
             text.fontSize = fontSize;
             text.alignment = alignment;
             text.color = color;
             text.raycastTarget = false;
             text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.overflowMode = TextOverflowModes.Ellipsis;
-            if (_font != null) text.font = _font;
-
+            text.overflowMode = TextOverflowModes.Overflow;
             _texts.Add(text);
             return text;
         }

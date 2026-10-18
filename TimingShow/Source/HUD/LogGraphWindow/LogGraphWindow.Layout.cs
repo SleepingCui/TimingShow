@@ -29,9 +29,10 @@ namespace TimingShow.HUD.LogGraphWindow
         private static TextMeshProUGUI CreateHeaderText(Transform parent, string name, string content,
             float fontSize, Color color, TextAlignmentOptions alignment)
         {
-            GameObject go = new GameObject(name);
+            GameObject go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
-            if (go.GetComponent<RectTransform>() == null) go.AddComponent<RectTransform>();
+            go.transform.localScale = Vector3.one;
+            go.transform.localRotation = Quaternion.identity;
 
             TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
             text.text = content;
@@ -40,7 +41,7 @@ namespace TimingShow.HUD.LogGraphWindow
             text.color = color;
             text.raycastTarget = false;
             text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.overflowMode = TextOverflowModes.Ellipsis;
+            text.overflowMode = TextOverflowModes.Overflow;
             return text;
         }
 
@@ -234,6 +235,10 @@ namespace TimingShow.HUD.LogGraphWindow
                 rect.anchoredPosition = new Vector2(selectorsLeft - TitleMetaGap, -pad);
                 rect.sizeDelta = new Vector2(metaWidth, titleHeight);
             }
+
+            _titleText.ForceMeshUpdate();
+            if (_fileText != null && _fileText.gameObject.activeSelf) _fileText.ForceMeshUpdate();
+            if (_metaText != null && _metaText.gameObject.activeSelf) _metaText.ForceMeshUpdate();
         }
 
         private static float ChartSelectorWidth { get { return 150f * UiScale; } }

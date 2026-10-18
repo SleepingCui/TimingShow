@@ -18,6 +18,9 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             public bool ShowZeroLine;
             public bool ShowAvgLine;
             public bool ShowGrid = true;
+            public bool ShowJudgeBands = true;
+            public bool ShowXpBand = true;
+            public float BandThresholdBpm = 310f;
             public bool UseCustomFont;
             public Color BgColor = Color.black;
             public Color GridColor = Color.white;
@@ -25,6 +28,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             public Color ZeroLineColor = Color.white;
             public Color AvgLineColor = Color.yellow;
             public Color AxisTextColor = Color.gray;
+            public Color BandPerfectColor = Settings.LogGraph_DefaultBandPerfectColor;
+            public Color BandElPerfectColor = Settings.LogGraph_DefaultBandElPerfectColor;
+            public Color BandEarlyLateColor = Settings.LogGraph_DefaultBandEarlyLateColor;
+            public Color BandXpColor = Settings.LogGraph_DefaultBandXpColor;
 
             public static Draft FromSettings(Settings s)
             {
@@ -42,6 +49,9 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 d.ShowZeroLine = s.LogGraph_ShowZeroLine;
                 d.ShowAvgLine = s.LogGraph_ShowAvgLine;
                 d.ShowGrid = s.LogGraph_ShowGrid;
+                d.ShowJudgeBands = s.LogGraph_ShowJudgeBands;
+                d.ShowXpBand = s.LogGraph_ShowXpBand;
+                d.BandThresholdBpm = s.LogGraph_BandThresholdBpm;
                 d.UseCustomFont = s.LogGraph_UseCustomFont;
                 d.BgColor = s.LogGraph_BgColor;
                 d.GridColor = s.LogGraph_GridColor;
@@ -49,6 +59,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 d.ZeroLineColor = s.LogGraph_ZeroLineColor;
                 d.AvgLineColor = s.LogGraph_AvgLineColor;
                 d.AxisTextColor = s.LogGraph_AxisTextColor;
+                d.BandPerfectColor = s.LogGraph_BandPerfectColor;
+                d.BandElPerfectColor = s.LogGraph_BandElPerfectColor;
+                d.BandEarlyLateColor = s.LogGraph_BandEarlyLateColor;
+                d.BandXpColor = s.LogGraph_BandXpColor;
                 return d;
             }
 
@@ -67,6 +81,9 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 s.LogGraph_ShowZeroLine = ShowZeroLine;
                 s.LogGraph_ShowAvgLine = ShowAvgLine;
                 s.LogGraph_ShowGrid = ShowGrid;
+                s.LogGraph_ShowJudgeBands = ShowJudgeBands;
+                s.LogGraph_ShowXpBand = ShowXpBand;
+                s.LogGraph_BandThresholdBpm = BandThresholdBpm;
                 s.LogGraph_UseCustomFont = UseCustomFont;
                 s.LogGraph_BgColor = BgColor;
                 s.LogGraph_GridColor = GridColor;
@@ -74,6 +91,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 s.LogGraph_ZeroLineColor = ZeroLineColor;
                 s.LogGraph_AvgLineColor = AvgLineColor;
                 s.LogGraph_AxisTextColor = AxisTextColor;
+                s.LogGraph_BandPerfectColor = BandPerfectColor;
+                s.LogGraph_BandElPerfectColor = BandElPerfectColor;
+                s.LogGraph_BandEarlyLateColor = BandEarlyLateColor;
+                s.LogGraph_BandXpColor = BandXpColor;
             }
         }
 

@@ -5,7 +5,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 {
     public sealed partial class LogGraphSettingsUI 
     {
-        private const int ColorSlotCount = 6;
+        private const int ColorSlotCount = 10;
 
         private static readonly string[] ColorSlotKeys =
         {
@@ -14,7 +14,11 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             "Label_PointColor",
             "Label_ZeroLineColor",
             "Label_AvgLineColor",
-            "Label_AxisTextColor"
+            "Label_AxisTextColor",
+            "Label_BandPerfectColor",
+            "Label_BandElPerfectColor",
+            "Label_BandEarlyLateColor",
+            "Label_BandXpColor"
         };
 
         private static readonly string[] ColorChannelKeys =
@@ -33,6 +37,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 case 3: return _draft.ZeroLineColor;
                 case 4: return _draft.AvgLineColor;
                 case 5: return _draft.AxisTextColor;
+                case 6: return _draft.BandPerfectColor;
+                case 7: return _draft.BandElPerfectColor;
+                case 8: return _draft.BandEarlyLateColor;
+                case 9: return _draft.BandXpColor;
                 default: return _draft.BgColor;
             }
         }
@@ -46,6 +54,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 case 3: _draft.ZeroLineColor = color; break;
                 case 4: _draft.AvgLineColor = color; break;
                 case 5: _draft.AxisTextColor = color; break;
+                case 6: _draft.BandPerfectColor = color; break;
+                case 7: _draft.BandElPerfectColor = color; break;
+                case 8: _draft.BandEarlyLateColor = color; break;
+                case 9: _draft.BandXpColor = color; break;
                 default: _draft.BgColor = color; break;
             }
         }
@@ -87,6 +99,10 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 case 3: return Settings.LogGraph_DefaultZeroLineColor;
                 case 4: return Settings.LogGraph_DefaultAvgLineColor;
                 case 5: return Settings.LogGraph_DefaultAxisTextColor;
+                case 6: return Settings.LogGraph_DefaultBandPerfectColor;
+                case 7: return Settings.LogGraph_DefaultBandElPerfectColor;
+                case 8: return Settings.LogGraph_DefaultBandEarlyLateColor;
+                case 9: return Settings.LogGraph_DefaultBandXpColor;
                 default: return Settings.LogGraph_DefaultBgColor;
             }
         }

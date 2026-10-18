@@ -187,6 +187,9 @@ namespace TimingShow
         public bool LogGraph_ShowZeroLine = true;
         public bool LogGraph_ShowAvgLine = true;
         public bool LogGraph_ShowGrid = true;
+        public bool LogGraph_ShowJudgeBands = true;
+        public bool LogGraph_ShowXpBand = true;
+        public float LogGraph_BandThresholdBpm = 310f;
         public bool LogGraph_IgnoreOutliers;
         public int LogGraph_MaxRenderPoints = 800;
         public float LogGraph_PointSize = 3f;
@@ -196,6 +199,10 @@ namespace TimingShow
         public static readonly Color LogGraph_DefaultAvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
         public static readonly Color LogGraph_DefaultPointColor = new Color(0.30f, 0.76f, 1f, 1f);
         public static readonly Color LogGraph_DefaultAxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public static readonly Color LogGraph_DefaultBandPerfectColor = new Color(0.25f, 0.90f, 0.35f, 0.14f);
+        public static readonly Color LogGraph_DefaultBandElPerfectColor = new Color(1f, 0.85f, 0.20f, 0.12f);
+        public static readonly Color LogGraph_DefaultBandEarlyLateColor = new Color(0.95f, 0.40f, 0.30f, 0.10f);
+        public static readonly Color LogGraph_DefaultBandXpColor = new Color(77f / 255f, 204f / 255f, 1f, 0.14f);
 
         public Color LogGraph_BgColor = LogGraph_DefaultBgColor;
         public Color LogGraph_GridColor = LogGraph_DefaultGridColor;
@@ -203,6 +210,10 @@ namespace TimingShow
         public Color LogGraph_AvgLineColor = LogGraph_DefaultAvgLineColor;
         public Color LogGraph_PointColor = LogGraph_DefaultPointColor;
         public Color LogGraph_AxisTextColor = LogGraph_DefaultAxisTextColor;
+        public Color LogGraph_BandPerfectColor = LogGraph_DefaultBandPerfectColor;
+        public Color LogGraph_BandElPerfectColor = LogGraph_DefaultBandElPerfectColor;
+        public Color LogGraph_BandEarlyLateColor = LogGraph_DefaultBandEarlyLateColor;
+        public Color LogGraph_BandXpColor = LogGraph_DefaultBandXpColor;
         public bool LogGraph_UseCustomFont;
         public string LogGraph_FontPath = "";
 
@@ -376,6 +387,7 @@ namespace TimingShow
 
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
             LogGraph_PointSize = Mathf.Clamp(LogGraph_PointSize, 1f, 12f);
+            LogGraph_BandThresholdBpm = Mathf.Clamp(LogGraph_BandThresholdBpm, 100f, 600f);
             LogGraph_UIScale = Mathf.Clamp(LogGraph_UIScale, 0.75f, 3f);
             LogGraph_CornerScale = Mathf.Clamp(LogGraph_CornerScale, 0f, 2f);
             

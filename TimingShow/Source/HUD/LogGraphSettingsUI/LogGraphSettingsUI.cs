@@ -77,7 +77,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 
             LogGraphSettingsUI ui = go.AddComponent<LogGraphSettingsUI>();
             ui._host = host;
-            ui._font = font != null ? font : TMP_Settings.defaultFontAsset;
+            ui._font = LogGraphFont.ResolveSettingsFont()
+                ?? (font != null ? font : TMP_Settings.defaultFontAsset);
             ui._graphic = go.AddComponent<SettingsPanelGraphic>();
             ui._graphic.Bind(ui);
             ui._open = false;
@@ -88,7 +89,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
      
         public void SetFont(TMP_FontAsset font)
         {
-            TMP_FontAsset target = font != null ? font : TMP_Settings.defaultFontAsset;
+            TMP_FontAsset target = LogGraphFont.ResolveSettingsFont()
+                ?? (font != null ? font : TMP_Settings.defaultFontAsset);
             if (target == null || target == _font) return;
 
             _font = target;
