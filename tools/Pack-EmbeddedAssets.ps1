@@ -14,6 +14,7 @@ Add-Type -AssemblyName System.IO.Compression
 
 $files = @(
     'SourceHanSansSC-Regular.otf',
+    'GmarketSansMedium.otf',
     'OFL.txt'
 )
 

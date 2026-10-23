@@ -12,9 +12,14 @@ namespace TimingShow.HUD
     internal static class LogGraphFont
     {
         private const string BundledFontResource = "TimingShow.Assets.SourceHanSansSC-Regular.otf";
-        private const string BundledLicenseResource = "TimingShow.Assets.OFL.txt";
         private const string BundledFontFileName = "SourceHanSansSC-Regular.otf";
+        private const string KoreanFontResource = "TimingShow.Assets.GmarketSansMedium.otf";
+        private const string KoreanFontFileName = "GmarketSansMedium.otf";
+        private const string BundledLicenseResource = "TimingShow.Assets.OFL.txt";
         private const string BundledLicenseFileName = "OFL.txt";
+
+        // Language keys come from lang.json; Korean uses the bundled Gmarket Sans.
+        private const string KoreanLanguage = "한국어";
 
         private const string CjkProbe = "字";
         private const string HangulProbe = "한";
@@ -80,7 +85,7 @@ namespace TimingShow.HUD
                 AddFallback(_primary, hangul);
                 AddFallback(_primary, latin);
                 ModContext.Logger?.Log("Log graph font: "
-                    + (bundled != null ? "bundled Source Han Sans SC" : "system font '" + _primary.name + "'"));
+                    + (bundled != null ? "bundled '" + bundled.name + "'" : "system font '" + _primary.name + "'"));
             }
             else
             {
@@ -124,7 +129,10 @@ namespace TimingShow.HUD
 
         private static TMP_FontAsset TryLoadBundledFont()
         {
-            string fontPath = EnsureBundledAssets();
+            bool korean = IsKoreanUi();
+            string fontPath = EnsureBundledAssets(
+                korean ? KoreanFontResource : BundledFontResource,
+                korean ? KoreanFontFileName : BundledFontFileName);
             if (string.IsNullOrEmpty(fontPath) || !File.Exists(fontPath)) return null;
 
             try
@@ -143,15 +151,16 @@ namespace TimingShow.HUD
                     return null;
                 }
 
-                asset.name = "TimingShow_Bundled_SourceHanSansSC";
+                asset.name = korean ? "TimingShow_Bundled_GmarketSans" : "TimingShow_Bundled_SourceHanSansSC";
                 asset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
                 asset.isMultiAtlasTexturesEnabled = true;
 
                 _bundledSource = source;
 
-                if (!asset.TryAddCharacters("Aa0字한あ", out string missing) || !string.IsNullOrEmpty(missing))
+                string probe = korean ? HangulProbe : (CjkProbe + HangulProbe + LatinProbe);
+                if (!asset.TryAddCharacters(probe, out string missing) || !string.IsNullOrEmpty(missing))
                 {
-                    ModContext.Logger?.Log("Log graph font: bundled font missing probe glyphs: " + missing);
+                    ModContext.Logger?.Log("Log graph font: bundled font missing probe glyphs '" + probe + "': " + missing);
                 }
 
                 ModContext.Logger?.Log("Log graph font: loaded bundled '" + _bundledSource.name
@@ -165,12 +174,16 @@ namespace TimingShow.HUD
             }
         }
 
-        private static string EnsureBundledAssets()
+        private static bool IsKoreanUi()
         {
-            if (string.IsNullOrEmpty(ModContext.ModPath)) return null;
+            Settings settings = ModContext.Settings;
+            return settings != null && settings.Language == KoreanLanguage;
+        }
 
-            string assetsDir = Path.Combine(ModContext.ModPath, "assets");
-            string fontPath = Path.Combine(assetsDir, BundledFontFileName);
+        private static string EnsureBundledAssets(string fontResource, string fontFileName)
+        {
+            string assetsDir = CacheDirectory();
+            string fontPath = Path.Combine(assetsDir, fontFileName);
             string licensePath = Path.Combine(assetsDir, BundledLicenseFileName);
 
             try
@@ -179,21 +192,38 @@ namespace TimingShow.HUD
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Error("Log graph font: cannot create assets directory: " + e.Message);
+                ModContext.Logger?.Error("Log graph font: cannot create cache directory: " + e.Message);
                 return null;
             }
 
-            ExtractIfMissing(BundledFontResource, fontPath);
-            ExtractIfMissing(BundledLicenseResource, licensePath);
+            ExtractIfChanged(fontResource, fontPath);
+            ExtractIfChanged(BundledLicenseResource, licensePath);
             return fontPath;
         }
 
-        private static void ExtractIfMissing(string resourceName, string path)
+        private static string CacheDirectory()
+        {
+            string root = null;
+            try
+            {
+                root = Application.temporaryCachePath;
+            }
+            catch (Exception)
+            {
+                // Unity not fully initialized; fall through to the OS temp directory.
+            }
+
+            if (string.IsNullOrEmpty(root)) root = Path.GetTempPath();
+            return Path.Combine(root, "TimingShow");
+        }
+
+        // Unity's Font API needs a real file path, so the bundled font must live on
+        // disk. Extract into the game's temporary cache and refresh it when the
+        // embedded copy differs from the cached one (mod updates reuse the same name).
+        private static void ExtractIfChanged(string resourceName, string path)
         {
             try
             {
-                if (File.Exists(path)) return;
-
                 Assembly asm = typeof(LogGraphFont).Assembly;
                 using (Stream resource = asm.GetManifestResourceStream(resourceName))
                 {
@@ -210,13 +240,43 @@ namespace TimingShow.HUD
                         decoded.CopyTo(output);
                     }
 
-                    if (File.Exists(path)) File.Delete(tmp);
-                    else File.Move(tmp, path);
+                    if (SameContent(tmp, path))
+                    {
+                        File.Delete(tmp);
+                        return;
+                    }
+
+                    if (File.Exists(path)) File.Delete(path);
+                    File.Move(tmp, path);
                 }
             }
             catch (Exception e)
             {
                 ModContext.Logger?.Error("Log graph font: failed to extract '" + path + "': " + e.Message);
+            }
+        }
+
+        private static bool SameContent(string leftPath, string rightPath)
+        {
+            try
+            {
+                FileInfo right = new FileInfo(rightPath);
+                if (!right.Exists) return false;
+
+                byte[] left = File.ReadAllBytes(leftPath);
+                byte[] existing = File.ReadAllBytes(rightPath);
+                if (left.Length != existing.Length) return false;
+
+                for (int i = 0; i < left.Length; i++)
+                {
+                    if (left[i] != existing[i]) return false;
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
