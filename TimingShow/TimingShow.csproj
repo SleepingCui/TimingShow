@@ -158,6 +158,8 @@
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Colors.cs" />
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Draft.cs" />
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Graphics.cs" />
+    <Compile Include="Source\LevelEditor\EditorHitSnapshot.cs" />
+    <Compile Include="Source\LevelEditor\EditorHitMarkerController.cs" />
     <Compile Include="Source\Logging\ColorConverter.cs" />
     <Compile Include="Source\Logging\TimingLogger.cs" />
     <Compile Include="Source\Logging\TimingLoggerBinary.cs" />

@@ -217,6 +217,11 @@ namespace TimingShow
         public bool LogGraph_UseCustomFont;
         public string LogGraph_FontPath = "";
 
+        public bool EditorHits_Enabled = true;
+        public float EditorHits_MarkerSize = 4f;
+        public float EditorHits_AngleScale = 1f;
+        public bool EditorHits_ShowTooltip = true;
+
         public bool Title_EnableXPerfect;
         public bool Planet_EnableXPerfect;
         public bool HUD_EnableXPerfect;
@@ -388,6 +393,9 @@ namespace TimingShow
             TimingScatter_MaxRenderPoints = Mathf.Clamp(TimingScatter_MaxRenderPoints, 20, 8000);
             TimingScatter_PointSize = Mathf.Clamp(TimingScatter_PointSize, 1f, 12f);
             TimingScatter_BandThresholdBpm = Mathf.Clamp(TimingScatter_BandThresholdBpm, 100f, 600f);
+
+            EditorHits_MarkerSize = Mathf.Clamp(EditorHits_MarkerSize, 1f, 12f);
+            EditorHits_AngleScale = Mathf.Clamp(EditorHits_AngleScale, 0f, 3f);
 
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
             LogGraph_PointSize = Mathf.Clamp(LogGraph_PointSize, 1f, 12f);

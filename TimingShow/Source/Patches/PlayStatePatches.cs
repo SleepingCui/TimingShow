@@ -69,6 +69,7 @@ namespace TimingShow.Patches
             if (scene.name == GameplaySceneName)
                 return;
 
+            LevelEditor.EditorHitSnapshot.Clear();
             EndSession();
         }
 
@@ -89,6 +90,7 @@ namespace TimingShow.Patches
                 ModContext.ClearXAccHistory();
                 ModContext.XAccVersion++;
                 ModContext.ClearTimingScatterSamples();
+                LevelEditor.EditorHitSnapshot.Clear();
                 ModContext.UIDirty = true;
                 JColors.ResetCache();
                 HitBump.StopAll();
@@ -153,6 +155,8 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
+                // Snapshot before EndSession() resets players and clears the samples.
+                LevelEditor.EditorHitSnapshot.CaptureFromSession();
                 EndSession();
             }
         }
@@ -163,6 +167,7 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
+                LevelEditor.EditorHitSnapshot.Clear();
                 EndSession();
             }
         }

@@ -15,6 +15,24 @@ namespace TimingShow
         public bool IsXPerfect;
         public bool HasJudge;
         public int PlayerId;
+
+        // Hit context captured at judgement time. Logs written before format v8
+        // (JSON) / v9 (binary) leave these at their unknown defaults.
+        public int FloorId;
+        public float AngleDeg;
+        public float Bpm;
+        public float Speed;
+        public float Pitch;
+        public int RawMargin;
+        public bool HasAngle;
+        public bool HasFloorId;
+        public bool FloorIdEstimated;
+        public bool HasHitParams;
+
+        // Orbit direction at the hit. Runtime-only (not serialized); the editor
+        // markers fall back to scrFloor.isCCW when loading older data.
+        public bool OrbitClockwise;
+        public bool HasOrbitDirection;
     }
 
     public static class ModContext
@@ -143,6 +161,7 @@ namespace TimingShow
             Players.ResetAll();
             ClearTimingScatterSamples();
             HUDMan.Destroy();
+            LevelEditor.EditorHitSnapshot.Clear();
         }
 
         public static void OnGUI()

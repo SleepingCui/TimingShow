@@ -33,6 +33,8 @@ namespace TimingShow.Options
         private static bool _foldoutLogging;
         private static bool _foldoutXACCGraph;
         private static bool _foldoutTimingScatter;
+        private static bool _foldoutEditorHits;
+        private static string _editorHitsStatus;
 
         public static void OnGUI()
         {
@@ -52,6 +54,7 @@ namespace TimingShow.Options
             DrawRatioHUD();
             DrawXACCGraphSettings();
             DrawTimingScatterSettings();
+            DrawEditorHitSettings();
             DrawLoggingSettings();
             DrawSessionControls();
             OptionLogList.Draw();
@@ -371,6 +374,55 @@ namespace TimingShow.Options
             }
         }
         
+        private static void DrawEditorHitSettings()
+        {
+            ToggleFold(i18n.T("Toggle_EditorHits"), ref ModContext.Settings.EditorHits_Enabled, ref _foldoutEditorHits);
+            if (!ModContext.Settings.EditorHits_Enabled || !_foldoutEditorHits) return;
+
+            SliderFloat("Label_PointSize", ref ModContext.Settings.EditorHits_MarkerSize, 1f, 12f);
+            SliderFloat("Label_AngleScale", ref ModContext.Settings.EditorHits_AngleScale, 0f, 3f);
+            Toggle(ref ModContext.Settings.EditorHits_ShowTooltip, "Toggle_EditorHitsTooltip");
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(OptionsWidgets.ContentIndent);
+            if (GUILayout.Button(i18n.T("Btn_ClearHitMarkers"), GUILayout.Width(120)))
+            {
+                LevelEditor.EditorHitSnapshot.Clear();
+                _editorHitsStatus = null;
+            }
+
+            if (GUILayout.Button(i18n.T("Btn_ImportHitLog"), GUILayout.Width(190)))
+            {
+                string selected = FileBrowser.PickFile(
+                    OptionLogList.GetLogDirectory(),
+                    "Log",
+                    new[] { "json", "tlog", "gz" },
+                    i18n.T("Btn_ImportHitLog"));
+
+                if (!string.IsNullOrWhiteSpace(selected))
+                {
+                    int count;
+                    string errorKey;
+                    if (LevelEditor.EditorHitSnapshot.TryLoadFromLog(selected, out count, out errorKey))
+                    {
+                        _editorHitsStatus = string.Format(
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            i18n.T("EditorHits_ImportOk"), count);
+                    }
+                    else
+                    {
+                        _editorHitsStatus = i18n.T(string.IsNullOrEmpty(errorKey)
+                            ? "EditorHits_ImportReadFailed"
+                            : errorKey);
+                    }
+                }
+            }
+            GUILayout.EndHorizontal();
+
+            if (!string.IsNullOrEmpty(_editorHitsStatus))
+                IndentedLabel(_editorHitsStatus);
+        }
+
         private static void DrawLogGraphSettings()
         {
             string foldoutArrow = _showLogGraphSettings ? "▲" : "▼";

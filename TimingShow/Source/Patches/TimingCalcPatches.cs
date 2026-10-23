@@ -10,6 +10,7 @@ namespace TimingShow.Patches
     public static class TimingCalcPatches
     {
         private const int TimingScatterHardLimit = 100000;
+        internal const int SampleHardLimit = TimingScatterHardLimit;
         private static int TimingScatterWarningLimit
         {
             get
@@ -24,15 +25,78 @@ namespace TimingShow.Patches
         private static int _pendingScatterSampleFrame = -1;
         private static int _scatterUnresolvedWarnings;
         private static int _scatterLimitWarnings;
-        
+
+        private struct PendingHitContext
+        {
+            internal bool Valid;
+            internal bool HasParams;
+            internal bool HasDirection;
+            internal bool Clockwise;
+            internal bool Estimated;
+            internal int FloorId;
+            internal double Bpm;
+            internal double Speed;
+            internal double Pitch;
+        }
+
+        private static PendingHitContext _pendingHit;
+
         internal static void InvalidatePendingScatterSample()
         {
             _pendingScatterSampleIndex = -1;
             _pendingScatterSampleFrame = -1;
+            _pendingHit = default(PendingHitContext);
         }
-        
-        private static void AppendTimingScatterSample(double timing, int playerId)
+
+        private static void CaptureHitContext(scrPlanet planet, double bpm, double speed, double pitch,
+            bool hasParams, bool hasDirection, bool clockwise)
         {
+            int floorId = -1;
+            bool estimated = false;
+
+            try
+            {
+                if (planet != null && planet.currfloor != null && planet.currfloor.nextfloor != null)
+                    floorId = planet.currfloor.nextfloor.seqID;
+            }
+            catch (Exception)
+            {
+                floorId = -1;
+            }
+
+            if (floorId < 0)
+            {
+                try
+                {
+                    scrController controller = scrController.instance;
+                    if (controller != null && controller.currentSeqID >= 0)
+                    {
+                        floorId = controller.currentSeqID;
+                        estimated = true;
+                    }
+                }
+                catch (Exception)
+                {
+                    floorId = -1;
+                }
+            }
+
+            _pendingHit.Valid = floorId >= 0;
+            _pendingHit.HasParams = hasParams;
+            _pendingHit.HasDirection = hasDirection;
+            _pendingHit.Clockwise = clockwise;
+            _pendingHit.Estimated = estimated;
+            _pendingHit.FloorId = floorId;
+            _pendingHit.Bpm = bpm;
+            _pendingHit.Speed = speed;
+            _pendingHit.Pitch = pitch;
+        }
+
+        private static void AppendTimingScatterSample(double timing, double angle, int playerId)
+        {
+            PendingHitContext context = _pendingHit;
+            _pendingHit = default(PendingHitContext);
+
             if (_pendingScatterSampleIndex >= 0 && _pendingScatterSampleIndex < ModContext.TimingScatterSamples.Count)
             {
                 TimingScatterSample pending = ModContext.TimingScatterSamples[_pendingScatterSampleIndex];
@@ -66,6 +130,18 @@ namespace TimingShow.Patches
             {
                 TimeMs = (float)PlayStatePatches.GetSessionTimeMs(),
                 OffsetMs = (float)timing,
+                AngleDeg = (float)angle,
+                Bpm = (float)context.Bpm,
+                Speed = (float)context.Speed,
+                Pitch = (float)context.Pitch,
+                FloorId = context.Valid ? context.FloorId : -1,
+                HasAngle = !double.IsNaN(angle) && !double.IsInfinity(angle),
+                HasFloorId = context.Valid,
+                FloorIdEstimated = context.Estimated,
+                HasHitParams = context.HasParams,
+                OrbitClockwise = context.Clockwise,
+                HasOrbitDirection = context.HasDirection,
+                RawMargin = -1,
                 Judge = HitMan.Unknown,
                 IsXPerfect = false,
                 HasJudge = false,
@@ -75,8 +151,8 @@ namespace TimingShow.Patches
             _pendingScatterSampleIndex = ModContext.TimingScatterSamples.Count - 1;
             _pendingScatterSampleFrame = Time.frameCount;
         }
-        
-        private static void MarkPendingTimingScatterSample(HitMan judge, bool isXPerfect)
+
+        private static void MarkPendingTimingScatterSample(HitMan judge, bool isXPerfect, int rawMargin)
         {
             int index = _pendingScatterSampleIndex;
             InvalidatePendingScatterSample();
@@ -87,6 +163,7 @@ namespace TimingShow.Patches
 
             sample.Judge = judge;
             sample.IsXPerfect = isXPerfect;
+            sample.RawMargin = rawMargin;
             sample.HasJudge = true;
             ModContext.TimingScatterSamples[index] = sample;
             ModContext.TimingScatterVersion++;
@@ -102,27 +179,37 @@ namespace TimingShow.Patches
 
                 Players.CurrentId = Players.ResolvePlayerId(__instance);
 
-                if (__instance.conductor == null || __instance.conductor.song == null) return;
-
                 PlanetarySystem system = __instance.planetarySystem;
-                if (system == null) return;
+                bool hasParams = __instance.conductor != null
+                    && __instance.conductor.song != null
+                    && system != null;
 
-                double bpm = __instance.conductor.bpm;
-                double speed = system.speed;
-                double pitch = __instance.conductor.song.pitch;
+                double bpm = hasParams ? __instance.conductor.bpm : 0.0;
+                double speed = hasParams ? system.speed : 1.0;
+                double pitch = hasParams ? __instance.conductor.song.pitch : 1.0;
+
+                bool hasDirection = system != null;
+                CaptureHitContext(__instance, bpm, speed, pitch,
+                    hasParams && bpm > 0.0 && speed > 0.0 && pitch > 0.0,
+                    hasDirection, hasDirection && system.isCW);
+
+                PlayerSession player = Players.Current;
+                player.LastFloorId = _pendingHit.FloorId;
+                player.LastBpm = bpm;
+                player.LastSpeed = speed;
+                player.LastPitch = pitch;
+
+                if (!hasParams) return;
+
                 bool isCW = system.isCW;
 
                 if (bpm * speed * pitch == 0) return;
                 double diff = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 60000.0 / (Math.PI * bpm * speed * pitch);
 
-                PlayerSession player = Players.Current;
                 player.HasHit = true;
                 player.LastTiming = diff;
                 player.LastSongTimeMs = PlayStatePatches.GetSessionTimeMs();
                 player.LastAngle = (__instance.angle - __instance.targetExitAngle) * (isCW ? 1.0 : -1.0) * 180.0 / Math.PI;
-                player.LastBpm = bpm;
-                player.LastSpeed = speed;
-                player.LastPitch = pitch;
                 ModContext.UIDirty = true;
 
 
@@ -208,9 +295,10 @@ namespace TimingShow.Patches
             {
                 player.Offsets.Add(timing);
                 player.Ur.Add(timing);
-
-                AppendTimingScatterSample(timing, player.PlayerId);
             }
+
+            // Editor hit markers need every sample, independent of the HUD options.
+            AppendTimingScatterSample(timing, angle, player.PlayerId);
 
             int xaccPlayerId = player.PlayerId;
             if (TryGetPercentXAcc(xaccPlayerId, out float curXAcc))
@@ -288,7 +376,7 @@ namespace TimingShow.Patches
                 player.LastJudge = judge;
                 player.LastIsXP = DetermineIsXPerfect(judge, player);
 
-                MarkPendingTimingScatterSample(judge, player.LastIsXP);
+                MarkPendingTimingScatterSample(judge, player.LastIsXP, rawMargin);
 
                 if (countHit)
                 {
@@ -300,7 +388,8 @@ namespace TimingShow.Patches
 
                 if (allowLog)
                 {
-                    TimingLogger.LogHit(timingOverride ?? player.LastTiming, angleOverride ?? player.LastAngle, rawMargin, judge, player.LastIsXP);
+                    TimingLogger.LogHit(timingOverride ?? player.LastTiming, angleOverride ?? player.LastAngle, rawMargin, judge, player.LastIsXP,
+                        player.LastFloorId, player.LastBpm, player.LastSpeed, player.LastPitch);
                 }
             }
 
