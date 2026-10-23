@@ -94,3 +94,39 @@ jobs:
             --draft `
             --title "$env:TAG" `
             --notes "$env:RELEASE_BODY"
+
+      - name: Update Repository.json
+        env:
+          TAG: ${{ inputs.tag }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        shell: pwsh
+        run: |
+          $repoPath = "Repository.json"
+          if (-not (Test-Path $repoPath)) {
+            throw "Repository.json not found."
+          }
+
+          $json = Get-Content $repoPath -Raw | ConvertFrom-Json
+          $entry = $json.Releases | Where-Object { $_.Id -eq "TimingShow" } | Select-Object -First 1
+          if ($null -eq $entry) {
+            throw "TimingShow entry not found in Repository.json."
+          }
+
+          $entry.Version = $env:TAG
+          $entry.DownloadUrl = "https://github.com/$env:REPOSITORY/releases/download/$env:TAG/TimingShow.zip"
+          $entry.Changes = ""
+
+          $json | ConvertTo-Json -Depth 100 | Set-Content -Path $repoPath -Encoding utf8NoBOM
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add $repoPath
+
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Update Repository.json to $env:TAG"
+            git push origin "HEAD:$env:BRANCH"
+          } else {
+            Write-Host "Repository.json is already up to date."
+          }

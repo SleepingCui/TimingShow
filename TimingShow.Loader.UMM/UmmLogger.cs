@@ -13,7 +13,7 @@ namespace TimingShow.UMM
 
         public void Log(string msg)
         {
-            _logger.Log(msg);
+            UnityEngine.Debug.Log(msg);
         }
 
         public void Error(string msg)
