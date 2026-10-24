@@ -15,7 +15,9 @@ namespace TimingShow.LevelEditor
     public sealed class EditorHitMarkerController : MonoBehaviour
     {
         private const float MarkerRadiusPixels = 4f;
-        private const int MarkerCircleSegments = 10;
+        private const int MarkerDashCount = 8;
+        private const int MarkerDashSegments = 3;
+        private const float MarkerOutlineWidthPixels = 1f;
         private const float MarkerPlayerSpacingPixels = 3.5f;
         private const float HoverRadiusPixels = 11f;
         private const float TooltipPadding = 7f;
@@ -277,7 +279,7 @@ namespace TimingShow.LevelEditor
                 if (screen.x < viewport.xMin - 12f || screen.x > viewport.xMax + 12f) continue;
                 if (screen.y < viewport.yMin - 12f || screen.y > viewport.yMax + 12f) continue;
 
-                AppendCircle(world, right, up, radius, MarkerColor(sample));
+                AppendDashedCircle(world, right, up, radius, worldPerPixel, MarkerColor(sample));
 
                 VisibleHit hit = new VisibleHit();
                 hit.SampleIndex = i;
@@ -333,27 +335,44 @@ namespace TimingShow.LevelEditor
             return JColors.GetColor(sample.Judge, sample.IsXPerfect, true);
         }
 
-        private void AppendCircle(Vector3 center, Vector3 right, Vector3 up, float radius, Color color)
+        private void AppendDashedCircle(Vector3 center, Vector3 right, Vector3 up, float radius, float worldPerPixel, Color color)
         {
-            int centerIndex = _vertices.Count;
+            float halfWidth = Mathf.Max(0.01f, worldPerPixel * MarkerOutlineWidthPixels * 0.5f);
+            float innerRadius = Mathf.Max(0f, radius - halfWidth);
+            float outerRadius = radius + halfWidth;
+            float dashStep = Mathf.PI * 2f / MarkerDashCount;
+            float dashAngle = dashStep * 0.72f;
 
-            _vertices.Add(center);
-            _colors.Add(color);
-
-            for (int i = 0; i <= MarkerCircleSegments; i++)
+            for (int dash = 0; dash < MarkerDashCount; dash++)
             {
-                float angle = i / (float)MarkerCircleSegments * Mathf.PI * 2f;
-                Vector3 offset = right * (Mathf.Cos(angle) * radius) + up * (Mathf.Sin(angle) * radius);
-                _vertices.Add(center + offset);
-                _colors.Add(color);
-            }
+                float start = dash * dashStep;
+                float segmentAngle = dashAngle / MarkerDashSegments;
 
-            for (int i = 0; i < MarkerCircleSegments; i++)
-            {
-                _triangles.Add(centerIndex);
-                _triangles.Add(centerIndex + 1 + i);
-                _triangles.Add(centerIndex + 2 + i);
+                for (int segment = 0; segment < MarkerDashSegments; segment++)
+                {
+                    float angle0 = start + segment * segmentAngle;
+                    float angle1 = angle0 + segmentAngle;
+                    int vertex = _vertices.Count;
+
+                    _vertices.Add(center + CircleOffset(right, up, outerRadius, angle0));
+                    _vertices.Add(center + CircleOffset(right, up, innerRadius, angle0));
+                    _vertices.Add(center + CircleOffset(right, up, outerRadius, angle1));
+                    _vertices.Add(center + CircleOffset(right, up, innerRadius, angle1));
+                    for (int i = 0; i < 4; i++) _colors.Add(color);
+
+                    _triangles.Add(vertex);
+                    _triangles.Add(vertex + 1);
+                    _triangles.Add(vertex + 2);
+                    _triangles.Add(vertex + 2);
+                    _triangles.Add(vertex + 1);
+                    _triangles.Add(vertex + 3);
+                }
             }
+        }
+
+        private static Vector3 CircleOffset(Vector3 right, Vector3 up, float radius, float angle)
+        {
+            return right * (Mathf.Cos(angle) * radius) + up * (Mathf.Sin(angle) * radius);
         }
 
         private void ApplyMesh()
