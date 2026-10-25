@@ -171,38 +171,32 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
         private Vector2 ComputeDetailPanelPosition(int index, float panelWidth, float panelHeight)
         {
-            float w = rectTransform.rect.width;
-            float h = rectTransform.rect.height;
-            Vector2 panelPosition = new Vector2(DetailOffset, DetailOffset);
+            Rect rect = rectTransform.rect;
+            Vector2 anchor = new Vector2(DetailOffset, DetailOffset);
 
             for (int i = 0; i < _renderPoints.Count; i++)
             {
                 RenderPoint point = _renderPoints[i];
                 if (point.SourceIndex != index) continue;
 
-                if (TryGetPointLocalPosition(point, w, h, out Vector2 pointPosition))
-                    panelPosition = new Vector2(pointPosition.x + DetailOffset, pointPosition.y + DetailOffset);
+                if (TryGetPointLocalPosition(point, rect.width, rect.height, out Vector2 pointPosition))
+                    anchor = pointPosition;
                 break;
             }
+            
+            float margin = 2f * Mathf.Max(0.01f, Scale);
+            float x = anchor.x + DetailOffset;
+            float y = anchor.y + DetailOffset;
 
-            float canvasScale = canvas != null ? canvas.scaleFactor : 1f;
-            float screenWidth = panelWidth * canvasScale;
-            float screenHeight = panelHeight * canvasScale;
+            if (x + panelWidth > rect.xMax - margin) x = anchor.x - DetailOffset - panelWidth;
+            if (y + panelHeight > rect.yMax - margin) y = anchor.y - DetailOffset - panelHeight;
 
-            Vector3 corner = RectTransformUtility.WorldToScreenPoint(null, rectTransform.TransformPoint(panelPosition));
-            float x = corner.x;
-            float y = corner.y;
+            float minX = rect.xMin + margin;
+            float minY = rect.yMin + margin;
+            float maxX = Mathf.Max(minX, rect.xMax - panelWidth - margin);
+            float maxY = Mathf.Max(minY, rect.yMax - panelHeight - margin);
 
-            if (x + screenWidth > Screen.width) x -= screenWidth + DetailOffset * 2f * canvasScale;
-            if (y + screenHeight > Screen.height) y -= screenHeight + DetailOffset * 2f * canvasScale;
-
-            x = Mathf.Clamp(x, 0f, Mathf.Max(0f, Screen.width - screenWidth));
-            y = Mathf.Clamp(y, 0f, Mathf.Max(0f, Screen.height - screenHeight));
-
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, new Vector2(x, y), null, out Vector2 local))
-                panelPosition = local;
-
-            return panelPosition;
+            return new Vector2(Mathf.Clamp(x, minX, maxX), Mathf.Clamp(y, minY, maxY));
         }
 
         private void DrawDetailPanel(VertexHelper vh, float scale)

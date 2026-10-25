@@ -85,7 +85,8 @@ namespace TimingShow.Logging
         }
         
         
-        public static void LogHit(double timing, double angle, int rawMarginCode, int judgeCode, bool isXP, int playerId)
+        public static void LogHit(double timing, double angle, int rawMarginCode, int judgeCode, bool isXP, int playerId,
+            int floorId, double bpm, double speed, double pitch)
         {
             if (_writer == null) return;
 
@@ -100,11 +101,26 @@ namespace TimingShow.Logging
                 VarInt.Write(_writer, rawMarginCode);
                 VarInt.Write(_writer, judgeCode);
                 _writer.Write((byte)(isXP ? 1 : 0));
+
+                bool hasHitParams = bpm > 0.0 && speed > 0.0 && pitch > 0.0;
+                _writer.Write(hasHitParams ? SafeFloat(angle) : float.NaN);
+                _writer.Write(hasHitParams ? SafeFloat(bpm) : float.NaN);
+                _writer.Write(hasHitParams ? SafeFloat(speed) : float.NaN);
+                _writer.Write(hasHitParams ? SafeFloat(pitch) : float.NaN);
+                VarInt.Write(_writer, floorId >= 0 ? floorId : -1);
             }
             catch (Exception ex)
             {
                 ModContext.Logger.Error($"Failed to write log: {ex.Message}");
             }
+        }
+
+        private static float SafeFloat(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value)) return float.NaN;
+            if (value > float.MaxValue) return float.MaxValue;
+            if (value < float.MinValue) return float.MinValue;
+            return (float)value;
         }
 
         private static void WriteXorDouble(BinaryWriter writer, double value, ref long previousBits)

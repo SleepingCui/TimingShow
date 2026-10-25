@@ -158,6 +158,8 @@
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Colors.cs" />
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Draft.cs" />
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Graphics.cs" />
+    <Compile Include="Source\LevelEditor\EditorHitSnapshot.cs" />
+    <Compile Include="Source\LevelEditor\EditorHitMarkerController.cs" />
     <Compile Include="Source\Logging\ColorConverter.cs" />
     <Compile Include="Source\Logging\TimingLogger.cs" />
     <Compile Include="Source\Logging\TimingLoggerBinary.cs" />
@@ -174,11 +176,12 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="embedded\SourceHanSansSC-Regular.otf.dfl" LogicalName="TimingShow.Assets.SourceHanSansSC-Regular.otf" />
+    <EmbeddedResource Include="embedded\GmarketSansMedium.otf.dfl" LogicalName="TimingShow.Assets.GmarketSansMedium.otf" />
     <EmbeddedResource Include="embedded\OFL.txt.dfl" LogicalName="TimingShow.Assets.OFL.txt" />
   </ItemGroup>
   <Target Name="PackEmbeddedAssets" BeforeTargets="PrepareResources"
-          Inputs="$(MSBuildProjectDirectory)\assets\SourceHanSansSC-Regular.otf;$(MSBuildProjectDirectory)\assets\OFL.txt"
-          Outputs="$(MSBuildProjectDirectory)\embedded\SourceHanSansSC-Regular.otf.dfl;$(MSBuildProjectDirectory)\embedded\OFL.txt.dfl">
+          Inputs="$(MSBuildProjectDirectory)\assets\SourceHanSansSC-Regular.otf;$(MSBuildProjectDirectory)\assets\GmarketSansMedium.otf;$(MSBuildProjectDirectory)\assets\OFL.txt"
+          Outputs="$(MSBuildProjectDirectory)\embedded\SourceHanSansSC-Regular.otf.dfl;$(MSBuildProjectDirectory)\embedded\GmarketSansMedium.otf.dfl;$(MSBuildProjectDirectory)\embedded\OFL.txt.dfl">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\tools\Pack-EmbeddedAssets.ps1&quot;" />
   </Target>
   <ItemGroup>
@@ -186,6 +189,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="assets\SourceHanSansSC-Regular.otf" />
+    <None Include="assets\GmarketSansMedium.otf" />
     <None Include="assets\OFL.txt" />
   </ItemGroup>
   <ItemGroup />

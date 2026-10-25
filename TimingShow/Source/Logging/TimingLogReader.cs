@@ -231,6 +231,8 @@ namespace TimingShow.Logging
                 if (!completed) result.Truncated = true;
                 if (string.IsNullOrEmpty(result.HitMarginVersionText)) result.HitMarginVersionText = "Unknown";
 
+                NormalizeSamples(result);
+
                 data = result;
                 return true;
             }
@@ -353,9 +355,16 @@ namespace TimingShow.Logging
                 sample.HasJudge = true;
                 sample.TimeMs = float.NaN;
                 sample.Judge = HitMan.Unknown;
+                sample.FloorId = -1;
 
                 double timeMs = double.NaN;
                 double value = 0.0;
+                double angleDeg = double.NaN;
+                double hitBpm = double.NaN;
+                double hitSpeed = double.NaN;
+                double hitPitch = double.NaN;
+                int floorId = -1;
+                bool hasFloorField = false;
                 int judgeCode = -1;
                 bool isXp = false;
                 bool innerDone = false;
@@ -400,6 +409,25 @@ namespace TimingShow.Logging
                         case 4:
                             isXp = TokenToInt32(reader.Value) != 0;
                             break;
+                        case 5:
+                            if (inner != JsonToken.Null) angleDeg = TokenToDouble(reader.Value);
+                            break;
+                        case 6:
+                            if (inner != JsonToken.Null) hitBpm = TokenToDouble(reader.Value);
+                            break;
+                        case 7:
+                            if (inner != JsonToken.Null) hitSpeed = TokenToDouble(reader.Value);
+                            break;
+                        case 8:
+                            if (inner != JsonToken.Null) hitPitch = TokenToDouble(reader.Value);
+                            break;
+                        case 9:
+                            if (inner != JsonToken.Null)
+                            {
+                                floorId = TokenToInt32(reader.Value);
+                                hasFloorField = true;
+                            }
+                            break;
                         default:
                             break;
                     }
@@ -414,10 +442,27 @@ namespace TimingShow.Logging
                 }
 
                 sample.TimeMs = (float)timeMs;
-                sample.OffsetMs = (float)value;
                 sample.Judge = (HitMan)judgeCode;
                 sample.IsXPerfect = isXp;
                 sample.PlayerId = playerId;
+                sample.FloorId = hasFloorField && floorId >= 0 ? floorId : -1;
+                sample.HasFloorId = sample.FloorId >= 0;
+
+                bool hasHitParams = hitBpm > 0.0 && hitSpeed > 0.0 && hitPitch > 0.0;
+                sample.HasHitParams = hasHitParams;
+                if (hasHitParams)
+                {
+                    sample.Bpm = (float)hitBpm;
+                    sample.Speed = (float)hitSpeed;
+                    sample.Pitch = (float)hitPitch;
+                }
+                sample.OffsetMs = (float)value;
+                if (IsFinite(angleDeg))
+                {
+                    sample.AngleDeg = (float)angleDeg;
+                    sample.HasAngle = true;
+                }
+
                 samples.Add(sample);
             }
         }
@@ -578,6 +623,36 @@ namespace TimingShow.Logging
                             break;
                         }
 
+                        float angleDeg = float.NaN;
+                        float hitBpm = float.NaN;
+                        float hitSpeed = float.NaN;
+                        float hitPitch = float.NaN;
+                        int floorId = -1;
+
+                        if (result.FormatVersion >= 9)
+                        {
+                            try
+                            {
+                                angleDeg = reader.ReadSingle();
+                                hitBpm = reader.ReadSingle();
+                                hitSpeed = reader.ReadSingle();
+                                hitPitch = reader.ReadSingle();
+
+                                int decodedFloorId;
+                                if (!TryReadVarInt(reader, out decodedFloorId))
+                                {
+                                    result.Truncated = true;
+                                    break;
+                                }
+                                floorId = decodedFloorId;
+                            }
+                            catch (EndOfStreamException)
+                            {
+                                result.Truncated = true;
+                                break;
+                            }
+                        }
+
                         TimingScatterSample sample = new TimingScatterSample();
                         sample.TimeMs = (float)timeMs;
                         sample.OffsetMs = (float)value;
@@ -585,6 +660,24 @@ namespace TimingShow.Logging
                         sample.IsXPerfect = isXp;
                         sample.HasJudge = true;
                         sample.PlayerId = playerId;
+                        sample.FloorId = floorId >= 0 ? floorId : -1;
+                        sample.HasFloorId = sample.FloorId >= 0;
+
+                        bool hasHitParams = hitBpm > 0f && hitSpeed > 0f && hitPitch > 0f;
+                        sample.HasHitParams = hasHitParams;
+                        if (hasHitParams)
+                        {
+                            sample.Bpm = hitBpm;
+                            sample.Speed = hitSpeed;
+                            sample.Pitch = hitPitch;
+                        }
+
+                        if (IsFinite(angleDeg))
+                        {
+                            sample.AngleDeg = angleDeg;
+                            sample.HasAngle = true;
+                        }
+
                         samples.Add(sample);
                     }
                 }
@@ -599,6 +692,8 @@ namespace TimingShow.Logging
                 {
                     result.Truncated = true;
                 }
+
+                NormalizeSamples(result);
 
                 data = result;
                 return true;
@@ -693,6 +788,48 @@ namespace TimingShow.Logging
             catch (Exception)
             {
                 return true;
+            }
+        }
+
+        private static bool IsFinite(double value)
+        {
+            return !double.IsNaN(value) && !double.IsInfinity(value);
+        }
+
+        private static double MsToAngle(double ms, double bpm, double speed, double pitch)
+        {
+            return ms * 180.0 * bpm * speed * pitch / 60000.0;
+        }
+
+        private static void NormalizeSamples(TimingLogData data)
+        {
+            if (data == null || data.Samples == null) return;
+
+            List<TimingScatterSample> samples = data.Samples;
+            for (int i = 0; i < samples.Count; i++)
+            {
+                TimingScatterSample sample = samples[i];
+                float raw = sample.OffsetMs;
+
+                if (data.IsAngle)
+                {
+                    float angle = sample.HasAngle && IsFinite(sample.AngleDeg) ? sample.AngleDeg : raw;
+                    sample.AngleDeg = angle;
+                    sample.HasAngle = IsFinite(angle);
+                    sample.OffsetMs = raw;
+                }
+                else
+                {
+                    if (!sample.HasAngle && sample.HasHitParams && IsFinite(raw))
+                    {
+                        sample.AngleDeg = (float)MsToAngle(raw, sample.Bpm, sample.Speed, sample.Pitch);
+                        sample.HasAngle = true;
+                    }
+
+                    sample.OffsetMs = raw;
+                }
+
+                samples[i] = sample;
             }
         }
 

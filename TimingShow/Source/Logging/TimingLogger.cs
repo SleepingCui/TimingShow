@@ -8,8 +8,8 @@ namespace TimingShow.Logging
 {
     public static class TimingLogger
     {
-        public const int FormatVersion = 7;
-        public const int BinaryFormatVersion = 8;
+        public const int FormatVersion = 8;
+        public const int BinaryFormatVersion = 9;
 
         private static StreamWriter _writer;
         private static string _currentFilePath;
@@ -88,10 +88,11 @@ namespace TimingShow.Logging
             }
         }
         
-        public static void LogHit(double timing, double angle, int rawMarginCode, HitMan judge, bool isXP)
+        public static void LogHit(double timing, double angle, int rawMarginCode, HitMan judge, bool isXP,
+            int floorId, double bpm, double speed, double pitch)
         {
             int judgeCode = (int)judge;
-            
+
             bool logXP = isXP && (HitMarginCompat.IsGame34 || ModContext.Settings.Logger_EnableXPerfect);
 
             int playerId = Players.Current.PlayerId;
@@ -99,7 +100,8 @@ namespace TimingShow.Logging
 
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.LogHit(timing, angle, rawMarginCode, judgeCode, logXP, playerId);
+                TimingLoggerBinary.LogHit(timing, angle, rawMarginCode, judgeCode, logXP, playerId,
+                    floorId, bpm, speed, pitch);
                 return;
             }
 
@@ -128,6 +130,20 @@ namespace TimingShow.Logging
                 buffer.Append(judgeCode);
                 buffer.Append(',');
                 buffer.Append(logXP ? 1 : 0);
+
+                bool hasHitParams = bpm > 0.0 && speed > 0.0 && pitch > 0.0;
+                bool hasAngle = hasHitParams && !double.IsNaN(angle) && !double.IsInfinity(angle);
+
+                buffer.Append(',');
+                buffer.Append(hasAngle ? angle.ToString("F4", CultureInfo.InvariantCulture) : "null");
+                buffer.Append(',');
+                buffer.Append(hasHitParams ? bpm.ToString("R", CultureInfo.InvariantCulture) : "null");
+                buffer.Append(',');
+                buffer.Append(hasHitParams ? speed.ToString("R", CultureInfo.InvariantCulture) : "null");
+                buffer.Append(',');
+                buffer.Append(hasHitParams ? pitch.ToString("R", CultureInfo.InvariantCulture) : "null");
+                buffer.Append(',');
+                buffer.Append(floorId >= 0 ? floorId.ToString(CultureInfo.InvariantCulture) : "-1");
                 buffer.Append(']');
             }
             catch (Exception ex)

@@ -15,6 +15,18 @@ namespace TimingShow
         public bool IsXPerfect;
         public bool HasJudge;
         public int PlayerId;
+        public int FloorId;
+        public float AngleDeg;
+        public float Bpm;
+        public float Speed;
+        public float Pitch;
+        public int RawMargin;
+        public bool HasAngle;
+        public bool HasFloorId;
+        public bool FloorIdEstimated;
+        public bool HasHitParams;
+        public bool OrbitClockwise;
+        public bool HasOrbitDirection;
     }
 
     public static class ModContext
@@ -143,6 +155,7 @@ namespace TimingShow
             Players.ResetAll();
             ClearTimingScatterSamples();
             HUDMan.Destroy();
+            LevelEditor.EditorHitSnapshot.Clear();
         }
 
         public static void OnGUI()
