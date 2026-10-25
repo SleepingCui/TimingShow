@@ -567,7 +567,6 @@ namespace TimingShow.Diagnostics
                 sb.AppendLine("IgnoreOutliers            : " + settings.TimingScatter_IgnoreOutliers);
                 sb.AppendLine("ShowPerfInfo              : " + settings.TimingScatter_ShowPerfInfo);
                 sb.AppendLine("UseHitAxis                : " + settings.TimingScatter_UseHitAxis);
-                sb.AppendLine("LogGraph_Enabled          : " + settings.LogGraph_Enabled);
             }
 
             return sb.ToString();

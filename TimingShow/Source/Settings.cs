@@ -176,7 +176,6 @@ namespace TimingShow
         public bool TimingScatter_UseCustomFont;
         public string TimingScatter_FontPath = "";
         
-        public bool LogGraph_Enabled = true;
         public float LogGraph_UIScale = 1.25f;
         public float LogGraph_CornerScale = 0.4f;
         public float LogGraph_WindowWidth = 1440f;
@@ -405,6 +404,19 @@ namespace TimingShow
             
             if (LogGraph_WindowWidth > 0f) LogGraph_WindowWidth = Mathf.Clamp(LogGraph_WindowWidth, 480f, 1920f);
             if (LogGraph_WindowHeight > 0f) LogGraph_WindowHeight = Mathf.Clamp(LogGraph_WindowHeight, 260f, 1080f);
+
+            // Precisions are fed straight into ToString("F" + n). A negative or huge
+            // value there throws FormatException at format time, so keep every one of
+            // them inside the range the sliders expose.
+            Perc1 = Mathf.Clamp(Perc1, 0, 5);
+            Perc2 = Mathf.Clamp(Perc2, 0, 5);
+            Perc3 = Mathf.Clamp(Perc3, 0, 5);
+            Perc4 = Mathf.Clamp(Perc4, 0, 5);
+            PercHUD = Mathf.Clamp(PercHUD, 0, 5);
+            PercAvgHUD = Mathf.Clamp(PercAvgHUD, 0, 5);
+            PercURHUD = Mathf.Clamp(PercURHUD, 0, 5);
+            PercRatioHUD = Mathf.Clamp(PercRatioHUD, 0, 5);
+            PercLog = Mathf.Clamp(PercLog, 0, 5);
         }
 
         public void Save(string modPath)

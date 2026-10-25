@@ -106,7 +106,7 @@ namespace TimingShow.Options
 
             if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
-                SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
+                SliderInt("Label_Precision", ref ModContext.Settings.Perc2, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Planet_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
                 if (!HitMarginCompat.IsGame34)
