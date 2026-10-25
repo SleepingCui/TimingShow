@@ -294,6 +294,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private RectTransform _graphRect;
         private TimingLogData _data;
         private bool _closed;
+        private bool _pendingTextRefresh;
         private TextMeshProUGUI _statsTitleText;
         private readonly TextMeshProUGUI[] _statLabels = new TextMeshProUGUI[4];
         private readonly TextMeshProUGUI[] _statValues = new TextMeshProUGUI[4];
@@ -561,6 +562,7 @@ namespace TimingShow.HUD.LogGraphWindow
             window._settingsUI = GraphSettingsUI.Create(windowRect, window, graphFont);
             window.CreateChartUi(graphFont);
             window.ApplyLayout(size, position);
+            window._pendingTextRefresh = true;
         }
 
         private static GameObject CreateChartArea(Transform parent, string name, out RectTransform rect)
@@ -601,6 +603,12 @@ namespace TimingShow.HUD.LogGraphWindow
                 Close();
                 return;
             }
+
+            if (_pendingTextRefresh)
+            {
+                _pendingTextRefresh = false;
+                RefreshAllTextMeshes();
+            }
             
             if ((_chartMenuOpen || _playerMenuOpen) && Input.GetKeyDown(KeyCode.Escape))
                 CloseMenus();
@@ -609,6 +617,18 @@ namespace TimingShow.HUD.LogGraphWindow
             UpdateBoundsDiagnostics();
             if (!_dragging) RefreshButtonHover(Input.mousePosition);
             UpdateInputFallback();
+        }
+
+        private void RefreshAllTextMeshes()
+        {
+            if (_root == null) return;
+            Canvas.ForceUpdateCanvases();
+
+            TMP_Text[] texts = _root.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                if (texts[i] != null) texts[i].ForceMeshUpdate();
+            }
         }
 
         private void OnDestroy()

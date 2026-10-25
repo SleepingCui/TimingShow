@@ -263,6 +263,7 @@ namespace TimingShow
         public const int LogSort_Size = 1;
         public const int LogSort_SongName = 2;
 
+        public KeyCode ReportKey = KeyCode.F10;
         
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;
@@ -404,10 +405,7 @@ namespace TimingShow
             
             if (LogGraph_WindowWidth > 0f) LogGraph_WindowWidth = Mathf.Clamp(LogGraph_WindowWidth, 480f, 1920f);
             if (LogGraph_WindowHeight > 0f) LogGraph_WindowHeight = Mathf.Clamp(LogGraph_WindowHeight, 260f, 1080f);
-
-            // Precisions are fed straight into ToString("F" + n). A negative or huge
-            // value there throws FormatException at format time, so keep every one of
-            // them inside the range the sliders expose.
+            
             Perc1 = Mathf.Clamp(Perc1, 0, 5);
             Perc2 = Mathf.Clamp(Perc2, 0, 5);
             Perc3 = Mathf.Clamp(Perc3, 0, 5);

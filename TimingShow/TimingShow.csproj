@@ -172,6 +172,8 @@
     <Compile Include="Source\Patches\PlayStatePatches.cs" />
     <Compile Include="Source\Patches\TimingCalcPatches.cs" />
     <Compile Include="Source\Patches\UIPatches.cs" />
+    <Compile Include="Source\SessionReport\LastSessionReport.cs" />
+    <Compile Include="Source\SessionReport\SessionReportHotkey.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

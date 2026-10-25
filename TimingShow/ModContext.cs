@@ -146,6 +146,7 @@ namespace TimingShow
         {
             IsEnabled = true;
             HarmonyInstance?.PatchAll();
+            SessionReport.SessionReportHotkey.EnsureHost();
         }
 
         public static void Disable()
@@ -156,6 +157,8 @@ namespace TimingShow
             ClearTimingScatterSamples();
             HUDMan.Destroy();
             LevelEditor.EditorHitSnapshot.Clear();
+            SessionReport.SessionReportHotkey.DestroyHost();
+            SessionReport.LastSessionReport.Clear();
         }
 
         public static void OnGUI()
