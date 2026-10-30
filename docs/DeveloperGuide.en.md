@@ -1468,6 +1468,8 @@ sequenceDiagram
 
 `Build` order: `LogRoundedRect.SyncFromSettings()` → read `SavedWindowSize()`, clamp and centre → create canvas/window → `ApplyProxy()` → header texts → `GraphContainer(RectMask2D)` → `PlotArea` → `GraphArea` (`LogScatterDrawer`) → `DistributionArea` → seven `CreateChartArea` calls → `_drawer.LoadLog(data)` → `Initialize(font)` on the other eight → fill `_viewAreas[9]` activating one → `RefreshStats()` → `GraphSettingsUI.Create(...)` → `CreateChartUi(font)` → `ApplyLayout(size, position)`.
 
+Open animation: `Build` leaves `CanvasGroup.alpha = 0` on the root; `UpdateOpenAnimation()` then eases over 0.18s with `Time.unscaledDeltaTime` (OutCubic), driving alpha 0→1 and the window's `localScale` 0.94→1. Because the window pivots on its bottom-left corner, `anchoredPosition` is compensated by `target + size * (1 - scale) / 2` so the zoom stays centred; the animation pauses while dragging/resizing, and `ApplyLayout` keeps `_openAnimTargetPosition` / `_openAnimSize` in sync while it runs.
+
 ### 13.4 View enum and data classes
 
 ```csharp
@@ -1661,6 +1663,37 @@ protected static float EstimateTextWidth(string content, float fontSize);   // l
 
 ---
 
+### 13.10 The last-hit report (in-memory snapshot)
+
+A one-run report that also works with logging disabled. **It reads no file at all**: before the session dies, `ModContext.TimingScatterSamples` is deep-copied, wrapped in a synthetic `TimingLogData` and handed to `LogGraphWindow.Open()` — all nine views, the player filter and the stats panel are reused, with no new chart code.
+
+| Step | Location |
+|---|---|
+| Session metadata (song / level / bpm / speed / pitch) | `LevelStartPatch` in `TimingShow/Source/Patches/PlayStatePatches.cs`, captured **before the logging gate**, so the values exist with logging off |
+| Snapshot points | `Fail2Action` Postfix, `OnLandOnPortal` Postfix, first line of `EndSession()` (covers back-to-editor, quit-to-menu, scene change) |
+| Snapshot and window control | `TimingShow/Source/SessionReport/LastSessionReport.cs`: `HasReport` / `Capture` / `OpenWindow` / `ToggleWindow` / `CloseOnLevelStart` / `Clear` |
+| Hotkey polling | `TimingShow/Source/SessionReport/SessionReportHotkey.cs`: a persistent `DontDestroyOnLoad` `MonoBehaviour`. UMM has no per-frame callback and the report must answer in both `scnGame` and `scnEditor`, so owning a host beats patching two unrelated scene objects |
+| Setting | `Settings.ReportKey` (defaults to `KeyCode.F10`; `None` disables it) |
+
+Three deliberate choices: `data.IsAngle` is always `false` because in-memory samples keep milliseconds in `OffsetMs` and the angle in `AngleDeg` (`Logger_ShowAngle` only decides the on-disk unit); `PlayerCount` is `max(players at start, highest sample PlayerId + 1)` because `scrPlayerManager` may already be reset when returning to the editor; and starting a new level closes the window but **keeps the data** until the next finished run replaces it.
+
+### 13.11 Scatter range filter
+
+The `[min] ~ [max]` inputs at the top-left of the scatter view filter points by their y value (`OffsetMs`, which is the angle for angle logs).
+
+| Step | Location |
+|---|---|
+| Data filtering | `ScatterDrawerBase.Data.cs` gains the virtual `IsOffsetInRange(float)` / `HasOffsetRangeFilter`; samples outside the range are skipped while `_visibleIndices` is collected, and `OffsetRangeKept` / `OffsetRangeHidden` are counted. The in-game HUD scatter does not override them, so its behaviour is unchanged |
+| Average line | `BuildAverageSeries` restricts itself to `_visibleIndices` when `dropOutliers || _playerFilter >= 0 || HasOffsetRangeFilter`, so filtered-out points never enter the mean |
+| State | `LogScatterDrawer.SetOffsetRange(hasMin, min, hasMax, max)` returns early when nothing changed, otherwise bumps `_dataVersion` to force a rebuild; `RangeKeptCount` / `RangeHiddenCount` feed the status text |
+| Input control | `LogRangeField.cs`: a self-drawn `MaskableGraphic` that consumes `Input.inputString` for digits, `-` and `.`, handles backspace, ends editing on `Enter` / `Escape` / clicking elsewhere, and draws a blinking caret while editing. It deliberately avoids `TMP_InputField`, which would add an EventSystem dependency and a second focus model |
+| Layout and state | `LogGraphWindow.Filter.cs`: `CreateRangeFilter` builds the bar; `ApplyLayout` / `SetView` call `SyncRangeFilterVisible` (scatter view only, hidden while the settings page is open); `PositionRangeFilter` pins it to the top-left of `ResolvedPlotRect()` |
+| Input conflicts | `LogGraphWindow.Input.cs` skips wheel zoom and drag panning while the pointer is over the bar, and ends editing of any field the click did not land on |
+
+Localisation keys: `LogGraph_RangeFilter`, `LogGraph_RangeInRange` (`{0}` is the in-range count); the reset button reuses `Btn_ResetColor`.
+
+Known limitation: the field consumes the keyboard directly, so the game's own shortcuts (for example `-` zooming the editor out) still fire; blocking them would require patching.
+
 ## 14. Level editor hit markers
 
 `Source\LevelEditor\EditorHitSnapshot.cs` (202 lines) + `EditorHitMarkerController.cs` (787 lines)
@@ -1692,9 +1725,9 @@ class EditorHitSnapshotData {
 - Shader `Sprites/Default`, falling back to `Unlit/Transparent`; `sortingOrder = 32000`.
 - Billboard using `right/up/towardCamera`, offset `+ towardCamera * 0.15f`.
 - `WorldPerPixel`: orthographic `orthographicSize * 2f / pixelHeight`; perspective `2f * Tan(fov * 0.5f * Deg2Rad) * depth / pixelHeight` (`depth = max(0.01f, |cam.z|)`).
-- `radius = Clamp(MarkerSize, 1, 12) * worldPerPixel` (fallback `MarkerRadiusPixels = 4f`); `halfWidth = max(0.01f, worldPerPixel * 0.5f)`; `dashStep = 2π/8`, `dashAngle = dashStep * 0.72f` (72% duty cycle), `segmentAngle = dashAngle / 3`.
-- Multi-player vertical offset: `up * ((PlayerId - (playerCount-1) * 0.5f) * 3.5f * worldPerPixel)`.
-- Culling: `screen.z <= 0` and a `pixelRect ± 12f` margin.
+- Zoom-following size: `zoomScale = Clamp(1f / userSizeMultiplier, 0.1f, 10f)` (reflection on the `userSizeMultiplier` field of a MonoBehaviour sharing the camera's GameObject; falls back to 1 when missing); `radiusPixels = Clamp(MarkerSize * zoomScale, 2f, 200f)` (fallback `MarkerRadiusPixels = 35f`), `radius = radiusPixels * worldPerPixel`; outline `Clamp(radiusPixels * 0.16f, 0.75f, 4f)` px converted to a world half-width; `dashStep = 2π/8`, `dashAngle = dashStep * 0.72f` (72% duty cycle), `segmentAngle = dashAngle / 3`.
+- Multi-player vertical offset: `up * ((PlayerId - (playerCount-1) * 0.5f) * Clamp(3.5f * zoomScale, 1f, 30f) * worldPerPixel)`.
+- Culling: `screen.z <= 0` and a `pixelRect ± (radiusPixels + 8f)` margin.
 
 ### 14.3 Coordinate conversion
 
@@ -1739,7 +1772,7 @@ Progress bar 360×26 at `(center.x, yMin+20f)`, text `EditorHits_Progress = "Pre
 
 ### 14.5 Hover
 
-`HoverRadiusPixels = 11f` (121 square pixels); tooltip at `mouse + (14, -14)`, size `max(150, …) × max(40, …)` clamped into the viewport (`pivot = (0,1)`); rebuilt only when `best != _hoverSampleIndex`. Content includes `Detail_Player/Timing/Angle/Judge`, `BPM:{F1} ×{Speed:F2}` (only when `HasHitParams`) and the floor as `(FloorIdEstimated ? "~#" : "#") + FloorId`.
+Hover radius `max(HoverRadiusPixels = 11f, radiusPixels + 3f)`, refreshed on every rebuild; tooltip at `mouse + (14, -14)`, size `max(150, …) × max(40, …)` clamped into the viewport (`pivot = (0,1)`); rebuilt only when `best != _hoverSampleIndex`. Content includes `Detail_Player/Timing/Angle/Judge`, `BPM:{F1} ×{Speed:F2}` (only when `HasHitParams`) and the floor as `(FloorIdEstimated ? "~#" : "#") + FloorId`.
 
 ---
 
@@ -2048,10 +2081,10 @@ Ordered by severity. **These are code facts, not speculation.**
 
 | # | Defect | Location | Consequence |
 |---|---|---|---|
-| 1 | **`Perc2` / `Perc3` mismatch** | The planet precision slider in `Options.cs` writes `Settings.Perc3` while `UIPatches.cs:54-55` reads `Settings.Perc2` | That slider is **completely ineffective**, and it shares its field with the "death screen precision" slider (the two are linked) |
+| 1 | **`Perc2` / `Perc3` mismatch** ✅ Fixed | The planet precision slider in `Options.cs` writes `Settings.Perc3` while `UIPatches.cs:54-55` reads `Settings.Perc2` | That slider is **completely ineffective**, and it shares its field with the "death screen precision" slider (the two are linked) |
 | 2 | **A `return` inside `DrawPlanetSettings` exits the whole `OnGUI`** | The `AutoReloadInEditor` branch in `Options.cs` | The remaining 10 section groups are not generated that frame; IMGUI Layout/Repaint control counts diverge → misplaced controls or `Getting control X's position` |
-| 3 | **No `Sanitize` for `Perc*`** | `Settings.Sanitize()` omits the precision fields | Hand-editing the JSON to a negative value makes `ToString("F-1")` throw `FormatException` on the first UI frame |
-| 4 | **`LogGraph_Enabled` is dead** | Only printed by `PerfStatsRecorder` | Turning it off cannot disable the window |
+| 3 | **No `Sanitize` for `Perc*`** ✅ Fixed | `Settings.Sanitize()` omits the precision fields | Hand-editing the JSON to a negative value makes `ToString("F-1")` throw `FormatException`: the HUD number path degrades through `SafeFormat`, but the death/results/title paths have no guard, so the exception escapes the Harmony Postfix and that UI stops updating (log spam, not a crash) |
+| 4 | **`LogGraph_Enabled` is dead** ✅ Removed | Only printed by `PerfStatsRecorder` | Turning it off cannot disable the window |
 | 5 | **`IntField` cannot accept digit-by-digit input** | `OptionsWidgets.cs` | Typing `2` (min 10) resets to 200 immediately; `LogBufferSizeKB` typing `1` reverts to 64 |
 | 6 | **JSON `value` lacks `InvariantCulture`** | `TimingLogger.cs` | Comma-decimal locales write `1,234`, which the reader parses as NaN |
 | 7 | **`Settings.Save` is not atomic** | `Settings.cs` | Crashing mid-write leaves truncated JSON → next `Load` throws and falls back to defaults, losing all configuration |

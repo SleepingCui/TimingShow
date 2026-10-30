@@ -1471,6 +1471,8 @@ sequenceDiagram
 
 `Build` 顺序：`LogRoundedRect.SyncFromSettings()` → 读 `SavedWindowSize()` 并 clamp/居中 → 建 Canvas/窗口 → `ApplyProxy()` → 头部文本 → `GraphContainer(RectMask2D)` → `PlotArea` → `GraphArea`（`LogScatterDrawer`）→ `DistributionArea` → 7 个 `CreateChartArea` → `_drawer.LoadLog(data)` → 其余 8 个 drawer `Initialize(font)` → 填 `_viewAreas[9]` 并只激活一个 → `RefreshStats()` → `GraphSettingsUI.Create(...)` → `CreateChartUi(font)` → `ApplyLayout(size, position)`。
 
+呼出动画：`Build` 时根节点 `CanvasGroup.alpha = 0`，之后 `UpdateOpenAnimation()` 用 `Time.unscaledDeltaTime` 在 0.18s 内做 OutCubic 缓动 —— alpha 0→1、窗口 `localScale` 0.94→1。窗口 pivot 在左下角，因此 `anchoredPosition` 按 `目标位置 + size * (1 - scale) / 2` 补偿，缩放围绕视觉中心；拖拽/缩放期间暂停动画，`ApplyLayout` 在动画进行中同步 `_openAnimTargetPosition` / `_openAnimSize`。
+
 ### 13.4 视图枚举与数据类
 
 ```csharp
@@ -1664,6 +1666,37 @@ protected static float EstimateTextWidth(string content, float fontSize);   // l
 
 ---
 
+### 13.10 上次击打报告（内存快照）
+
+日志关闭时也能看的一局报告。**不读任何文件**：会话结束前把 `ModContext.TimingScatterSamples` 深拷贝一份，包成合成的 `TimingLogData` 交给 `LogGraphWindow.Open()` —— 9 个视图、玩家筛选、统计面板全部复用，没有新增图表代码。
+
+| 环节 | 位置 |
+|---|---|
+| 会话元数据（曲名 / 关卡 / bpm / speed / pitch） | `TimingShow/Source/Patches/PlayStatePatches.cs` 的 `LevelStartPatch`，**在 logging 门控之前**采集，所以日志关闭时也有值 |
+| 快照时机 | `Fail2Action` Postfix、`OnLandOnPortal` Postfix、`EndSession()` 首行（覆盖回编辑器 / 退回主菜单 / 换场景） |
+| 快照与窗口控制 | `TimingShow/Source/SessionReport/LastSessionReport.cs`：`HasReport` / `Capture` / `OpenWindow` / `ToggleWindow` / `CloseOnLevelStart` / `Clear` |
+| 快捷键轮询 | `TimingShow/Source/SessionReport/SessionReportHotkey.cs`：`DontDestroyOnLoad` 的常驻 `MonoBehaviour`。UMM 没有逐帧回调，报告又要在 `scnGame` 和 `scnEditor` 都生效，与其给两个场景对象各打一个补丁，不如自己养一个宿主 |
+| 设置字段 | `Settings.ReportKey`（默认 `KeyCode.F10`，`None` 视为关闭） |
+
+三处刻意的选择：`data.IsAngle` 恒为 `false`，因为内存样本的 `OffsetMs` 永远是毫秒、角度另存 `AngleDeg`（`Logger_ShowAngle` 只管写盘单位）；`PlayerCount` 取 `max(开局人数, 样本最大 PlayerId + 1)`，避免回编辑器时 `scrPlayerManager` 已被重置；开局时会关掉还开着的报告窗口但**保留数据**，直到下一局结束把它覆盖。
+
+### 13.11 散点范围筛选
+
+散点视图左上角的 `[最小] ~ [最大]` 输入框，按 Y 值（`OffsetMs`，角度日志即角度）过滤散点。
+
+| 环节 | 位置 |
+|---|---|
+| 数据过滤 | `ScatterDrawerBase.Data.cs` 新增 `IsOffsetInRange(float)` / `HasOffsetRangeFilter` 虚成员，在收集 `_visibleIndices` 时剔除区间外的样本；同时统计 `OffsetRangeKept` / `OffsetRangeHidden`。手游 HUD 散点不覆盖，行为不变 |
+| 均值线 | `BuildAverageSeries` 在 `dropOutliers || _playerFilter >= 0 || HasOffsetRangeFilter` 时按 `_visibleIndices` 逐点计算，避免把区间外的点算进均值 |
+| 状态 | `LogScatterDrawer.SetOffsetRange(hasMin, min, hasMax, max)`：值不变直接返回，否则 `_dataVersion++` 触发重建；`RangeKeptCount` / `RangeHiddenCount` 供状态栏使用 |
+| 输入控件 | `LogRangeField.cs`：自绘的 `MaskableGraphic`，读 `Input.inputString` 处理数字 / `-` / `.` / 退格，`Enter` / `Escape` / 点击别处结束编辑，编辑时绘制闪烁光标；不使用 `TMP_InputField`，避免依赖 EventSystem 与第二套焦点模型 |
+| 布局与状态 | `LogGraphWindow.Filter.cs`：`CreateRangeFilter` 建条，`ApplyLayout` / `SetView` 调 `SyncRangeFilterVisible`（仅散点页且设置面板关闭时显示），`ApplyLayout` 里的 `PositionRangeFilter` 放在 `ResolvedPlotRect()` 左上角 |
+| 输入冲突 | `LogGraphWindow.Input.cs` 在指针位于筛选条上时跳过滚轮缩放与拖拽平移；鼠标按下时结束不在指针下的输入框编辑 |
+
+文案键：`LogGraph_RangeFilter`、`LogGraph_RangeInRange`（`{0}` 为范围内点数），重置按钮复用 `Btn_ResetColor`。
+
+已知限制：编辑状态直接消费键盘，游戏/编辑器自身的快捷键（例如 `-` 触发编辑器缩小）仍会响应，无法在不打补丁的前提下拦截。
+
 ## 14. 关卡编辑器击打点
 
 `Source\LevelEditor\EditorHitSnapshot.cs`（202 行）+ `EditorHitMarkerController.cs`（787 行）
@@ -1695,9 +1728,9 @@ class EditorHitSnapshotData {
 - shader `Sprites/Default`，回退 `Unlit/Transparent`；`sortingOrder = 32000`。
 - Billboard：`right/up/towardCamera`，位置 `+ towardCamera * 0.15f`。
 - 世界/像素换算 `WorldPerPixel`：正交 `orthographicSize * 2f / pixelHeight`；透视 `2f * Tan(fov * 0.5f * Deg2Rad) * depth / pixelHeight`（`depth = max(0.01f, |cam.z|)`）。
-- `radius = Clamp(MarkerSize, 1, 12) * worldPerPixel`（回退 `MarkerRadiusPixels = 4f`）；`halfWidth = max(0.01f, worldPerPixel * 0.5f)`；`dashStep = 2π/8`、`dashAngle = dashStep * 0.72f`（占空比 0.72）、`segmentAngle = dashAngle / 3`。
-- 多人纵向错开：`up * ((PlayerId - (playerCount-1) * 0.5f) * 3.5f * worldPerPixel)`。
-- 剔除：`screen.z <= 0` 与 `pixelRect ± 12f`。
+- 尺寸跟随编辑器缩放：`zoomScale = Clamp(1f / userSizeMultiplier, 0.1f, 10f)`（反射读取相机同一 GameObject 上 MonoBehaviour 的同名字段，缺失时回退 1）；`radiusPixels = Clamp(MarkerSize * zoomScale, 2f, 200f)`（回退 `MarkerRadiusPixels = 35f`），`radius = radiusPixels * worldPerPixel`；描边 `Clamp(radiusPixels * 0.16f, 0.75f, 4f)` px 折算成世界半宽；`dashStep = 2π/8`、`dashAngle = dashStep * 0.72f`（占空比 0.72）、`segmentAngle = dashAngle / 3`。
+- 多人纵向错开：`up * ((PlayerId - (playerCount-1) * 0.5f) * Clamp(3.5f * zoomScale, 1f, 30f) * worldPerPixel)`。
+- 剔除：`screen.z <= 0` 与 `pixelRect ± (radiusPixels + 8f)`。
 
 ### 14.3 坐标换算
 
@@ -1742,7 +1775,7 @@ stateDiagram-v2
 
 ### 14.5 悬停
 
-`HoverRadiusPixels = 11f`（121 平方像素）；tooltip 位置 `mouse + (14, -14)`，尺寸 `max(150, …) × max(40, …)` 并 clamp 进 viewport（`pivot = (0,1)`）；仅 `best != _hoverSampleIndex` 时重建。内容含 `Detail_Player/Timing/Angle/Judge`、`BPM:{F1} ×{Speed:F2}`（`HasHitParams` 才显）、楼层 `(FloorIdEstimated ? "~#" : "#") + FloorId`。
+悬停半径 `max(HoverRadiusPixels = 11f, radiusPixels + 3f)`（每次重建时按缩放更新）；tooltip 位置 `mouse + (14, -14)`，尺寸 `max(150, …) × max(40, …)` 并 clamp 进 viewport（`pivot = (0,1)`）；仅 `best != _hoverSampleIndex` 时重建。内容含 `Detail_Player/Timing/Angle/Judge`、`BPM:{F1} ×{Speed:F2}`（`HasHitParams` 才显）、楼层 `(FloorIdEstimated ? "~#" : "#") + FloorId`。
 
 ---
 
@@ -2051,10 +2084,10 @@ dotnet run --project Tools/GeometryTests/GeometryTests.csproj
 
 | # | 缺陷 | 位置 | 后果 |
 |---|---|---|---|
-| 1 | **`Perc2` / `Perc3` 错配** | `Options.cs` 星球精度滑块写 `Settings.Perc3`，`UIPatches.cs:54-55` 读 `Settings.Perc2` | 该滑块**完全无效**，且与"死亡页精度"共享同一字段（两处联动） |
+| 1 | **`Perc2` / `Perc3` 错配** ✅ 已修复 | `Options.cs` 星球精度滑块写 `Settings.Perc3`，`UIPatches.cs:54-55` 读 `Settings.Perc2` | 该滑块**完全无效**，且与"死亡页精度"共享同一字段（两处联动） |
 | 2 | **`DrawPlanetSettings` 里的 `return` 跳出整个 `OnGUI`** | `Options.cs` 的 `AutoReloadInEditor` 分支 | 该帧后续 10 个分组全部不生成，IMGUI Layout/Repaint 控件数量不一致，可能控件错位或抛 `Getting control X's position` |
-| 3 | **`Perc*` 无 Sanitize** | `Settings.Sanitize()` 未覆盖精度字段 | 手改 JSON 为负数 → `ToString("F-1")` 抛 `FormatException`，UI 首帧即崩 |
-| 4 | **`LogGraph_Enabled` 是死字段** | 仅被 `PerfStatsRecorder` 打印 | 关掉无法停用窗口 |
+| 3 | **`Perc*` 无 Sanitize** ✅ 已修复 | `Settings.Sanitize()` 未覆盖精度字段 | 手改 JSON 为负数 → `ToString("F-1")` 抛 `FormatException`：HUD 数字走 `SafeFormat` 兜底降级，但死亡页/结算页/标题没有兜底，异常从 Harmony Postfix 抛出，对应 UI 停止更新并刷日志（不是进程崩溃） |
+| 4 | **`LogGraph_Enabled` 是死字段** ✅ 已删除 | 仅被 `PerfStatsRecorder` 打印 | 关掉无法停用窗口 |
 | 5 | **`IntField` 无法逐位输入** | `OptionsWidgets.cs` | 清空后输入 `2`（min 10）立刻重置为 200；`LogBufferSizeKB` 输 `1` 立刻回退 64 |
 | 6 | **JSON `value` 缺 `InvariantCulture`** | `TimingLogger.cs` | 逗号小数点 locale（de/fr 等）下写出 `1,234`，读取端按 invariant 解析成 NaN |
 | 7 | **`Settings.Save` 非原子写** | `Settings.cs` | 写一半崩溃留下截断 JSON → 下次 `Load` 抛异常回退默认，配置全丢 |

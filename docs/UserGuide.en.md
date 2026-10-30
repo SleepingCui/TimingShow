@@ -480,6 +480,16 @@ Clicking **View Graph** on a log list row reads the whole log and opens a chart 
 | **Combo** | Strip chart whose colour encodes combo length; grey segments are breaks | Spot where breaks cluster and where your longest streak sits |
 | **Autocorrelation** | ACF bars for lag 1–50 with a 95% confidence band | Stricter periodicity detection. A lag outside the band implies a repeating mistake pattern |
 
+#### Scatter range filter
+
+The scatter view has a **Range Filter** row at its top-left: `[min] ~ [max]` inputs in `ms` (or `°` for angle logs).
+
+- Click a field and type; negative numbers and decimals are accepted. `Enter`, `Escape`, or clicking elsewhere ends editing.
+- An empty field means "no limit on that side"; both empty means no filtering.
+- Points outside the range are not drawn, and the average line and automatic y-axis use only in-range points. The right side shows a live "N pts in range" count.
+- **Reset** clears both fields.
+- The filter only lives inside this window: it survives view switches and resets when the window is closed.
+
 #### Statistics panel
 
 Four rows of statistics, depending on the active view:
@@ -509,6 +519,16 @@ Opened by the gear button; changes take effect and are saved only when you press
 | Offline | Built-in window |
 | Verify a specific judgement was recorded correctly | Open the `.json` log directly |
 
+### 8.4 No log needed: the last-hit report
+
+With "Enable timing logging" turned off, neither path above is available — there is no file to analyse. That is what the **report window** is for:
+
+1. At the bottom of the settings panel, set "Hit report key" to some key (default `F10`; `None` disables the hotkey).
+2. Finish a run: clearing the level, failing, or being sent back to the level editor all count.
+3. Press the key and the window appears with exactly the same content as the built-in chart window (nine views, per-player filter, stats panel), except the data comes from memory instead of a file. Press it again to close.
+
+The data stays in memory for the whole run, so having logging off changes nothing. It is a **single-run snapshot**: starting the next level does not wipe the previous report immediately, it is replaced once the next run finishes. The "View last hit report" button in the settings panel does the same thing and is greyed out when there is nothing to show.
+
 ---
 
 ## 9. Level editor hit markers
@@ -532,7 +552,7 @@ Added in 1.9.x: **after finishing a run, return to the level editor and every hi
 | Option | Meaning |
 |---|---|
 | `Show editor hit markers` | Master switch |
-| `Point Size` | 1–12 px |
+| `Point Size` | 1–100 px (at 100% zoom); circles scale with the editor zoom |
 | `Angle offset scale` | 0–3, see above |
 | `Show hover details` | Off leaves just the dots |
 | `Clear hit markers` | Immediately remove what is currently drawn |
@@ -656,7 +676,7 @@ Top-to-bottom order of the settings page. Defaults are the field initialisers in
 
 | Item | Default | Item | Default |
 |---|---|---|---|
-| Show editor hit markers | **on** | Point size | 4 |
+| Show editor hit markers | **on** | Point size | 35 |
 | Angle offset scale | 1 | Show hover details | on |
 
 ### Logging
