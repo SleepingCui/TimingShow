@@ -15,6 +15,10 @@ namespace TimingShow.HUD
         private bool _isAngle;
         private float _windowBpm;
         private int _playerCount = 1;
+        private bool _hasMinOffset;
+        private bool _hasMaxOffset;
+        private float _minOffset;
+        private float _maxOffset;
         public TMP_FontAsset GraphFontAsset => CurrentFontAsset;
 
         public System.Action AxisMetricsChanged;
@@ -43,6 +47,37 @@ namespace TimingShow.HUD
         protected override void ResetPlayerFilter()
         {
             _playerFilter = _playerCount > 1 ? 0 : -1;
+        }
+
+        public bool HasOffsetRange => _hasMinOffset || _hasMaxOffset;
+
+        public int RangeKeptCount => OffsetRangeKept;
+
+        public int RangeHiddenCount => OffsetRangeHidden;
+
+        public void SetOffsetRange(bool hasMin, float min, bool hasMax, float max)
+        {
+            if (_hasMinOffset == hasMin && _hasMaxOffset == hasMax &&
+                (!hasMin || Mathf.Approximately(_minOffset, min)) &&
+                (!hasMax || Mathf.Approximately(_maxOffset, max)))
+            {
+                return;
+            }
+
+            _hasMinOffset = hasMin;
+            _hasMaxOffset = hasMax;
+            _minOffset = min;
+            _maxOffset = max;
+            _dataVersion++;
+        }
+
+        protected override bool HasOffsetRangeFilter => HasOffsetRange;
+
+        protected override bool IsOffsetInRange(float value)
+        {
+            if (_hasMinOffset && value < _minOffset) return false;
+            if (_hasMaxOffset && value > _maxOffset) return false;
+            return true;
         }
 
         public void LoadLog(TimingLogData data)

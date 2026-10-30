@@ -389,7 +389,7 @@ namespace TimingShow.Options
             ToggleFold(i18n.T("Toggle_EditorHits"), ref ModContext.Settings.EditorHits_Enabled, ref _foldoutEditorHits);
             if (!ModContext.Settings.EditorHits_Enabled || !_foldoutEditorHits) return;
 
-            SliderFloat("Label_PointSize", ref ModContext.Settings.EditorHits_MarkerSize, 1f, 12f);
+            SliderFloat("Label_PointSize", ref ModContext.Settings.EditorHits_MarkerSize, 1f, 100f);
             SliderFloat("Label_AngleScale", ref ModContext.Settings.EditorHits_AngleScale, 0f, 3f);
             Toggle(ref ModContext.Settings.EditorHits_ShowTooltip, "Toggle_EditorHitsTooltip");
 

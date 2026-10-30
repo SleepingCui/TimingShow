@@ -152,6 +152,8 @@
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Input.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Diagnostics.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Pane.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Filter.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogRangeField.cs" />
     <Compile Include="Source\HUD\ILogGraphSettingsHost.cs" />
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.cs" />
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Rows.cs" />

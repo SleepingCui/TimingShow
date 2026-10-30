@@ -164,6 +164,8 @@ namespace TimingShow.HUD.LogGraphWindow
                 _playerMenu.SetVerticesDirty();
             }
 
+            ApplyRangeFilterFont(font);
+
             if (_panel != null) _panel.MarkDirty();
             if (_settingsUI != null) _settingsUI.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);
         }

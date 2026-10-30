@@ -32,6 +32,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private float _liveLeftTimeMs;
         private float _liveRightTimeMs;
         private int _ignoredOutlierCount;
+        private int _offsetRangeKept;
+        private int _offsetRangeHidden;
 
         private float _smoothMinY;
         private float _smoothMaxY;
@@ -45,6 +47,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private int _lastDataSignature = int.MinValue;
         private float _cachedTargetMinY;
         private float _cachedTargetMaxY;
+
+        protected virtual bool HasOffsetRangeFilter => false;
+        protected virtual bool IsOffsetInRange(float value) => true;
+        protected int OffsetRangeKept => _offsetRangeKept;
+        protected int OffsetRangeHidden => _offsetRangeHidden;
 
         protected override void UpdateData()
         {
@@ -77,6 +84,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
             _avgAvailable = false;
             _avgCurrent = 0f;
             _ignoredOutlierCount = 0;
+            _offsetRangeKept = 0;
+            _offsetRangeHidden = 0;
 
             List<TimingScatterSample> samples = ScatterSamples;
             int total = samples.Count;
@@ -112,6 +121,12 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 if (!samples[i].HasJudge) continue;
                 scanned++;
                 if (_playerFilter >= 0 && samples[i].PlayerId != _playerFilter) continue;
+                if (!IsOffsetInRange(samples[i].OffsetMs))
+                {
+                    _offsetRangeHidden++;
+                    continue;
+                }
+                _offsetRangeKept++;
                 _visibleIndices.Add(i);
                 collected++;
             }
@@ -404,7 +419,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             Settings settings = ModContext.Settings;
             if (!ScatterShowAvgLine) return;
             bool dropOutliers = LevelFinished && ScatterIgnoreOutliers;
-            bool restrictToVisible = dropOutliers || _playerFilter >= 0;
+            bool restrictToVisible = dropOutliers || _playerFilter >= 0 || HasOffsetRangeFilter;
 
             int visible = 0;
             double sum = 0.0;

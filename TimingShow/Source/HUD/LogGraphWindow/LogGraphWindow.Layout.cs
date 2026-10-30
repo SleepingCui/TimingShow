@@ -117,7 +117,13 @@ namespace TimingShow.HUD.LogGraphWindow
             _windowRect.pivot = Vector2.zero;
             _windowRect.sizeDelta = size;
             _windowRect.anchoredPosition = position;
-            
+
+            if (_openAnimElapsed < OpenAnimDuration)
+            {
+                _openAnimTargetPosition = position;
+                _openAnimSize = size;
+            }
+
             ApplyHeaderLayout(size);
             PositionSelectorAndMenus(size);
             RefreshTitle();
@@ -127,6 +133,13 @@ namespace TimingShow.HUD.LogGraphWindow
             ResolveGraphLayout(size.x, size.y);
             Rect container = _resolvedContainerRect;
             Rect plot = _resolvedPlotRect;
+
+            float rangeStrip = RangeStripHeight();
+            if (rangeStrip > 0f && plot.height > rangeStrip * 2f)
+            {
+                plot = new Rect(plot.x, plot.y, plot.width, plot.height - rangeStrip);
+                _resolvedPlotRect = plot;
+            }
             
             if (_graphContainerRect != null)
             {
@@ -169,6 +182,8 @@ namespace TimingShow.HUD.LogGraphWindow
                 _panel.SetSettingsActive(settingsOpen);
                 _panel.MarkDirty();
             }
+
+            SyncRangeFilterVisible();
         }
         
         private void ApplyHeaderLayout(Vector2 size)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -10,16 +11,19 @@ using TimingShow.HUD;
 
 namespace TimingShow.LevelEditor
 {
-    // Shows the hits of the just-finished run on the editor track. Lives on a
-    // persistent GameObject created when the session snapshot is captured.
     public sealed class EditorHitMarkerController : MonoBehaviour
     {
-        private const float MarkerRadiusPixels = 4f;
+        private const float MarkerRadiusPixels = 7f;
+        private const float MarkerMinRadiusPixels = 2f;
+        private const float MarkerMaxRadiusPixels = 200f;
         private const int MarkerDashCount = 8;
         private const int MarkerDashSegments = 3;
-        private const float MarkerOutlineWidthPixels = 1f;
+        private const float MarkerOutlineRatio = 0.16f;
+        private const float MarkerOutlineMinPixels = 0.75f;
+        private const float MarkerOutlineMaxPixels = 4f;
         private const float MarkerPlayerSpacingPixels = 3.5f;
         private const float HoverRadiusPixels = 11f;
+        private const float HoverPaddingPixels = 3f;
         private const float TooltipPadding = 7f;
         private const float TooltipOffset = 14f;
         private const float RebuildIntervalSeconds = 0.1f;
@@ -27,6 +31,9 @@ namespace TimingShow.LevelEditor
         private const int PrepareChunkSize = 8000;
 
         private static EditorHitMarkerController _host;
+        private static Component _zoomSource;
+        private static FieldInfo _zoomField;
+        private static Type _zoomFieldType;
 
         internal static void EnsureHost()
         {
@@ -85,6 +92,7 @@ namespace TimingShow.LevelEditor
         private TMP_Text _tooltipText;
         private Image _tooltipAccent;
         private int _hoverSampleIndex = -1;
+        private float _hoverRadiusPixels = HoverRadiusPixels;
 
         private GameObject _progressRoot;
         private RectTransform _progressFill;
@@ -253,8 +261,14 @@ namespace TimingShow.LevelEditor
 
             Rect viewport = camera.pixelRect;
             float worldPerPixel = WorldPerPixel(camera);
-            float radius = Mathf.Clamp(markerPixels, 1f, 12f) * worldPerPixel;
-            float playerSpacing = MarkerPlayerSpacingPixels * worldPerPixel;
+            float zoomScale = EditorZoomScale(camera);
+            float radiusPixels = Mathf.Clamp(markerPixels * zoomScale, MarkerMinRadiusPixels, MarkerMaxRadiusPixels);
+            float outlinePixels = Mathf.Clamp(radiusPixels * MarkerOutlineRatio, MarkerOutlineMinPixels, MarkerOutlineMaxPixels);
+            float radius = radiusPixels * worldPerPixel;
+            float outlineHalfWidth = outlinePixels * 0.5f * worldPerPixel;
+            float playerSpacing = Mathf.Clamp(MarkerPlayerSpacingPixels * zoomScale, 1f, 30f) * worldPerPixel;
+            float cullMargin = radiusPixels + HoverPaddingPixels + 5f;
+            _hoverRadiusPixels = Mathf.Max(HoverRadiusPixels, radiusPixels + HoverPaddingPixels);
             Vector3 right = camera.transform.right;
             Vector3 up = camera.transform.up;
             Vector3 towardCamera = -camera.transform.forward;
@@ -276,10 +290,10 @@ namespace TimingShow.LevelEditor
 
                 Vector3 screen = camera.WorldToScreenPoint(world);
                 if (screen.z <= 0f) continue;
-                if (screen.x < viewport.xMin - 12f || screen.x > viewport.xMax + 12f) continue;
-                if (screen.y < viewport.yMin - 12f || screen.y > viewport.yMax + 12f) continue;
+                if (screen.x < viewport.xMin - cullMargin || screen.x > viewport.xMax + cullMargin) continue;
+                if (screen.y < viewport.yMin - cullMargin || screen.y > viewport.yMax + cullMargin) continue;
 
-                AppendDashedCircle(world, right, up, radius, worldPerPixel, MarkerColor(sample));
+                AppendDashedCircle(world, right, up, radius, outlineHalfWidth, MarkerColor(sample));
 
                 VisibleHit hit = new VisibleHit();
                 hit.SampleIndex = i;
@@ -289,10 +303,7 @@ namespace TimingShow.LevelEditor
 
             ApplyMesh();
         }
-
-        // Places the marker on the circle the planet was orbiting when the hit was
-        // judged. The floor heading (previous floor -> hit floor) is 0 degrees; the
-        // signed hit angle rotates around it, so the point reproduces the input.
+        
         private static Vector3 AngleOffsetPosition(scrFloor floor, TimingScatterSample sample, float scale)
         {
             Vector3 center = floor.transform.position;
@@ -335,9 +346,9 @@ namespace TimingShow.LevelEditor
             return JColors.GetColor(sample.Judge, sample.IsXPerfect, true);
         }
 
-        private void AppendDashedCircle(Vector3 center, Vector3 right, Vector3 up, float radius, float worldPerPixel, Color color)
+        private void AppendDashedCircle(Vector3 center, Vector3 right, Vector3 up, float radius, float halfWidth, Color color)
         {
-            float halfWidth = Mathf.Max(0.01f, worldPerPixel * MarkerOutlineWidthPixels * 0.5f);
+            halfWidth = Mathf.Max(0.0001f, halfWidth);
             float innerRadius = Mathf.Max(0f, radius - halfWidth);
             float outerRadius = radius + halfWidth;
             float dashStep = Mathf.PI * 2f / MarkerDashCount;
@@ -400,6 +411,51 @@ namespace TimingShow.LevelEditor
             float depth = Mathf.Max(0.01f, Mathf.Abs(camera.transform.position.z));
             return 2f * Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * depth / pixels;
         }
+        
+        private static float EditorZoomScale(Camera camera)
+        {
+            float multiplier = ReadUserSizeMultiplier(camera);
+            if (!(multiplier > 0.01f)) return 1f;
+
+            return Mathf.Clamp(1f / multiplier, 0.1f, 10f);
+        }
+        
+        private static float ReadUserSizeMultiplier(Camera camera)
+        {
+            if (camera == null) return 1f;
+
+            if (_zoomSource == null)
+            {
+                MonoBehaviour[] behaviours = camera.GetComponents<MonoBehaviour>();
+                for (int i = 0; i < behaviours.Length; i++)
+                {
+                    MonoBehaviour behaviour = behaviours[i];
+                    if (behaviour == null) continue;
+
+                    FieldInfo field = FindZoomField(behaviour.GetType());
+                    if (field == null) continue;
+
+                    _zoomSource = behaviour;
+                    _zoomField = field;
+                    break;
+                }
+            }
+
+            if (_zoomSource == null || _zoomField == null) return 1f;
+
+            object value = _zoomField.GetValue(_zoomSource);
+            return value is float ? (float)value : 1f;
+        }
+
+        private static FieldInfo FindZoomField(Type type)
+        {
+            if (_zoomFieldType == type) return _zoomField;
+
+            _zoomFieldType = type;
+            _zoomField = type.GetField("userSizeMultiplier",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            return _zoomField;
+        }
 
         private void UpdateHover(scnEditor editor)
         {
@@ -427,7 +483,7 @@ namespace TimingShow.LevelEditor
             }
 
             int best = -1;
-            float bestDistance = HoverRadiusPixels * HoverRadiusPixels;
+            float bestDistance = _hoverRadiusPixels * _hoverRadiusPixels;
             for (int i = 0; i < _visible.Count; i++)
             {
                 float distance = (_visible[i].Screen - mouse).sqrMagnitude;

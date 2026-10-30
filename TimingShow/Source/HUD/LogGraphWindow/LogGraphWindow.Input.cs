@@ -106,7 +106,9 @@ namespace TimingShow.HUD.LogGraphWindow
                 }
                 return;
             }
-            
+
+            if (Input.GetMouseButtonDown(0)) EndRangeEditingOnClick(screen);
+
             if (_graphPanActive)
             {
                 if (Input.GetMouseButton(0))
@@ -157,6 +159,7 @@ namespace TimingShow.HUD.LogGraphWindow
                 && _view == GraphView.Scatter
                 && !_chartMenuOpen && !_playerMenuOpen
                 && (_settingsUI == null || !_settingsUI.IsOpen)
+                && !IsPointerInsideRangeFilter(screen)
                 && IsPointerInsideGraphArea(screen))
             {
                 if (_drawer != null && _drawer.ZoomAt(wheel, screen))
@@ -250,7 +253,8 @@ namespace TimingShow.HUD.LogGraphWindow
                 return;
             }
             
-            if (_drawer != null && _view == GraphView.Scatter && IsPointerInsideGraphArea(screen))
+            if (_drawer != null && _view == GraphView.Scatter && IsPointerInsideGraphArea(screen)
+                && !IsPointerInsideRangeFilter(screen))
             {
                 if (_drawer.TryPlayerLegendClick(screen)) return;
                 _graphPanActive = true;

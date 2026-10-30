@@ -217,7 +217,7 @@ namespace TimingShow
         public string LogGraph_FontPath = "";
 
         public bool EditorHits_Enabled = true;
-        public float EditorHits_MarkerSize = 4f;
+        public float EditorHits_MarkerSize = 35f;
         public float EditorHits_AngleScale = 1f;
         public bool EditorHits_ShowTooltip = true;
 
@@ -270,7 +270,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 3;
+        public const int CurrentSettingsVersion = 5;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -348,6 +348,13 @@ namespace TimingShow
 
                 migrated = true;
             }
+            
+            if (SettingsVersion < 5 &&
+                (Mathf.Approximately(EditorHits_MarkerSize, 4f) || Mathf.Approximately(EditorHits_MarkerSize, 7f)))
+            {
+                EditorHits_MarkerSize = 35f;
+                migrated = true;
+            }
 
             if (SettingsVersion < CurrentSettingsVersion)
             {
@@ -394,7 +401,7 @@ namespace TimingShow
             TimingScatter_PointSize = Mathf.Clamp(TimingScatter_PointSize, 1f, 12f);
             TimingScatter_BandThresholdBpm = Mathf.Clamp(TimingScatter_BandThresholdBpm, 100f, 600f);
 
-            EditorHits_MarkerSize = Mathf.Clamp(EditorHits_MarkerSize, 1f, 12f);
+            EditorHits_MarkerSize = Mathf.Clamp(EditorHits_MarkerSize, 1f, 100f);
             EditorHits_AngleScale = Mathf.Clamp(EditorHits_AngleScale, 0f, 3f);
 
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
@@ -405,10 +412,7 @@ namespace TimingShow
             
             if (LogGraph_WindowWidth > 0f) LogGraph_WindowWidth = Mathf.Clamp(LogGraph_WindowWidth, 480f, 1920f);
             if (LogGraph_WindowHeight > 0f) LogGraph_WindowHeight = Mathf.Clamp(LogGraph_WindowHeight, 260f, 1080f);
-
-            // Precisions are fed straight into ToString("F" + n). A negative or huge
-            // value there throws FormatException at format time, so keep every one of
-            // them inside the range the sliders expose.
+            
             Perc1 = Mathf.Clamp(Perc1, 0, 5);
             Perc2 = Mathf.Clamp(Perc2, 0, 5);
             Perc3 = Mathf.Clamp(Perc3, 0, 5);
