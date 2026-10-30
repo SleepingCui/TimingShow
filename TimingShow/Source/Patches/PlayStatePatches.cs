@@ -46,6 +46,7 @@ namespace TimingShow.Patches
         
         public static void EndSession()
         {
+            SessionReport.LastSessionReport.Capture("session end");
             PerfStatsRecorder.EndSession("quit");
             SessionTimer.Stop();
             _isGamePaused = false;
@@ -92,6 +93,23 @@ namespace TimingShow.Patches
                 ModContext.ClearTimingScatterSamples();
                 LevelEditor.EditorHitSnapshot.Clear();
                 ModContext.UIDirty = true;
+                
+                SessionReport.LastSessionReport.CloseOnLevelStart();
+                try
+                {
+                    var reportController = scrController.instance;
+                    var reportConductor = scrController.conductor ?? scrConductor.instance ?? (reportController != null && reportController.chosenPlanet != null ? reportController.chosenPlanet.conductor : null);
+                    double reportBpm = reportConductor != null ? reportConductor.bpm : 0.0;
+                    double reportSpeed = reportController != null && reportController.planetarySystem != null ? reportController.planetarySystem.speed : 1.0;
+                    double reportPitch = reportConductor != null && reportConductor.song != null ? reportConductor.song.pitch : 1.0;
+                    string reportSong = scnGame.instance != null && scnGame.instance.levelData != null ? scnGame.instance.levelData.songFilename : null;
+                    string reportLevel = scnGame.instance != null ? scnGame.instance.levelPath : null;
+                    SessionReport.LastSessionReport.BeginSession(reportSong, reportLevel, reportBpm, reportSpeed, reportPitch);
+                }
+                catch (Exception reportEx)
+                {
+                    ModContext.Logger?.Error("Failed to capture session report metadata: " + reportEx.Message);
+                }
                 JColors.ResetCache();
                 HitBump.StopAll();
                 BumpTrigger.Reset();
@@ -193,6 +211,7 @@ namespace TimingShow.Patches
                 ModContext.XAccVersion++;
                 ModContext.TimingScatterVersion++;
                 ModContext.UIDirty = true;
+                SessionReport.LastSessionReport.Capture("fail");
                 PerfStatsRecorder.EndSession("fail");
             }
         }
@@ -207,6 +226,7 @@ namespace TimingShow.Patches
                 ModContext.XAccVersion++;
                 ModContext.TimingScatterVersion++;
                 ModContext.UIDirty = true;
+                SessionReport.LastSessionReport.Capture("complete");
                 PerfStatsRecorder.EndSession("complete");
             }
         }

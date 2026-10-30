@@ -15,9 +15,6 @@ namespace TimingShow
         public bool IsXPerfect;
         public bool HasJudge;
         public int PlayerId;
-
-        // Hit context captured at judgement time. Logs written before format v8
-        // (JSON) / v9 (binary) leave these at their unknown defaults.
         public int FloorId;
         public float AngleDeg;
         public float Bpm;
@@ -28,9 +25,6 @@ namespace TimingShow
         public bool HasFloorId;
         public bool FloorIdEstimated;
         public bool HasHitParams;
-
-        // Orbit direction at the hit. Runtime-only (not serialized); the editor
-        // markers fall back to scrFloor.isCCW when loading older data.
         public bool OrbitClockwise;
         public bool HasOrbitDirection;
     }
@@ -152,6 +146,7 @@ namespace TimingShow
         {
             IsEnabled = true;
             HarmonyInstance?.PatchAll();
+            SessionReport.SessionReportHotkey.EnsureHost();
         }
 
         public static void Disable()
@@ -162,6 +157,8 @@ namespace TimingShow
             ClearTimingScatterSamples();
             HUDMan.Destroy();
             LevelEditor.EditorHitSnapshot.Clear();
+            SessionReport.SessionReportHotkey.DestroyHost();
+            SessionReport.LastSessionReport.Clear();
         }
 
         public static void OnGUI()

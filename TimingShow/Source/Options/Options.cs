@@ -17,6 +17,13 @@ namespace TimingShow.Options
         private static string _scatterSampleCountText;
         private static string _scatterMaxPointsText;
         private static string _logGraphMaxPointsText;
+        private static bool _capturingReportKey;
+        
+        internal static bool HotkeySuppressed
+        {
+            get { return _capturingReportKey && ModContext.IsConfigOpen; }
+        }
+
         private static bool _showAdvancedSettings;
         private static bool _showDebugSettings;
         private static bool _showLogGraphSettings;
@@ -39,7 +46,10 @@ namespace TimingShow.Options
         public static void OnGUI()
         {
             if (!ModContext.IsConfigOpen)
+            {
                 OptionLogList.OnConfigOpened();
+                _capturingReportKey = false;
+            }
 
             ModContext.LastConfigGuiFrame = Time.frameCount;
             ModContext.UIDirty = true;
@@ -106,7 +116,7 @@ namespace TimingShow.Options
 
             if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
-                SliderInt("Label_Precision", ref ModContext.Settings.Perc3, 0, 5);
+                SliderInt("Label_Precision", ref ModContext.Settings.Perc2, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Planet_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
                 if (!HitMarginCompat.IsGame34)
@@ -452,6 +462,10 @@ namespace TimingShow.Options
                 ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.LogGraph_AxisTextColor);
 
                 DrawHUDFontSettings(ref ModContext.Settings.LogGraph_UseCustomFont, ref ModContext.Settings.LogGraph_FontPath);
+
+                GUILayout.Space(8);
+                DrawReportKeyRow();
+                DrawLastReportButtonRow();
             }
             GUILayout.EndVertical();
         }
@@ -535,10 +549,52 @@ namespace TimingShow.Options
 
         private static void DrawSessionControls()
         {
+            if (ModContext.Settings == null) return;
+
             if (GUILayout.Button(i18n.T("Btn_Reset"), GUILayout.Width(150)))
             {
                 Players.ResetAll();
             }
+        }
+
+        private static void DrawReportKeyRow()
+        {
+            if (ModContext.Settings == null) return;
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(i18n.T("Label_ReportKey"), GUILayout.Width(140));
+
+            string keyText = _capturingReportKey
+                ? i18n.T("Btn_PressKey")
+                : (ModContext.Settings.ReportKey == KeyCode.None ? i18n.T("Status_Disabled") : ModContext.Settings.ReportKey.ToString());
+            if (GUILayout.Button(keyText, GUILayout.Width(140)))
+                _capturingReportKey = !_capturingReportKey;
+            GUILayout.EndHorizontal();
+
+            if (_capturingReportKey)
+            {
+                Event keyEvent = Event.current;
+                if (keyEvent != null && keyEvent.type == EventType.KeyDown && keyEvent.keyCode != KeyCode.None)
+                {
+                    if (keyEvent.keyCode != KeyCode.Escape)
+                        ModContext.Settings.ReportKey = keyEvent.keyCode;
+
+                    _capturingReportKey = false;
+                    keyEvent.Use();
+                }
+            }
+        }
+
+        private static void DrawLastReportButtonRow()
+        {
+            if (ModContext.Settings == null) return;
+
+            bool hasReport = SessionReport.LastSessionReport.HasReport;
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && hasReport;
+            if (GUILayout.Button(i18n.T("Btn_ViewLastReport"), GUILayout.Width(150)))
+                SessionReport.LastSessionReport.OpenWindow();
+            GUI.enabled = previousEnabled;
         }
 
         private static void DrawAdvancedSettings()
