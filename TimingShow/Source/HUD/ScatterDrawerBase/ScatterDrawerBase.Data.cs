@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TimingShow.Diagnostics;
 using UnityEngine;
 
 namespace TimingShow.HUD.ScatterDrawerBase
@@ -114,6 +115,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 take = window;
             }
 
+            long mark = PerfPhases.Mark();
             int collected = 0;
             int scanned = 0;
             for (int i = total - 1; i >= 0 && scanned < take; i--)
@@ -130,6 +132,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 _visibleIndices.Add(i);
                 collected++;
             }
+            PerfPhases.Record(PerfPhase.DataFilter, PerfPhases.Since(mark));
             if (collected == 0)
             {
                 _smoothViewValid = false;
@@ -146,8 +149,16 @@ namespace TimingShow.HUD.ScatterDrawerBase
             }
             _visibleIndices.Reverse();
             if (finished && ScatterIgnoreOutliers)
+            {
+                mark = PerfPhases.Mark();
                 collected = ApplyOutlierFilter(samples, collected);
+                PerfPhases.Record(PerfPhase.DataOutliers, PerfPhases.Since(mark));
 
+                if (PerfStatsRecorder.IsRecording && _ignoredOutlierCount > 0)
+                    PerfStatsRecorder.GetDrawer(PerfName).OutliersExcluded += _ignoredOutlierCount;
+            }
+
+            mark = PerfPhases.Mark();
             float minOffset = float.MaxValue;
             float maxOffset = float.MinValue;
             float minTime = float.MaxValue;
@@ -167,6 +178,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                     if (s.TimeMs > maxTime) maxTime = s.TimeMs;
                 }
             }
+            PerfPhases.Record(PerfPhase.DataBounds, PerfPhases.Since(mark));
 
             _dataYMin = minOffset;
             _dataYMax = maxOffset;
@@ -209,7 +221,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
             float viewLow = minOffset;
             float viewHigh = maxOffset;
             if (RobustYViewport && collected >= RobustViewportMinSamples)
+            {
+                mark = PerfPhases.Mark();
                 ComputeRobustYBounds(samples, collected, ref viewLow, ref viewHigh);
+                PerfPhases.Record(PerfPhase.DataRobustBounds, PerfPhases.Since(mark));
+            }
 
             float range = viewHigh - viewLow;
             float targetMinY;
@@ -237,8 +253,13 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 _viewXMax = _autoXMax;
             }
 
+            mark = PerfPhases.Mark();
             BuildAverageSeries(samples, collected);
+            PerfPhases.Record(PerfPhase.DataAverage, PerfPhases.Since(mark));
+
+            mark = PerfPhases.Mark();
             BuildRenderPoints(samples, collected);
+            PerfPhases.Record(PerfPhase.DataRender, PerfPhases.Since(mark));
         }
 
         private int ComputeDataSignature()
@@ -466,6 +487,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                     if (!IsInsideViewX(samples[sourceIndex], sourceIndex, viewValid, viewSpan)) continue;
                     _renderPoints.Add(ToRenderPoint(samples, sourceIndex));
                 }
+                RecordRenderedPoints(count);
                 return;
             }
 
@@ -525,6 +547,16 @@ namespace TimingShow.HUD.ScatterDrawerBase
                     _renderPoints.Add(lo);
                 }
             }
+
+            RecordRenderedPoints(count);
+        }
+
+        private void RecordRenderedPoints(int sourceCount)
+        {
+            if (!PerfStatsRecorder.IsRecording) return;
+            int dropped = sourceCount - _renderPoints.Count;
+            if (dropped <= 0) return;
+            PerfStatsRecorder.GetDrawer(PerfName).DroppedPoints += dropped;
         }
 
         private static RenderPoint ToRenderPoint(List<TimingScatterSample> samples, int sourceIndex)

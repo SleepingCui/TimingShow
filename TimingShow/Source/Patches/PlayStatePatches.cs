@@ -47,13 +47,13 @@ namespace TimingShow.Patches
         public static void EndSession()
         {
             SessionReport.LastSessionReport.Capture("session end");
-            PerfStatsRecorder.EndSession("quit");
             SessionTimer.Stop();
             _isGamePaused = false;
             ModContext.IsPlaying = false;
             Players.ResetAll();
             ModContext.ClearTimingScatterSamples();
             TimingLogger.CloseSession();
+            PerfStatsRecorder.EndSession("quit");
             HUDMan.Destroy();
         }
 

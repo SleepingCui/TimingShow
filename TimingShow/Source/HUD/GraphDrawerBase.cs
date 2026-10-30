@@ -23,6 +23,7 @@ namespace TimingShow.HUD
         protected abstract Color LineColor { get; }
         protected abstract int MaxPoints { get; }
         public abstract string GraphName { get; }
+        protected virtual string PerfName => GraphName;
         protected virtual int DataVersion => ModContext.XAccVersion;
 
         protected virtual bool ShowBorder => false;
@@ -260,8 +261,10 @@ namespace TimingShow.HUD
             Rect rect = rectTransform.rect;
             bool rectChanged = rect.width != _lastRectWidth || rect.height != _lastRectHeight;
             int settingsHash = ComputeSettingsHash();
+            bool settingsChanged = settingsHash != _lastSettingsHash;
+            bool dataChanged = _lastDataVersion != DataVersion;
             bool continuousRedraw = NeedsContinuousRedraw();
-            bool needsRedraw = _lastDataVersion != DataVersion || rectChanged || settingsHash != _lastSettingsHash || continuousRedraw;
+            bool needsRedraw = dataChanged || rectChanged || settingsChanged || continuousRedraw;
             bool frameAnimation = UpdateFrameAnimation();
 
             if (needsRedraw)
@@ -291,11 +294,17 @@ namespace TimingShow.HUD
 
             if (PerfStatsRecorder.IsRecording)
             {
-                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(GraphName);
+                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(PerfName);
                 int frameId = PerfStatsRecorder.CurrentFrameId;
 
                 if (needsRedraw)
                 {
+                    ds.Rebuilds++;
+                    if (dataChanged) ds.RebuildData++;
+                    else if (rectChanged) ds.RebuildLayout++;
+                    else if (settingsChanged) ds.RebuildSettings++;
+                    else ds.RebuildContinuous++;
+
                     ds.LastUpdateFrameId = frameId;
                     ds.LastUpdateMs = _perfUpdateMs;
                 }
@@ -720,10 +729,18 @@ namespace TimingShow.HUD
             }
 
             DrawQuad(vh, Vector2.zero, new Vector2(w, h), BgColor);
-            DrawGridLines(vh, w, h);
 
+            long mark = PerfPhases.Mark();
+            DrawGridLines(vh, w, h);
+            PerfPhases.Record(PerfPhase.DrawGrid, PerfPhases.Since(mark));
+
+            mark = PerfPhases.Mark();
             DrawReferenceLines(vh, w, h);
+            PerfPhases.Record(PerfPhase.DrawReference, PerfPhases.Since(mark));
+
+            mark = PerfPhases.Mark();
             DrawSeries(vh, w, h);
+            PerfPhases.Record(PerfPhase.DrawSeries, PerfPhases.Since(mark));
 
             if (ShowBorder) DrawBorderLines(vh, w, h);
 
@@ -737,7 +754,7 @@ namespace TimingShow.HUD
 
             if (PerfStatsRecorder.IsRecording)
             {
-                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(GraphName);
+                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(PerfName);
                 ds.LastMeshFrameId = PerfStatsRecorder.CurrentFrameId;
                 ds.LastMeshMs = _perfMeshMs;
                 ds.LastVertices = _perfVertexCount;

@@ -101,6 +101,7 @@ namespace TimingShow.HUD
         protected override bool LevelFinished => true;
         protected override string YUnitSuffix => _isAngle ? "°" : "ms";
         public override string GraphName => "";
+        protected override string PerfName => "log-graph";
         
         protected override bool IsEnabled => true;
         protected override bool ShowGraph => true;

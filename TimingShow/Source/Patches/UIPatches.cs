@@ -328,6 +328,7 @@ namespace TimingShow.Patches
                     _perfSw.Restart();
                     HUDMan.Update();
                     _perfSw.Stop();
+                    PerfStatsRecorder.MarkHudEnd();
 
                     PerfStatsRecorder.EndFrame(perfFrameId, Time.unscaledDeltaTime * 1000f, (float)_perfSw.Elapsed.TotalMilliseconds);
                 }

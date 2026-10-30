@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TimingShow.Diagnostics;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -52,7 +53,9 @@ namespace TimingShow.HUD.ScatterDrawerBase
             Settings settings = ModContext.Settings;
             if (settings == null) return;
 
+            long mark = PerfPhases.Mark();
             DrawBands(vh, w, h, settings, _minY, _maxY);
+            PerfPhases.Record(PerfPhase.DrawBands, PerfPhases.Since(mark));
 
             if (!ScatterShowZeroLine) return;
             if (_minY > 0f || _maxY < 0f) return;
@@ -76,16 +79,27 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
             if (DrawPlotFrame) DrawPlotFrameLines(vh, w, h);
 
+            long mark = PerfPhases.Mark();
             DrawAverageLine(vh, w, h, settings, scale, rangeY);
+            PerfPhases.Record(PerfPhase.DrawAverageLine, PerfPhases.Since(mark));
 
             bool colorByPlayer = ColorPointsByPlayer;
             int circleSegments = CircleSegmentsFor(count, radius);
+
+            if (PerfStatsRecorder.IsRecording)
+            {
+                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(PerfName);
+                ds.LastSegments = circleSegments;
+                ds.SegmentSum += circleSegments;
+                ds.SegmentSamples++;
+            }
             
             HitMan runJudge = HitMan.Unknown;
             bool runXp = false;
             bool runValid = false;
             Color runColor = uniformColor;
 
+            mark = PerfPhases.Mark();
             for (int i = 0; i < count; i++)
             {
                 RenderPoint point = _renderPoints[i];
@@ -115,12 +129,17 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
                 DrawCircle(vh, center, radius, circleSegments, color);
             }
+            PerfPhases.Record(PerfPhase.DrawPoints, PerfPhases.Since(mark));
 
             DrawPlayerLegendSwatches(vh, w, h);
 
+            mark = PerfPhases.Mark();
             if (ShowOutOfRangeIndicators) DrawOutOfRangeMarkers(vh, w, h);
+            PerfPhases.Record(PerfPhase.DrawOutOfRange, PerfPhases.Since(mark));
 
+            mark = PerfPhases.Mark();
             DrawDetailPanel(vh, scale);
+            PerfPhases.Record(PerfPhase.DrawDetail, PerfPhases.Since(mark));
         }
 
         protected void DrawBand(VertexHelper vh, float w, float h, float rangeY, float minY, float fromMs, float toMs, Color color)
