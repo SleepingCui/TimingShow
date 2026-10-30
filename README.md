@@ -35,10 +35,6 @@ A Timing information display mod for A Dance of Fire and Ice, supporting MelonLo
 
   Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.
 
-## 文档 / Documentation
-
-- **用户手册 / User Guide**：[简体中文](docs/UserGuide.zh-CN.md) · [English](docs/UserGuide.en.md)
-
 ## Screenshots
 <details>
 <summary>（点击展开 / Click to expand）</summary>
