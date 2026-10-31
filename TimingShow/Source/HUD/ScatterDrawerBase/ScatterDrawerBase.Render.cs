@@ -355,7 +355,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             return nice * magnitude;
         }
 
-        private static string FormatTimeTick(float ms, float step)
+        protected virtual string FormatTimeTick(float ms, float step)
         {
             float secondsStep = step / 1000f;
             int decimals = 0;

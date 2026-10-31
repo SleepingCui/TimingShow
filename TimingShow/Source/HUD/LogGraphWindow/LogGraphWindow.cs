@@ -291,6 +291,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private TextMeshProUGUI _fileText;
         private TextMeshProUGUI _metaText;
         private string _baseTitle;
+        private string _baseFileTitle;
         private LogScatterDrawer _drawer;
         private RectTransform _graphContainerRect;
         private RectTransform _plotAreaRect;

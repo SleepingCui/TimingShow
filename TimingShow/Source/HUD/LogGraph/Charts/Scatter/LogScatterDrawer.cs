@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -213,6 +214,11 @@ namespace TimingShow.HUD
         protected override Color ScatterZeroLineColor => LogSettings != null ? LogSettings.LogGraph_ZeroLineColor : new Color(1f, 1f, 1f, 0.65f);
         protected override Color ScatterAvgLineColor => LogSettings != null ? LogSettings.LogGraph_AvgLineColor : new Color(1f, 0.85f, 0.20f, 0.95f);
         protected override Color ScatterAxisTextColor => LogSettings != null ? LogSettings.LogGraph_AxisTextColor : new Color(0.80f, 0.80f, 0.80f, 1f);
+
+        protected override string FormatTimeTick(float ms, float step)
+        {
+            return (ms / 1000f).ToString("F1", CultureInfo.InvariantCulture) + "s";
+        }
 
         private static float ComputeWindowBpm(TimingLogData data)
         {

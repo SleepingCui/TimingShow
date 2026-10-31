@@ -15,6 +15,7 @@ namespace TimingShow.HUD.LogGraphWindow
             _baseTitle = _titleText != null ? _titleText.text : "";
 
             string file = BuildFileTitle(data);
+            _baseFileTitle = file;
             _fileText = CreateHeaderText(parent, "TitleFileText", file,
                 SecondaryTitleFontSize, TitleSecondaryColor, TextAlignmentOptions.Left);
             if (_fileText != null && string.IsNullOrEmpty(file)) _fileText.gameObject.SetActive(false);
@@ -236,6 +237,7 @@ namespace TimingShow.HUD.LogGraphWindow
                 rect.pivot = new Vector2(0f, 1f);
                 rect.anchoredPosition = new Vector2(TitleLeftPadding, -pad - titleHeight);
                 rect.sizeDelta = new Vector2(titleWidth, fileHeight);
+                ApplyEllipsizedText(_fileText, _baseFileTitle, titleWidth);
             }
 
             if (_metaText != null)
@@ -359,7 +361,39 @@ namespace TimingShow.HUD.LogGraphWindow
                 title = title + TitleSeparator + i18n.T("LogGraph_SettingsTitle");
             }
 
-            if (_titleText.text != title) _titleText.text = title;
+            ApplyEllipsizedText(_titleText, title, _titleText.rectTransform.rect.width);
+        }
+
+        private static void ApplyEllipsizedText(TextMeshProUGUI text, string source, float maxWidth)
+        {
+            if (text == null) return;
+
+            source = source ?? "";
+            if (source.Length == 0 || maxWidth <= 0f)
+            {
+                if (text.text != source) text.text = source;
+                return;
+            }
+
+            if (text.GetPreferredValues(source).x <= maxWidth)
+            {
+                if (text.text != source) text.text = source;
+                return;
+            }
+
+            const string suffix = "...";
+            int low = 0;
+            int high = source.Length;
+            while (low < high)
+            {
+                int mid = (low + high + 1) / 2;
+                float width = text.GetPreferredValues(source.Substring(0, mid) + suffix).x;
+                if (width <= maxWidth) low = mid;
+                else high = mid - 1;
+            }
+
+            string truncated = low > 0 ? source.Substring(0, low) + suffix : suffix;
+            if (text.text != truncated) text.text = truncated;
         }
         
     }

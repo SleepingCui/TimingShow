@@ -113,8 +113,8 @@ namespace TimingShow.HUD
             {
                 _metaColumnLabels[i] = CreateText("MetaColumn" + i, TextAlignmentOptions.TopLeft, new Vector2(0f, 1f));
                 _metaColumnLabels[i].richText = true;
-                _metaColumnLabels[i].textWrappingMode = TextWrappingModes.Normal;
-                _metaColumnLabels[i].overflowMode = TextOverflowModes.Truncate;
+                _metaColumnLabels[i].textWrappingMode = TextWrappingModes.NoWrap;
+                _metaColumnLabels[i].overflowMode = TextOverflowModes.Overflow;
             }
 
             _xaccLabel = CreateText("XaccLabel", TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f));
@@ -366,24 +366,6 @@ namespace TimingShow.HUD
                 int start = column * rows;
                 if (start >= count) break;
 
-                _metaBuilder.Length = 0;
-                int end = Mathf.Min(count, start + rows);
-                for (int i = start; i < end; i++)
-                {
-                    if (_metaBuilder.Length > 0) _metaBuilder.Append('\n');
-
-                    MetaEntry entry = _metaEntries[i];
-                    _metaBuilder.Append("<color=#");
-                    _metaBuilder.Append(keyHex);
-                    _metaBuilder.Append('>');
-                    _metaBuilder.Append(entry.Label);
-                    _metaBuilder.Append("</color>  <color=#");
-                    _metaBuilder.Append(entry.Warning ? warningHex : valueHex);
-                    _metaBuilder.Append('>');
-                    _metaBuilder.Append(entry.Value);
-                    _metaBuilder.Append("</color>");
-                }
-
                 TextMeshProUGUI label = _metaColumnLabels[column];
                 SetActive(label, true);
                 label.fontSize = fontSize;
@@ -391,11 +373,48 @@ namespace TimingShow.HUD
                 Place(label, new Vector2(_metaRect.x + 12f * UiScale + column * (columnWidth + columnGap),
                         _metaRect.yMax - 10f * UiScale),
                     new Vector2(columnWidth, availableHeight), new Vector2(0f, 1f));
+
+                _metaBuilder.Length = 0;
+                int end = Mathf.Min(count, start + rows);
+                for (int i = start; i < end; i++)
+                {
+                    if (_metaBuilder.Length > 0) _metaBuilder.Append('\n');
+                    _metaBuilder.Append(FitMetaLine(label, _metaEntries[i], keyHex, valueHex, warningHex,
+                        columnWidth - 2f * UiScale));
+                }
+
                 SetText(label, _metaBuilder.ToString());
             }
 
             for (int i = columns; i < MaxMetaColumns; i++)
                 SetActive(_metaColumnLabels[i], false);
+        }
+
+        private static string FitMetaLine(TextMeshProUGUI text, MetaEntry entry, string keyHex, string valueHex,
+            string warningHex, float maxWidth)
+        {
+            string colorHex = entry.Warning ? warningHex : valueHex;
+            string full = ComposeMetaLine(entry.Label, entry.Value, keyHex, colorHex);
+            if (text.GetPreferredValues(full).x <= maxWidth) return full;
+
+            const string suffix = "...";
+            int low = 0;
+            int high = entry.Value.Length;
+            while (low < high)
+            {
+                int mid = (low + high + 1) / 2;
+                string candidate = ComposeMetaLine(entry.Label, entry.Value.Substring(0, mid) + suffix, keyHex, colorHex);
+                if (text.GetPreferredValues(candidate).x <= maxWidth) low = mid;
+                else high = mid - 1;
+            }
+
+            string truncated = low > 0 ? entry.Value.Substring(0, low) + suffix : suffix;
+            return ComposeMetaLine(entry.Label, truncated, keyHex, colorHex);
+        }
+
+        private static string ComposeMetaLine(string label, string value, string keyHex, string valueHex)
+        {
+            return "<color=#" + keyHex + ">" + label + "</color>  <color=#" + valueHex + ">" + value + "</color>";
         }
 
         private void BuildMarginCodes()
