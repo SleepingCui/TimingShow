@@ -63,6 +63,19 @@ namespace TimingShow.HUD
             if (_label.text != text) _label.text = text;
         }
 
+        internal void SetLabelOverflow(TextOverflowModes mode)
+        {
+            if (_label == null) return;
+            _label.overflowMode = mode;
+        }
+
+        internal void RefreshLabel()
+        {
+            if (_label == null) return;
+            _label.SetAllDirty();
+            _label.ForceMeshUpdate();
+        }
+
         internal void SetActiveState(bool active)
         {
             if (_active == active) return;

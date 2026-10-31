@@ -121,9 +121,16 @@ namespace TimingShow.HUD
         protected override bool HintInFooter => true;
         protected override float GridAlphaScale => 0.6f;
         protected override bool ShowGrid => LogSettings == null || LogSettings.LogGraph_ShowGrid;
+        protected override bool UsesDynamicAxisTicks => true;
 
         protected override void DrawGridLines(VertexHelper vh, float w, float h)
         {
+            if (UsesDynamicAxisTicks)
+            {
+                base.DrawGridLines(vh, w, h);
+                return;
+            }
+
             if (!ShowGrid)
             {
                 base.DrawGridLines(vh, w, h);

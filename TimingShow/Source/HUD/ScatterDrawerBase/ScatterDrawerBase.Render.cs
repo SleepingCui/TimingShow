@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using TimingShow.Diagnostics;
 using UnityEngine;
 using UnityEngine.UI;
@@ -47,6 +48,14 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private RenderPoint[] _bucketMinPoints = new RenderPoint[64];
         private RenderPoint[] _bucketMaxPoints = new RenderPoint[64];
         private bool[] _bucketFilled = new bool[64];
+
+        private const int MaxXAxisTicks = 16;
+        private const int MaxYAxisTicks = 10;
+
+        private readonly List<float> _xTickFractions = new List<float>(MaxXAxisTicks);
+        private readonly List<float> _yTickFractions = new List<float>(MaxYAxisTicks);
+        private readonly List<string> _xTickLabels = new List<string>(MaxXAxisTicks);
+        private readonly List<string> _yTickLabels = new List<string>(MaxYAxisTicks);
 
         protected override void DrawReferenceLines(VertexHelper vh, float w, float h)
         {
@@ -168,10 +177,30 @@ namespace TimingShow.HUD.ScatterDrawerBase
             DrawSegment(vh, new Vector2(w, 0f), new Vector2(w, h), thickness, frameColor);
 
             Color tickColor = color;
-            tickColor.a *= 0.35f;
+            tickColor.a *= 0.45f;
             float tick = Mathf.Max(2f, 4f * scale);
             float tickX = Mathf.Min(tick, Mathf.Max(0f, w * 0.25f));
             float tickY = Mathf.Min(tick, Mathf.Max(0f, h * 0.25f));
+
+            if (UsesDynamicAxisTicks)
+            {
+                EnsureAxisTicksForDraw(w, h);
+
+                for (int i = 0; i < _xTickFractions.Count; i++)
+                {
+                    float x = w * _xTickFractions[i];
+                    DrawSegment(vh, new Vector2(x, 0f), new Vector2(x, tickY), thickness, tickColor);
+                }
+
+                for (int i = 0; i < _yTickFractions.Count; i++)
+                {
+                    float y = h * _yTickFractions[i];
+                    DrawSegment(vh, new Vector2(0f, y), new Vector2(tickX, y), thickness, tickColor);
+                }
+
+                return;
+            }
+
             DrawSegment(vh, new Vector2(0f, h), new Vector2(tickX, h), thickness, tickColor);
             DrawSegment(vh, new Vector2(0f, h * 0.5f), new Vector2(tickX, h * 0.5f), thickness, tickColor);
             DrawSegment(vh, new Vector2(0f, 0f), new Vector2(tickX, 0f), thickness, tickColor);
@@ -193,6 +222,25 @@ namespace TimingShow.HUD.ScatterDrawerBase
             Color color = GridColor;
             color.a = Mathf.Clamp(color.a * Mathf.Clamp01(GridAlphaScale), 0.10f, 0.65f);
 
+            if (UsesDynamicAxisTicks)
+            {
+                EnsureAxisTicksForDraw(w, h);
+
+                for (int i = 0; i < _xTickFractions.Count; i++)
+                {
+                    float x = w * _xTickFractions[i];
+                    DrawSegment(vh, new Vector2(x, 0f), new Vector2(x, h), halfWidth, color);
+                }
+
+                for (int i = 0; i < _yTickFractions.Count; i++)
+                {
+                    float y = h * _yTickFractions[i];
+                    DrawSegment(vh, new Vector2(0f, y), new Vector2(w, y), halfWidth, color);
+                }
+
+                return;
+            }
+
             float[] fractions = GridLineFractions(GridDivisions);
 
             for (int i = 0; i < fractions.Length; i++)
@@ -212,6 +260,127 @@ namespace TimingShow.HUD.ScatterDrawerBase
             for (int i = 1; i < n; i++) fractions[i - 1] = (float)i / n;
 
             return fractions;
+        }
+
+        private void EnsureAxisTicksForDraw(float w, float h)
+        {
+            if (!UsesDynamicAxisTicks || !_hasData) return;
+            if (_xTickFractions.Count > 0 || _yTickFractions.Count > 0) return;
+            ComputeAxisTicks(w, h, Mathf.Max(0.01f, Scale));
+        }
+
+        private void ComputeAxisTicks(float w, float h, float scale)
+        {
+            _xTickFractions.Clear();
+            _xTickLabels.Clear();
+            _yTickFractions.Clear();
+            _yTickLabels.Clear();
+
+            if (!UsesDynamicAxisTicks || !_hasData || w <= 0f || h <= 0f) return;
+
+            float spanX = _viewXMax - _viewXMin;
+            if (spanX > 0f)
+            {
+                int target = Mathf.Clamp(Mathf.RoundToInt(w / (72f * scale)), 2, MaxXAxisTicks - 2);
+                float step = NiceStep(spanX / target);
+                if (_useTimeAxis)
+                {
+                    BuildXTicks(_viewXMin, _viewXMax, spanX, step, true);
+                }
+                else
+                {
+                    step = Mathf.Max(1f, Mathf.Ceil(step));
+                    BuildXTicks(_viewXMin, _viewXMax, spanX, step, false);
+                }
+            }
+
+            float spanY = _maxY - _minY;
+            if (spanY > 0f)
+            {
+                int target = Mathf.Clamp(Mathf.RoundToInt(h / (24f * scale)), 2, MaxYAxisTicks - 2);
+                BuildYTicks(_minY, _maxY, spanY, NiceStep(spanY / target));
+            }
+        }
+
+        private void BuildXTicks(float min, float max, float span, float step, bool timeAxis)
+        {
+            if (!(step > 0f) || !(span > 0f)) return;
+
+            int first = Mathf.CeilToInt(min / step);
+            int last = Mathf.FloorToInt(max / step);
+            if (last < first || last - first > 64) return;
+
+            for (int k = first; k <= last && _xTickFractions.Count < MaxXAxisTicks; k++)
+            {
+                double value = (double)k * step;
+                float fraction = (float)((value - min) / span);
+                if (fraction < -1e-4f || fraction > 1f + 1e-4f) continue;
+
+                _xTickFractions.Add(Mathf.Clamp01(fraction));
+                _xTickLabels.Add(timeAxis ? FormatTimeTick((float)value, step) : FormatHitTick((float)value));
+            }
+        }
+
+        private void BuildYTicks(float min, float max, float span, float step)
+        {
+            if (!(step > 0f) || !(span > 0f)) return;
+
+            int first = Mathf.CeilToInt(min / step);
+            int last = Mathf.FloorToInt(max / step);
+            if (last < first || last - first > 32) return;
+
+            for (int k = first; k <= last && _yTickFractions.Count < MaxYAxisTicks; k++)
+            {
+                double value = (double)k * step;
+                float fraction = (float)((value - min) / span);
+                if (fraction < -1e-4f || fraction > 1f + 1e-4f) continue;
+
+                _yTickFractions.Add(Mathf.Clamp01(fraction));
+                _yTickLabels.Add(FormatYAxisValue((float)value, step));
+            }
+        }
+
+        private static float NiceStep(float raw)
+        {
+            if (!(raw > 0f) || float.IsNaN(raw) || float.IsInfinity(raw)) return 1f;
+
+            float exponent = Mathf.Floor(Mathf.Log10(raw));
+            float magnitude = Mathf.Pow(10f, exponent);
+            float normalized = raw / magnitude;
+            float nice = normalized <= 1f ? 1f
+                : normalized <= 2f ? 2f
+                : normalized <= 2.5f ? 2.5f
+                : normalized <= 5f ? 5f
+                : 10f;
+            return nice * magnitude;
+        }
+
+        private static string FormatTimeTick(float ms, float step)
+        {
+            float secondsStep = step / 1000f;
+            int decimals = 0;
+            while (decimals < 4 && Mathf.Abs(secondsStep - Mathf.Round(secondsStep)) > 0.0005f)
+            {
+                secondsStep *= 10f;
+                decimals++;
+            }
+
+            return (ms / 1000f).ToString("F" + decimals, CultureInfo.InvariantCulture) + "s";
+        }
+
+        private static string FormatHitTick(float value)
+        {
+            int index = Mathf.RoundToInt(value) + 1;
+            return "#" + index.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private string FormatYAxisValue(float value, float step)
+        {
+            int decimals = step >= 10f ? 0 : step >= 1f ? 1 : step >= 0.1f ? 2 : step >= 0.01f ? 3 : 4;
+            string magnitude = Mathf.Abs(value).ToString("F" + decimals, CultureInfo.InvariantCulture);
+            if (value > 0f) return "+" + magnitude + YUnitSuffix;
+            if (value < 0f) return "-" + magnitude + YUnitSuffix;
+            return magnitude + YUnitSuffix;
         }
 
         private void DrawOutOfRangeMarkers(VertexHelper vh, float w, float h)

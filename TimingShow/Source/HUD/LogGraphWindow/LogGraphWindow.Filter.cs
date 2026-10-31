@@ -65,7 +65,9 @@ namespace TimingShow.HUD.LogGraphWindow
             go.transform.SetParent(_rangeBar, false);
 
             TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
-            text.font = font != null ? font : TMP_Settings.defaultFontAsset;
+            TMP_FontAsset textFont = font != null ? font : TMP_Settings.defaultFontAsset;
+            LogGraphFont.EnsureGlyphs(textFont, content);
+            text.font = textFont;
             text.text = content;
             text.color = new Color(1f, 1f, 1f, 0.62f);
             text.alignment = alignment;
@@ -92,7 +94,11 @@ namespace TimingShow.HUD.LogGraphWindow
 
             LogPillButton button = go.AddComponent<LogPillButton>();
             button.Initialize(font, ResetRangeFilter);
-            button.SetLabel(i18n.T("Btn_ResetColor"));
+            string label = i18n.T("Btn_ResetColor");
+            TMP_FontAsset labelFont = font != null ? font : TMP_Settings.defaultFontAsset;
+            LogGraphFont.EnsureGlyphs(labelFont, label);
+            button.SetLabelOverflow(TextOverflowModes.Overflow);
+            button.SetLabel(label);
             return button;
         }
 
@@ -119,7 +125,8 @@ namespace TimingShow.HUD.LogGraphWindow
             if (_rangeBar == null) return;
 
             bool visible = _root != null && RangeFilterVisible;
-            if (_rangeBar.gameObject.activeSelf != visible)
+            bool wasVisible = _rangeBar.gameObject.activeSelf;
+            if (wasVisible != visible)
             {
                 if (!visible) EndRangeEditing();
                 _rangeBar.gameObject.SetActive(visible);
@@ -129,6 +136,12 @@ namespace TimingShow.HUD.LogGraphWindow
 
             PositionRangeFilter(_windowRect != null ? _windowRect.sizeDelta : Vector2.zero);
             UpdateRangeFilterStatus();
+
+            if (!wasVisible)
+            {
+                Canvas.ForceUpdateCanvases();
+                if (_rangeResetButton != null) _rangeResetButton.RefreshLabel();
+            }
         }
 
         private void PositionRangeFilter(Vector2 size)
