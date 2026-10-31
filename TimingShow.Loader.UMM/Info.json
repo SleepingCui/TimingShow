@@ -1,0 +1,11 @@
+{
+  "Id": "TimingShow",
+  "DisplayName": "TimingShow",
+  "Author": "SleepingCui",
+  "Version": "1.9.3",
+  "HomePage": "https://github.com/SleepingCui/TimingShow",
+  "Repository": "https://raw.githubusercontent.com/SleepingCui/TimingShow/refs/heads/master/Repository.json",
+  "AssemblyName": "TimingShow.Loader.UMM.dll",
+  "EntryMethod": "TimingShow.UMM.UMMEntry.Load",
+  "LoadAfter": [ "XPerfect" ]
+}

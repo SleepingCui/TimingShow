@@ -1,0 +1,53 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout TimingShow
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout private libraries
+        uses: actions/checkout@v4
+        with:
+          repository: SleepingCui/adofai-libs
+          ref: main
+          token: ${{ secrets.ADOFAI_LIBS_TOKEN }}
+          path: libs
+          persist-credentials: false
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build TimingShow
+        shell: pwsh
+        run: msbuild TimingShow/TimingShow.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
+      - name: Run geometry tests
+        shell: pwsh
+        run: dotnet run --project tools/GeometryTests/GeometryTests.csproj --configuration Release
+
+      - name: Build UMM loader
+        shell: pwsh
+        run: msbuild TimingShow.Loader.UMM/TimingShow.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
+      - name: Build MelonLoader loader
+        shell: pwsh
+        run: msbuild TimingShow.Loader.Melon/TimingShow.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU"

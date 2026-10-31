@@ -1,0 +1,129 @@
+name: Development Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build"
+        required: true
+        type: string
+        default: "master"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout TimingShow
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 1
+
+      - name: Checkout private libraries
+        uses: actions/checkout@v4
+        with:
+          repository: SleepingCui/adofai-libs
+          ref: main
+          token: ${{ secrets.ADOFAI_LIBS_TOKEN }}
+          path: libs
+
+      - name: Prepare CI version
+        id: version
+        shell: pwsh
+        run: |
+          $commit = (git rev-parse HEAD).Trim()
+          $shortHash = $commit.Substring(0, 6)
+          $branch = "${{ inputs.branch }}"
+          $safeBranch = $branch -replace '[^A-Za-z0-9._-]', '-'
+          $version = "CI-$safeBranch-$shortHash"
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+          $assemblyInfo = "TimingShow.Loader.Melon/Properties/AssemblyInfo.cs"
+          if (-not (Test-Path $assemblyInfo)) {
+            throw "Missing file: $assemblyInfo"
+          }
+
+          $source = Get-Content $assemblyInfo -Raw
+          $pattern = '(MelonInfo\(typeof\(TimingShow\.Melon\.MelonEntry\),\s*"TimingShow",\s*")[^"]+(")'
+          $updated = [regex]::Replace(
+            $source,
+            $pattern,
+            [System.Text.RegularExpressions.MatchEvaluator]{
+              param($match)
+              return $match.Groups[1].Value + $version + $match.Groups[2].Value
+            }
+          )
+          if ($updated -eq $source) {
+            throw "Could not update the MelonInfo version in $assemblyInfo"
+          }
+          Set-Content -Path $assemblyInfo -Value $updated -Encoding utf8
+
+          $infoPath = "TimingShow.Loader.UMM/Info.json"
+          if (-not (Test-Path $infoPath)) {
+            throw "Missing file: $infoPath"
+          }
+
+          $info = Get-Content $infoPath -Raw | ConvertFrom-Json
+          $info.Version = $version
+          $info | ConvertTo-Json -Depth 100 | Set-Content -Path $infoPath -Encoding utf8
+
+          Write-Host "Building version: $version"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build TimingShow
+        shell: pwsh
+        run: msbuild TimingShow/TimingShow.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
+      - name: Build UMM loader
+        shell: pwsh
+        run: msbuild TimingShow.Loader.UMM/TimingShow.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
+      - name: Build MelonLoader loader
+        shell: pwsh
+        run: msbuild TimingShow.Loader.Melon/TimingShow.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
+      - name: Prepare artifact files
+        id: package
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP "TimingShow-CI-${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+
+          $files = @(
+            "TimingShow/bin/Release/TimingShow.dll",
+            "TimingShow.Loader.UMM/bin/Release/TimingShow.Loader.UMM.dll",
+            "TimingShow.Loader.Melon/bin/Release/TimingShow.Loader.Melon.dll",
+            "TimingShow.Loader.UMM/bin/Release/Info.json",
+            "TimingShow/bin/Release/lang.json"
+          )
+
+          foreach ($file in $files) {
+            if (-not (Test-Path $file -PathType Leaf)) {
+              throw "Build output not found: $file"
+            }
+            Copy-Item -LiteralPath $file -Destination $stage
+          }
+
+          $packagedInfo = Get-Content (Join-Path $stage "Info.json") -Raw | ConvertFrom-Json
+          if ($packagedInfo.Version -ne "${{ steps.version.outputs.version }}") {
+            throw "Info.json version mismatch: $($packagedInfo.Version)"
+          }
+
+          "stage=$stage" >> $env:GITHUB_OUTPUT
+          Write-Host "Prepared files in $stage"
+          Get-ChildItem $stage | Select-Object Name, Length
+
+      - name: Upload development build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TimingShow-${{ steps.version.outputs.version }}
+          path: ${{ steps.package.outputs.stage }}/*
+          if-no-files-found: error
+          retention-days: 14

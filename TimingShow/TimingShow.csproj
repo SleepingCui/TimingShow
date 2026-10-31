@@ -49,6 +49,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -75,6 +76,10 @@
       <HintPath>..\libs\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\libs\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>..\libs\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>False</Private>
@@ -95,35 +100,105 @@
   <ItemGroup>
     <Compile Include="IModLogger.cs" />
     <Compile Include="ModContext.cs" />
-    <Compile Include="ColorConverter.cs" />
-    <Compile Include="CalcRatio.cs" />
-    <Compile Include="CalcUR.cs" />
-    <Compile Include="CalcXP.cs" />
-    <Compile Include="HitMan.cs" />
-    <Compile Include="JColors.cs" />
-    <Compile Include="VarInt.cs" />
-    <Compile Include="HUDMan.cs" />
-    <Compile Include="i18n.cs" />
-    <Compile Include="Options.cs" />
-    <Compile Include="OptionsWidgets.cs" />
-    <Compile Include="OptionLogList.cs" />
-    <Compile Include="LogAnalyzerBridge.cs" />
-    <Compile Include="Patches\PlayStatePatches.cs" />
-    <Compile Include="Patches\TimingCalcPatches.cs" />
-    <Compile Include="Patches\UIPatches.cs" />
+    <Compile Include="Source\Calc.cs" />
+    <Compile Include="Source\Coop.cs" />
+    <Compile Include="Source\PlayerSession.cs" />
+    <Compile Include="Source\HitMan.cs" />
+    <Compile Include="Source\i18n.cs" />
+    <Compile Include="Source\Settings.cs" />
+    <Compile Include="Source\Bridge\LogAnalyzerBridge.cs" />
+    <Compile Include="Source\Diagnostics\PerfStatsRecorder.cs" />
+    <Compile Include="Source\Diagnostics\PerfPhases.cs" />
+    <Compile Include="Source\Diagnostics\GcStats.cs" />
+    <Compile Include="Source\Bridge\XPerfectBridge.cs" />
+    <Compile Include="Source\HUD\BumpAnim.cs" />
+    <Compile Include="Source\HUD\GraphDrawerBase.cs" />
+    <Compile Include="Source\HUD\HUDMan.cs" />
+    <Compile Include="Source\HUD\JColors.cs" />
+    <Compile Include="Source\HUD\TextUI.cs" />
+    <Compile Include="Source\HUD\XACCGraphDrawer.cs" />
+    <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.cs" />
+    <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Data.cs" />
+    <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Render.cs" />
+    <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Text.cs" />
+    <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Interaction.cs" />
+    <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Detail.cs" />
+    <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Players.cs" />
+    <Compile Include="Source\HUD\TimingScatterDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Scatter\LogScatterDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDistributionData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDistributionDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Xacc\LogXaccData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Xacc\LogXaccDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Common\LogChartDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\UI\LogChartUi.cs" />
+    <Compile Include="Source\HUD\LogGraph\UI\LogRoundedRect.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDeltaData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Rolling\LogRollingData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Rolling\LogRollingDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\ReturnMap\LogReturnData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\ReturnMap\LogReturnDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Combo\LogComboData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Combo\LogComboDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Acf\LogAcfData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Acf\LogAcfDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Overview\LogOverviewData.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Overview\LogOverviewDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Font\LogGraphFont.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Window.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Layout.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Stats.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Distribution.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Views.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Input.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Diagnostics.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Pane.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Filter.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogRangeField.cs" />
+    <Compile Include="Source\HUD\ILogGraphSettingsHost.cs" />
+    <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.cs" />
+    <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Rows.cs" />
+    <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Colors.cs" />
+    <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Draft.cs" />
+    <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Graphics.cs" />
+    <Compile Include="Source\LevelEditor\EditorHitSnapshot.cs" />
+    <Compile Include="Source\LevelEditor\EditorHitMarkerController.cs" />
+    <Compile Include="Source\Logging\ColorConverter.cs" />
+    <Compile Include="Source\Logging\TimingLogger.cs" />
+    <Compile Include="Source\Logging\TimingLoggerBinary.cs" />
+    <Compile Include="Source\Logging\LogRetention.cs" />
+    <Compile Include="Source\Logging\TimingLogReader.cs" />
+    <Compile Include="Source\Logging\VarInt.cs" />
+    <Compile Include="Source\Logging\CountingStream.cs" />
+    <Compile Include="Source\Logging\LogWriteStats.cs" />
+    <Compile Include="Source\Options\OptionLogList.cs" />
+    <Compile Include="Source\Options\Options.cs" />
+    <Compile Include="Source\Options\OptionsWidgets.cs" />
+    <Compile Include="Source\Patches\PlayStatePatches.cs" />
+    <Compile Include="Source\Patches\TimingCalcPatches.cs" />
+    <Compile Include="Source\Patches\UIPatches.cs" />
+    <Compile Include="Source\SessionReport\LastSessionReport.cs" />
+    <Compile Include="Source\SessionReport\SessionReportHotkey.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Settings.cs" />
-    <Compile Include="TextUI.cs" />
-    <Compile Include="TimingLogger.cs" />
-    <Compile Include="TimingLoggerBinary.cs" />
-    <Compile Include="XACCGraphDrawer.cs" />
-    <Compile Include="XPerfectBridge.cs" />
-    <Compile Include="GraphDrawerBase.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="embedded\SourceHanSansSC-Regular.otf.dfl" LogicalName="TimingShow.Assets.SourceHanSansSC-Regular.otf" />
+    <EmbeddedResource Include="embedded\GmarketSansMedium.otf.dfl" LogicalName="TimingShow.Assets.GmarketSansMedium.otf" />
+    <EmbeddedResource Include="embedded\OFL.txt.dfl" LogicalName="TimingShow.Assets.OFL.txt" />
+  </ItemGroup>
+  <Target Name="PackEmbeddedAssets" BeforeTargets="PrepareResources"
+          Inputs="$(MSBuildProjectDirectory)\assets\SourceHanSansSC-Regular.otf;$(MSBuildProjectDirectory)\assets\GmarketSansMedium.otf;$(MSBuildProjectDirectory)\assets\OFL.txt"
+          Outputs="$(MSBuildProjectDirectory)\embedded\SourceHanSansSC-Regular.otf.dfl;$(MSBuildProjectDirectory)\embedded\GmarketSansMedium.otf.dfl;$(MSBuildProjectDirectory)\embedded\OFL.txt.dfl">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\tools\Pack-EmbeddedAssets.ps1&quot;" />
+  </Target>
   <ItemGroup>
     <None Include="lang.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="assets\SourceHanSansSC-Regular.otf" />
+    <None Include="assets\GmarketSansMedium.otf" />
+    <None Include="assets\OFL.txt" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -365,3 +365,5 @@ FodyWeavers.xsd
 # proj
 *.zip
 /libs/
+# Generated embedded asset blobs (see tools/Pack-EmbeddedAssets.ps1)
+TimingShow/embedded/
