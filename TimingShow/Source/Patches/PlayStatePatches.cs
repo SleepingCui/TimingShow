@@ -19,6 +19,11 @@ namespace TimingShow.Patches
             return SessionTimer.IsRunning ? SessionTimer.Elapsed.TotalMilliseconds : -1.0;
         }
 
+        internal static bool IsPlayableScene()
+        {
+            return scnGame.instance != null || scnEditor.instance != null;
+        }
+
         public static void SyncPauseState()
         {
             if (!ModContext.IsPlaying || scrController.instance == null)
@@ -32,12 +37,12 @@ namespace TimingShow.Patches
             if (isPaused)
             {
                 SessionTimer.Stop();
-                ModContext.Logger.Log("session paused");
+                ModLog.UnityLog("session paused");
             }
             else
             {
                 SessionTimer.Start();
-                ModContext.Logger.Log("session resumed");
+                ModLog.UnityLog("session resumed");
             }
         }
 
@@ -46,7 +51,8 @@ namespace TimingShow.Patches
         
         public static void EndSession()
         {
-            SessionReport.LastSessionReport.Capture("session end");
+            if (ModContext.IsPlaying && !ModContext.IsLevelFinished)
+                SessionReport.LastSessionReport.Capture("session end");
             SessionTimer.Stop();
             _isGamePaused = false;
             ModContext.IsPlaying = false;
@@ -80,13 +86,15 @@ namespace TimingShow.Patches
         {
             public static void Postfix()
             {
+                if (!IsPlayableScene()) return;
+
                 SessionTimer.Restart();
                 _isGamePaused = false;
                 ModContext.IsPlaying = true;
                 ModContext.IsLevelFinished = false;
 
                 Players.ResetAll();
-                ModContext.Logger?.Log($"coop players = {Players.Count}");
+                ModLog.UnityLog($"coop players = {Players.Count}");
 
                 ModContext.ClearXAccHistory();
                 ModContext.XAccVersion++;
@@ -124,7 +132,7 @@ namespace TimingShow.Patches
                     }
                     catch (Exception perfEx)
                     {
-                        ModContext.Logger.Error("Failed to start perf session: " + perfEx.Message);
+                        ModLog.UnityLog("Failed to start perf session: " + perfEx.Message);
                     }
                 }
 
@@ -207,6 +215,8 @@ namespace TimingShow.Patches
         {
             public static void Postfix()
             {
+                if (!ModContext.IsPlaying || !IsPlayableScene()) return;
+
                 ModContext.IsLevelFinished = true;
                 ModContext.XAccVersion++;
                 ModContext.TimingScatterVersion++;
@@ -222,6 +232,8 @@ namespace TimingShow.Patches
         {
             public static void Postfix()
             {
+                if (!ModContext.IsPlaying || !IsPlayableScene()) return;
+
                 ModContext.IsLevelFinished = true;
                 ModContext.XAccVersion++;
                 ModContext.TimingScatterVersion++;
