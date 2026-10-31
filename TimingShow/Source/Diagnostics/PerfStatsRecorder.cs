@@ -278,7 +278,7 @@ namespace TimingShow.Diagnostics
             }
             catch (Exception e)
             {
-                if (ModContext.Logger != null) ModContext.Logger.Error("PerfLog write failed: " + e.Message);
+                ModLog.UnityLog("PerfLog write failed: " + e.Message);
             }
 
             Reset();
@@ -341,7 +341,7 @@ namespace TimingShow.Diagnostics
             }
             catch (Exception e)
             {
-                if (ModContext.Logger != null) ModContext.Logger.Error("Perf log flush failed: " + e.Message);
+                ModLog.UnityLog("Perf log flush failed: " + e.Message);
             }
 
             string dir = Path.Combine(root, "PerfLogs");

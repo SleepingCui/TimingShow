@@ -267,7 +267,7 @@ namespace TimingShow.Options
             }
             catch (Exception e)
             {
-                ModContext.Logger.Error("Failed to draw log list row: " + e.Message);
+                ModLog.UnityLog("Failed to draw log list row: " + e.Message);
             }
             finally
             {
@@ -686,7 +686,7 @@ namespace TimingShow.Options
             }
             catch (Exception e)
             {
-                ModContext.Logger.Log("Log metadata cache unreadable, rebuilding: " + e.Message);
+                ModLog.UnityLog("Log metadata cache unreadable, rebuilding: " + e.Message);
                 MetaCache.Clear();
             }
         }
@@ -716,7 +716,7 @@ namespace TimingShow.Options
             }
             catch (Exception e)
             {
-                ModContext.Logger.Log("Failed to persist log metadata cache: " + e.Message);
+                ModLog.UnityLog("Failed to persist log metadata cache: " + e.Message);
             }
         }
 
@@ -1094,7 +1094,7 @@ namespace TimingShow.Options
             }
             catch (Exception e)
             {
-                ModContext.Logger.Log($"Err parsing path: {e.Message}");
+                ModLog.UnityLog($"Err parsing path: {e.Message}");
                 return logDir;
             }
         }

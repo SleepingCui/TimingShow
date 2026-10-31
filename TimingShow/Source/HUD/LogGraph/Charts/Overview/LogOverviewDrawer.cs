@@ -431,7 +431,7 @@ namespace TimingShow.HUD
             _metaEntries.Clear();
             if (_log == null)
             {
-                ModContext.Logger?.Error("[LogOverview] metadata unavailable: log data is null");
+                ModLog.UnityLog("[LogOverview] metadata unavailable: log data is null");
                 return;
             }
 

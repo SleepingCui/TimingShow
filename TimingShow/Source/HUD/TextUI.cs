@@ -148,7 +148,7 @@ namespace TimingShow.HUD
             }
             catch (System.Exception e)
             {
-                ModContext.Logger?.Log("Failed to find game HUD font: " + e.Message);
+                ModLog.UnityLog("Failed to find game HUD font: " + e.Message);
             }
 
             return TMP_Settings.defaultFontAsset;
@@ -158,7 +158,7 @@ namespace TimingShow.HUD
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                ModContext.Logger?.Log("HUD font file does not exist: " + path);
+                ModLog.UnityLog("HUD font file does not exist: " + path);
                 return null;
             }
 
@@ -166,7 +166,7 @@ namespace TimingShow.HUD
             if (!string.Equals(extension, ".ttf", System.StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(extension, ".otf", System.StringComparison.OrdinalIgnoreCase))
             {
-                ModContext.Logger?.Log("Unsupported HUD font file: " + path);
+                ModLog.UnityLog("Unsupported HUD font file: " + path);
                 return null;
             }
 
@@ -178,7 +178,7 @@ namespace TimingShow.HUD
                     BindingFlags.Static | BindingFlags.NonPublic);
                 if (loadFromPath == null)
                 {
-                    ModContext.Logger?.Log("Unity does not expose font loading from path");
+                    ModLog.UnityLog("Unity does not expose font loading from path");
                     return null;
                 }
 
@@ -193,7 +193,7 @@ namespace TimingShow.HUD
             }
             catch (System.Exception e)
             {
-                ModContext.Logger?.Log("Failed to load HUD font: " + e.Message);
+                ModLog.UnityLog("Failed to load HUD font: " + e.Message);
                 return null;
             }
         }

@@ -27,6 +27,7 @@ namespace TimingShow.Logging
         private static int _hitCount;
         private static bool _isAngle;
         private static int _playerCount = 1;
+        private static bool _writeErrorLogged;
 
         public static bool IsFileBeingWritten(string filePath)
         {
@@ -37,6 +38,7 @@ namespace TimingShow.Logging
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();
+            _writeErrorLogged = false;
 
             try
             {
@@ -86,7 +88,7 @@ namespace TimingShow.Logging
                 _writer.Write((byte)_playerCount);
 
                 FlushWriter(LogWriteStats.FlushReason.Header);
-                ModContext.Logger.Log($"created: {_currentFilePath} (binary)");
+                ModLog.UnityLog($"created: {_currentFilePath} (binary)");
             }
             catch (Exception ex)
             {
@@ -126,7 +128,11 @@ namespace TimingShow.Logging
             catch (Exception ex)
             {
                 LogWriteStats.WriteErrors++;
-                ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                if (!_writeErrorLogged)
+                {
+                    _writeErrorLogged = true;
+                    ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                }
             }
 
             if (mark >= 0L && _logicalCount != null)
@@ -252,7 +258,7 @@ namespace TimingShow.Logging
                     DisposeWriter();
                     if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
                         File.Delete(_currentFilePath);
-                    ModContext.Logger.Log($"Discarded empty session: {_currentFilePath} (binary)");
+                    ModLog.UnityLog($"Discarded empty session: {_currentFilePath} (binary)");
                     _currentFilePath = null;
                     return;
                 }
@@ -265,7 +271,7 @@ namespace TimingShow.Logging
                 FlushClock.Stop();
                 LogWriteStats.RecordClose(flushMs, FlushClock.Elapsed.TotalMilliseconds);
 
-                ModContext.Logger.Log($"Successfully closed session: {_currentFilePath} (binary)");
+                ModLog.UnityLog($"Successfully closed session: {_currentFilePath} (binary)");
             }
             catch (Exception e)
             {
@@ -275,6 +281,7 @@ namespace TimingShow.Logging
             {
                 DisposeWriter();
                 _currentFilePath = null;
+                _writeErrorLogged = false;
             }
         }
     }

@@ -346,7 +346,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private static void Trace(string message)
         {
             if (!DiagnoseInput) return;
-            ModContext.Logger?.Log("[LogGraphWindow] " + message);
+            ModLog.UnityLog("[LogGraphWindow] " + message);
         }
         
         public static bool IsOpen

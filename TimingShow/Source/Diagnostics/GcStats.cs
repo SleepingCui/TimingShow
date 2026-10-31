@@ -156,8 +156,8 @@ namespace TimingShow.Diagnostics
             _scanCount++;
             _scanLastMs = ScanClock.Elapsed.TotalMilliseconds;
             if (_scanLastMs > _scanMaxMs) _scanMaxMs = _scanLastMs;
-            if (_scanLastMs > 50.0 && ModContext.Logger != null)
-                ModContext.Logger.Log("Perf object scan took " + _scanLastMs.ToString("F1") + " ms");
+            if (_scanLastMs > 50.0)
+                ModLog.UnityLog("Perf object scan took " + _scanLastMs.ToString("F1") + " ms");
         }
 
         public static void Reset()

@@ -20,6 +20,7 @@ namespace TimingShow.Logging
         private static int _hitCount;
         private static bool _isCurrentSessionBinary;
         private static bool _isCurrentSessionAngle;
+        private static bool _writeErrorLogged;
         private static readonly Stopwatch FlushClock = new Stopwatch();
 
         public static bool IsBinarySession
@@ -81,6 +82,7 @@ namespace TimingShow.Logging
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();
+            _writeErrorLogged = false;
 
             _isCurrentSessionBinary = !ModContext.Settings.UseJsonWriter;
             if (_isCurrentSessionBinary)
@@ -114,7 +116,7 @@ namespace TimingShow.Logging
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 _currentFilePath = Path.Combine(dir, $"{timestamp}_{safeSongName}.json");
                 FileStream fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-                ModContext.Logger.Log($"created {_currentFilePath}");
+                ModLog.UnityLog($"created {_currentFilePath}");
 
                 int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
@@ -203,7 +205,11 @@ namespace TimingShow.Logging
             catch (Exception ex)
             {
                 LogWriteStats.WriteErrors++;
-                ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                if (!_writeErrorLogged)
+                {
+                    _writeErrorLogged = true;
+                    ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                }
             }
 
             if (mark >= 0L) LogWriteStats.RecordHit(PerfPhases.Since(mark) * 1000.0, 0);
@@ -233,7 +239,7 @@ namespace TimingShow.Logging
                     _writer = null;
                     if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
                         File.Delete(_currentFilePath);
-                    ModContext.Logger.Log($"Discarded empty session: {_currentFilePath}");
+                    ModLog.UnityLog($"Discarded empty session: {_currentFilePath}");
                     _currentFilePath = null;
                     return;
                 }
@@ -256,7 +262,7 @@ namespace TimingShow.Logging
                 LogWriteStats.RecordFlush(LogWriteStats.FlushReason.Close, closeMs, PendingJsonChars);
                 LogWriteStats.RecordClose(closeMs, 0.0);
 
-                ModContext.Logger.Log($"Successfully closed session: {_currentFilePath}");
+                ModLog.UnityLog($"Successfully closed session: {_currentFilePath}");
             }
             catch (Exception e)
             {
@@ -269,6 +275,7 @@ namespace TimingShow.Logging
                 _currentFilePath = null;
                 _playerBuffers = null;
                 _isCurrentSessionAngle = false;
+                _writeErrorLogged = false;
                 LogRetention.RequestCleanup();
             }
         }

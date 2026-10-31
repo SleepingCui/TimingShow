@@ -145,7 +145,7 @@ namespace TimingShow.HUD.LogGraphWindow
             BoundsLoggedAt[key] = now;
             _boundsLogCount++;
 
-            ModContext.Logger?.Log(
+            ModLog.UnityLog(
                 $"[LogGraphWindow] overflow {name} (scope: {scope}) bounds [{bounds.xMin:F1},{bounds.yMin:F1}]-[{bounds.xMax:F1},{bounds.yMax:F1}]" +
                 $" ref [{reference.xMin:F1},{reference.yMin:F1}]-[{reference.xMax:F1},{reference.yMax:F1}]" +
                 $" spill L{left:F1} R{right:F1} B{bottom:F1} T{top:F1}");
@@ -173,7 +173,7 @@ namespace TimingShow.HUD.LogGraphWindow
             BoundsLoggedAt[key] = now;
             _boundsLogCount++;
 
-            ModContext.Logger?.Log(
+            ModLog.UnityLog(
                 $"[LogGraphWindow] layout mismatch {name} actual [{actual.xMin:F1},{actual.yMin:F1}]-[{actual.xMax:F1},{actual.yMax:F1}]" +
                 $" expected [{expected.xMin:F1},{expected.yMin:F1}]-[{expected.xMax:F1},{expected.yMax:F1}]");
         }
