@@ -151,6 +151,14 @@ namespace TimingShow.Logging
             return (float)value;
         }
 
+        private static float SafeFloat(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value)) return float.NaN;
+            if (value > float.MaxValue) return float.MaxValue;
+            if (value < float.MinValue) return float.MinValue;
+            return (float)value;
+        }
+
         private static void WriteXorDouble(BinaryWriter writer, double value, ref long previousBits)
         {
             long currentBits = BitConverter.DoubleToInt64Bits(value);

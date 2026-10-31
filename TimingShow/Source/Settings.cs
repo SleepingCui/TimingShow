@@ -263,6 +263,7 @@ namespace TimingShow
         public const int LogSort_Size = 1;
         public const int LogSort_SongName = 2;
 
+        public KeyCode ReportKey = KeyCode.F10;
         
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;

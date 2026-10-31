@@ -1,8 +1,8 @@
 # TimingShow
 
-面向冰与火之舞的Timing信息提示模组，支持 MelonLoader 和 UnityModManager
+面向冰与火之舞的击打分析模组，支持 MelonLoader 和 UnityModManager
 
-A Timing information display mod for A Dance of Fire and Ice, supporting MelonLoader and UnityModManager
+A hit-timing analysis mod for A Dance of Fire and Ice, supporting MelonLoader and UnityModManager.
 
 ## 功能 / Features
 
@@ -25,12 +25,24 @@ A Timing information display mod for A Dance of Fire and Ice, supporting MelonLo
 - 提供游戏内实时 Timing 散点图与日志散点图窗口，支持平移缩放、单次击打详情与判定/XPerfect 色带
 
   Provides an in-game real-time Timing scatter graph and a log scatter window (log list → View Graph), with pan/zoom, per-hit details, and judge/XPerfect bands
+- 日志分析窗口新增概览，提供九种图表视图，包括散点、偏移分布、Delta、滑动均值、Return Map、连击热力图、自相关和 XACC；支持玩家筛选、统计信息与逐击详情
+
+  The log analysis window provides nine views, including an overview, scatter plot, offset distribution, delta, rolling average, return map, combo heatmap, autocorrelation, and XACC, with player filters, statistics, and per-hit details
+- 返回关卡编辑器后可显示上一局的击打点，并支持悬停查看详情或从日志导入击打点
+
+  View the previous run's hit markers in the level editor, inspect them on hover, or import hit markers from a log
+- 可通过 F10（默认快捷键）打开上次击打报告；即使未启用日志记录，也能查看本局图表
+
+  Press F10 (the default hotkey) to view the last-session report and its charts, even when logging is disabled
+- 日志列表支持搜索和自动清理；界面支持韩语
+
+  Search the log list, automatically clean up old logs, and use the Korean interface
 - 新增平均偏移 (Avg) HUD 与命中跳动效果
 
   Adds an Avg offset HUD and a hit bump animation
-- 支持本地多人 (co-op)：各玩家独立统计，HUD/标题形如 `Timing - 12.3ms,15.6ms`，死亡页与结算页显示全员对比；XACC 曲线与散点图按玩家配色区分，日志窗口的散点图例可点击筛选单个玩家
+- 支持本地多人 (co-op)
 
-  Supports local co-op: per-player statistics, merged display such as `Timing - 12.3ms,15.6ms`, and all-player comparison on the death and results screens; XACC curves and scatter plots are colored per player, and the log window's scatter legend can be clicked to isolate a single player
+  Supports local co-op: per-player statistics
 - 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
 
   Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.

@@ -17,6 +17,7 @@ namespace TimingShow.HUD
         private const string KoreanFontFileName = "GmarketSansMedium.otf";
         private const string BundledLicenseResource = "TimingShow.Assets.OFL.txt";
         private const string BundledLicenseFileName = "OFL.txt";
+        private const string KoreanLanguage = "한국어";
 
         // Language keys come from lang.json; Korean uses the bundled Gmarket Sans.
         private const string KoreanLanguage = "한국어";

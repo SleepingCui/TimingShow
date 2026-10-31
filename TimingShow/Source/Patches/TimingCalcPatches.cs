@@ -297,6 +297,7 @@ namespace TimingShow.Patches
                 player.Offsets.Add(timing);
                 player.Ur.Add(timing);
             }
+            AppendTimingScatterSample(timing, angle, player.PlayerId);
 
             // Editor hit markers need every sample, independent of the HUD options.
             AppendTimingScatterSample(timing, angle, player.PlayerId);
