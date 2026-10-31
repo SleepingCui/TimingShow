@@ -456,6 +456,8 @@ namespace TimingShow.Logging
                     sample.Speed = (float)hitSpeed;
                     sample.Pitch = (float)hitPitch;
                 }
+
+                // Raw value; NormalizeSamples() resolves ms/angle after the header is known.
                 sample.OffsetMs = (float)value;
                 if (IsFinite(angleDeg))
                 {
@@ -801,6 +803,8 @@ namespace TimingShow.Logging
             return ms * 180.0 * bpm * speed * pitch / 60000.0;
         }
 
+        // The "value" column means different things depending on the header isAngle flag.
+        // OffsetMs keeps that legacy meaning; AngleDeg is filled whenever it is known.
         private static void NormalizeSamples(TimingLogData data)
         {
             if (data == null || data.Samples == null) return;
@@ -813,6 +817,7 @@ namespace TimingShow.Logging
 
                 if (data.IsAngle)
                 {
+                    // Legacy semantics: the value column already is the angle.
                     float angle = sample.HasAngle && IsFinite(sample.AngleDeg) ? sample.AngleDeg : raw;
                     sample.AngleDeg = angle;
                     sample.HasAngle = IsFinite(angle);
@@ -820,6 +825,8 @@ namespace TimingShow.Logging
                 }
                 else
                 {
+                    // The value column is the offset in ms. Derive the angle when the
+                    // per-hit parameters are available (new v8/v9 logs).
                     if (!sample.HasAngle && sample.HasHitParams && IsFinite(raw))
                     {
                         sample.AngleDeg = (float)MsToAngle(raw, sample.Bpm, sample.Speed, sample.Pitch);

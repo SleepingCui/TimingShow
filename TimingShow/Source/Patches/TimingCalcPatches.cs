@@ -111,7 +111,7 @@ namespace TimingShow.Patches
                 if (_scatterUnresolvedWarnings < TimingScatterWarningLimit)
                 {
                     _scatterUnresolvedWarnings++;
-                    ModContext.Logger?.Log($"[TimingShow] scatter sample superseded before resolve ({_scatterUnresolvedWarnings}/{TimingScatterWarningLimit})");
+                    ModLog.UnityLog($"scatter sample superseded before resolve ({_scatterUnresolvedWarnings}/{TimingScatterWarningLimit})");
                 }
             }
 
@@ -121,7 +121,7 @@ namespace TimingShow.Patches
                 if (_scatterLimitWarnings < TimingScatterWarningLimit)
                 {
                     _scatterLimitWarnings++;
-                    ModContext.Logger?.Log($"[TimingShow] scatter sample limit {TimingScatterHardLimit} reached, further hits dropped ({_scatterLimitWarnings}/{TimingScatterWarningLimit})");
+                    ModLog.UnityLog($"scatter sample limit {TimingScatterHardLimit} reached, further hits dropped ({_scatterLimitWarnings}/{TimingScatterWarningLimit})");
                 }
                 return;
             }
@@ -175,7 +175,8 @@ namespace TimingShow.Patches
         {
             public static void Prefix(scrPlanet __instance)
             {
-                if (!ModContext.IsEnabled || scrController.instance == null) return;
+                if (!ModContext.IsEnabled || !ModContext.IsPlaying || scrController.instance == null) return;
+                if (!PlayStatePatches.IsPlayableScene()) return;
 
                 Players.CurrentId = Players.ResolvePlayerId(__instance);
 
@@ -296,6 +297,9 @@ namespace TimingShow.Patches
                 player.Offsets.Add(timing);
                 player.Ur.Add(timing);
             }
+            AppendTimingScatterSample(timing, angle, player.PlayerId);
+
+            // Editor hit markers need every sample, independent of the HUD options.
             AppendTimingScatterSample(timing, angle, player.PlayerId);
 
             int xaccPlayerId = player.PlayerId;
@@ -434,7 +438,7 @@ namespace TimingShow.Patches
                 }
                 catch (Exception e)
                 {
-                    ModContext.Logger?.Log($"SyncFromTracker: {e.Message}");
+                    ModLog.UnityLog($"SyncFromTracker: {e.Message}");
                 }
             }
         }

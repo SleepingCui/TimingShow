@@ -188,6 +188,12 @@ namespace TimingShow.HUD.ScatterDrawerBase
             float x = anchor.x + DetailOffset;
             float y = anchor.y + DetailOffset;
 
+            // Keep the panel inside the plot rect; clamping against the screen alone
+            // let it run under the graph window frame when the window sits mid-screen.
+            float margin = 2f * Mathf.Max(0.01f, Scale);
+            float x = anchor.x + DetailOffset;
+            float y = anchor.y + DetailOffset;
+
             if (x + panelWidth > rect.xMax - margin) x = anchor.x - DetailOffset - panelWidth;
             if (y + panelHeight > rect.yMax - margin) y = anchor.y - DetailOffset - panelHeight;
 

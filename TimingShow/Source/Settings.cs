@@ -217,7 +217,7 @@ namespace TimingShow
         public string LogGraph_FontPath = "";
 
         public bool EditorHits_Enabled = true;
-        public float EditorHits_MarkerSize = 4f;
+        public float EditorHits_MarkerSize = 35f;
         public float EditorHits_AngleScale = 1f;
         public bool EditorHits_ShowTooltip = true;
 
@@ -267,10 +267,11 @@ namespace TimingShow
         
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;
+        public KeyCode ReportKey = KeyCode.F10;
         
         
         
-        public const int CurrentSettingsVersion = 3;
+        public const int CurrentSettingsVersion = 5;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -348,6 +349,13 @@ namespace TimingShow
 
                 migrated = true;
             }
+            
+            if (SettingsVersion < 5 &&
+                (Mathf.Approximately(EditorHits_MarkerSize, 4f) || Mathf.Approximately(EditorHits_MarkerSize, 7f)))
+            {
+                EditorHits_MarkerSize = 35f;
+                migrated = true;
+            }
 
             if (SettingsVersion < CurrentSettingsVersion)
             {
@@ -394,7 +402,7 @@ namespace TimingShow
             TimingScatter_PointSize = Mathf.Clamp(TimingScatter_PointSize, 1f, 12f);
             TimingScatter_BandThresholdBpm = Mathf.Clamp(TimingScatter_BandThresholdBpm, 100f, 600f);
 
-            EditorHits_MarkerSize = Mathf.Clamp(EditorHits_MarkerSize, 1f, 12f);
+            EditorHits_MarkerSize = Mathf.Clamp(EditorHits_MarkerSize, 1f, 100f);
             EditorHits_AngleScale = Mathf.Clamp(EditorHits_AngleScale, 0f, 3f);
 
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);

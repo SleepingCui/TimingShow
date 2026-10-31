@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using TimingShow.Diagnostics;
 using UnityEngine;
 
 namespace TimingShow.Logging
@@ -18,6 +20,57 @@ namespace TimingShow.Logging
         private static int _hitCount;
         private static bool _isCurrentSessionBinary;
         private static bool _isCurrentSessionAngle;
+        private static bool _writeErrorLogged;
+        private static readonly Stopwatch FlushClock = new Stopwatch();
+
+        public static bool IsBinarySession
+        {
+            get { return _isCurrentSessionBinary; }
+        }
+
+        public static long PendingJsonChars
+        {
+            get
+            {
+                if (_playerBuffers == null) return 0;
+                long total = 0;
+                for (int i = 0; i < _playerBuffers.Length; i++)
+                {
+                    if (_playerBuffers[i] != null) total += _playerBuffers[i].Length;
+                }
+                return total;
+            }
+        }
+
+        public static void GetWriteGauges(out long logicalBytes, out long compressedBytes, out long bufferedBytes, out double persistAgeSec)
+        {
+            if (_isCurrentSessionBinary)
+            {
+                TimingLoggerBinary.GetGauges(out logicalBytes, out compressedBytes, out bufferedBytes, out persistAgeSec);
+                return;
+            }
+
+            bufferedBytes = PendingJsonChars;
+            logicalBytes = bufferedBytes;
+            compressedBytes = 0;
+            persistAgeSec = LogWriteStats.LastFlushAgeSec;
+        }
+
+        public static void FlushForReport()
+        {
+            if (_isCurrentSessionBinary)
+            {
+                TimingLoggerBinary.FlushForReport();
+                return;
+            }
+
+            if (_writer == null) return;
+
+            FlushClock.Restart();
+            _writer.Flush();
+            FlushClock.Stop();
+            LogWriteStats.RecordFlush(LogWriteStats.FlushReason.Report, FlushClock.Elapsed.TotalMilliseconds, PendingJsonChars);
+        }
 
         public static bool IsFileBeingWritten(string filePath)
         {
@@ -29,6 +82,7 @@ namespace TimingShow.Logging
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();
+            _writeErrorLogged = false;
 
             _isCurrentSessionBinary = !ModContext.Settings.UseJsonWriter;
             if (_isCurrentSessionBinary)
@@ -62,7 +116,7 @@ namespace TimingShow.Logging
                 long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 _currentFilePath = Path.Combine(dir, $"{timestamp}_{safeSongName}.json");
                 FileStream fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-                ModContext.Logger.Log($"created {_currentFilePath}");
+                ModLog.UnityLog($"created {_currentFilePath}");
 
                 int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _writer = new StreamWriter(fs, new UTF8Encoding(false), bufferSizeBytes);
@@ -106,6 +160,8 @@ namespace TimingShow.Logging
             }
 
             if (_writer == null || _playerBuffers == null) return;
+
+            long mark = PerfPhases.Mark();
             try
             {
                 _hitCount++;
@@ -148,8 +204,15 @@ namespace TimingShow.Logging
             }
             catch (Exception ex)
             {
-                ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                LogWriteStats.WriteErrors++;
+                if (!_writeErrorLogged)
+                {
+                    _writeErrorLogged = true;
+                    ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                }
             }
+
+            if (mark >= 0L) LogWriteStats.RecordHit(PerfPhases.Since(mark) * 1000.0, 0);
         }
 
         public static void CloseSession()
@@ -176,11 +239,12 @@ namespace TimingShow.Logging
                     _writer = null;
                     if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
                         File.Delete(_currentFilePath);
-                    ModContext.Logger.Log($"Discarded empty session: {_currentFilePath}");
+                    ModLog.UnityLog($"Discarded empty session: {_currentFilePath}");
                     _currentFilePath = null;
                     return;
                 }
 
+                FlushClock.Restart();
                 for (int i = 0; i < _playerCount; i++)
                 {
                     _writer.Write($"  \"offsets_{i + 1}\": [");
@@ -192,7 +256,13 @@ namespace TimingShow.Logging
                 }
                 _writer.Write("}");
                 _writer.Flush();
-                ModContext.Logger.Log($"Successfully closed session: {_currentFilePath}");
+                FlushClock.Stop();
+
+                double closeMs = FlushClock.Elapsed.TotalMilliseconds;
+                LogWriteStats.RecordFlush(LogWriteStats.FlushReason.Close, closeMs, PendingJsonChars);
+                LogWriteStats.RecordClose(closeMs, 0.0);
+
+                ModLog.UnityLog($"Successfully closed session: {_currentFilePath}");
             }
             catch (Exception e)
             {
@@ -205,6 +275,7 @@ namespace TimingShow.Logging
                 _currentFilePath = null;
                 _playerBuffers = null;
                 _isCurrentSessionAngle = false;
+                _writeErrorLogged = false;
                 LogRetention.RequestCleanup();
             }
         }

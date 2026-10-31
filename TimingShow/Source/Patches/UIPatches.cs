@@ -80,7 +80,7 @@ namespace TimingShow.Patches
                     }
                     catch (Exception e)
                     {
-                        ModContext.Logger.Log($"xPerfectBorder not available, skipping native border handling: {e.Message}");
+                        ModLog.UnityLog($"xPerfectBorder not available, skipping native border handling: {e.Message}");
                     }
                 }
                 if (_xPerfectBorderField == null) return;
@@ -99,7 +99,7 @@ namespace TimingShow.Patches
                 }
                 catch (Exception e)
                 {
-                    ModContext.Logger?.Log($"Failed to disable xPerfectBorder: {e.Message}");
+                    ModLog.UnityLog($"Failed to disable xPerfectBorder: {e.Message}");
                 }
             }
 
@@ -199,7 +199,7 @@ namespace TimingShow.Patches
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Log("GetPercentXAcc failed: " + e.Message);
+                ModLog.UnityLog("GetPercentXAcc failed: " + e.Message);
                 return 0f;
             }
         }
@@ -285,7 +285,7 @@ namespace TimingShow.Patches
                     }
                     catch (Exception e)
                     {
-                        ModContext.Logger?.Log($"DetailedResults.results not available: {e.Message}");
+                        ModLog.UnityLog($"DetailedResults.results not available: {e.Message}");
                     }
                 }
                 if (_resultsField == null) return null;
@@ -296,7 +296,7 @@ namespace TimingShow.Patches
                 }
                 catch (Exception e)
                 {
-                    ModContext.Logger?.Log($"Failed to read DetailedResults.results: {e.Message}");
+                    ModLog.UnityLog($"Failed to read DetailedResults.results: {e.Message}");
                     return null;
                 }
             }
@@ -328,6 +328,7 @@ namespace TimingShow.Patches
                     _perfSw.Restart();
                     HUDMan.Update();
                     _perfSw.Stop();
+                    PerfStatsRecorder.MarkHudEnd();
 
                     PerfStatsRecorder.EndFrame(perfFrameId, Time.unscaledDeltaTime * 1000f, (float)_perfSw.Elapsed.TotalMilliseconds);
                 }

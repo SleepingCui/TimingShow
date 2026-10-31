@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using TimingShow.Diagnostics;
 using UnityEngine;
 
 namespace TimingShow.Logging
@@ -12,7 +14,12 @@ namespace TimingShow.Logging
         private static BinaryWriter _writer;
         private static GZipStream _gzStream;
         private static FileStream _fs;
+        private static CountingStream _logicalCount;
+        private static CountingStream _gzCount;
         private static string _currentFilePath;
+        private static long _persistedBytes;
+        private static long _logicalPersistedBytes;
+        private static readonly Stopwatch FlushClock = new Stopwatch();
         private static readonly byte[] MagicBytes = Encoding.UTF8.GetBytes("TSMZ");
         private const byte FormatVersion = TimingLogger.BinaryFormatVersion;
         private static long _prevTimeBits;
@@ -20,6 +27,7 @@ namespace TimingShow.Logging
         private static int _hitCount;
         private static bool _isAngle;
         private static int _playerCount = 1;
+        private static bool _writeErrorLogged;
 
         public static bool IsFileBeingWritten(string filePath)
         {
@@ -30,6 +38,7 @@ namespace TimingShow.Logging
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
         {
             CloseSession();
+            _writeErrorLogged = false;
 
             try
             {
@@ -50,8 +59,12 @@ namespace TimingShow.Logging
 
                 int bufferSizeBytes = Math.Max(4, bufferSize) * 1024;
                 _fs = new FileStream(_currentFilePath, FileMode.Create, FileAccess.Write, FileShare.Read, bufferSizeBytes);
-                _gzStream = new GZipStream(_fs, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: false);
-                _writer = new BinaryWriter(_gzStream, new UTF8Encoding(false));
+                _gzCount = new CountingStream(_fs);
+                _gzStream = new GZipStream(_gzCount, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: false);
+                _logicalCount = new CountingStream(_gzStream);
+                _writer = new BinaryWriter(_logicalCount, new UTF8Encoding(false));
+                _persistedBytes = 0;
+                _logicalPersistedBytes = 0;
 
                 _prevTimeBits = 0;
                 _prevValueBits = 0;
@@ -74,8 +87,8 @@ namespace TimingShow.Logging
                 _writer.Write((byte)HitMarginCompat.JudgeCodeVersion);
                 _writer.Write((byte)_playerCount);
 
-                _writer.Flush();
-                ModContext.Logger.Log($"created: {_currentFilePath} (binary)");
+                FlushWriter(LogWriteStats.FlushReason.Header);
+                ModLog.UnityLog($"created: {_currentFilePath} (binary)");
             }
             catch (Exception ex)
             {
@@ -89,6 +102,9 @@ namespace TimingShow.Logging
             int floorId, double bpm, double speed, double pitch)
         {
             if (_writer == null) return;
+
+            long mark = PerfPhases.Mark();
+            long startBytes = _logicalCount != null ? _logicalCount.Written : 0;
 
             try
             {
@@ -111,8 +127,28 @@ namespace TimingShow.Logging
             }
             catch (Exception ex)
             {
-                ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                LogWriteStats.WriteErrors++;
+                if (!_writeErrorLogged)
+                {
+                    _writeErrorLogged = true;
+                    ModContext.Logger.Error($"Failed to write log: {ex.Message}");
+                }
             }
+
+            if (mark >= 0L && _logicalCount != null)
+            {
+                long written = _logicalCount.Written - startBytes;
+                if (written > int.MaxValue) written = int.MaxValue;
+                LogWriteStats.RecordHit(PerfPhases.Since(mark) * 1000.0, (int)written);
+            }
+        }
+
+        private static float SafeFloat(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value)) return float.NaN;
+            if (value > float.MaxValue) return float.MaxValue;
+            if (value < float.MinValue) return float.MinValue;
+            return (float)value;
         }
 
         private static float SafeFloat(double value)
@@ -170,6 +206,55 @@ namespace TimingShow.Logging
             return count;
         }
 
+        public static void FlushForReport()
+        {
+            if (_writer == null) return;
+            FlushWriter(LogWriteStats.FlushReason.Report);
+        }
+
+        public static void GetGauges(out long logicalBytes, out long compressedBytes, out long bufferedBytes, out double persistAgeSec)
+        {
+            logicalBytes = _logicalCount != null ? _logicalCount.Written : 0;
+            compressedBytes = _gzCount != null ? _gzCount.Written : 0;
+            bufferedBytes = logicalBytes - _logicalPersistedBytes;
+            if (bufferedBytes < 0) bufferedBytes = 0;
+            persistAgeSec = LogWriteStats.LastFlushAgeSec;
+        }
+
+        private static void FlushWriter(LogWriteStats.FlushReason reason)
+        {
+            if (_writer == null) return;
+
+            FlushClock.Restart();
+            _writer.Flush();
+            _gzStream?.Flush();
+            _fs?.Flush();
+            FlushClock.Stop();
+
+            _persistedBytes = _gzCount != null ? _gzCount.Written : 0;
+            _logicalPersistedBytes = _logicalCount != null ? _logicalCount.Written : 0;
+            LogWriteStats.RecordFlush(reason, FlushClock.Elapsed.TotalMilliseconds, _persistedBytes);
+        }
+
+        private static void DisposeWriter()
+        {
+            if (_writer != null)
+            {
+                _writer.Dispose();
+            }
+            else
+            {
+                _gzStream?.Dispose();
+                _fs?.Dispose();
+            }
+
+            _writer = null;
+            _gzStream = null;
+            _logicalCount = null;
+            _gzCount = null;
+            _fs = null;
+        }
+
         public static void CloseSession()
         {
             if (_writer == null) return;
@@ -178,20 +263,23 @@ namespace TimingShow.Logging
             {
                 if (_hitCount == 0)
                 {
-                    _writer.Dispose();
-                    _writer = null;
-                    _gzStream = null;
-                    _fs = null;
+                    DisposeWriter();
                     if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
                         File.Delete(_currentFilePath);
-                    ModContext.Logger.Log($"Discarded empty session: {_currentFilePath} (binary)");
+                    ModLog.UnityLog($"Discarded empty session: {_currentFilePath} (binary)");
                     _currentFilePath = null;
                     return;
                 }
 
-                _writer.Flush();
-                _gzStream?.Flush();
-                ModContext.Logger.Log($"Successfully closed session: {_currentFilePath} (binary)");
+                FlushWriter(LogWriteStats.FlushReason.Close);
+                double flushMs = LogWriteStats.LastFlushMs;
+
+                FlushClock.Restart();
+                DisposeWriter();
+                FlushClock.Stop();
+                LogWriteStats.RecordClose(flushMs, FlushClock.Elapsed.TotalMilliseconds);
+
+                ModLog.UnityLog($"Successfully closed session: {_currentFilePath} (binary)");
             }
             catch (Exception e)
             {
@@ -199,14 +287,9 @@ namespace TimingShow.Logging
             }
             finally
             {
-                _writer?.Dispose();
-                _gzStream?.Dispose();
-                _fs?.Dispose();
-
-                _writer = null;
-                _gzStream = null;
-                _fs = null;
+                DisposeWriter();
                 _currentFilePath = null;
+                _writeErrorLogged = false;
             }
         }
     }

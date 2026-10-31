@@ -8,6 +8,9 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private TMP_Text _xStartText;
         private TMP_Text _xEndText;
         private TMP_Text _avgValueText;
+        private TMP_Text[] _xTickTexts;
+        private TMP_Text[] _yTickTexts;
+
         protected override void CreateTextComponents()
         {
             base.CreateTextComponents();
@@ -23,10 +26,30 @@ namespace TimingShow.HUD.ScatterDrawerBase
             _hintText.alignment = TextAlignmentOptions.Bottom;
             _hintText.gameObject.SetActive(false);
 
+            CreateAxisTickTexts();
             CreatePlayerLegendTexts();
 
             TMP_Text[] children = GetComponentsInChildren<TMP_Text>(true);
             for (int i = 0; i < children.Length; i++) children[i].raycastTarget = false;
+        }
+
+        private void CreateAxisTickTexts()
+        {
+            _xTickTexts = new TMP_Text[MaxXAxisTicks];
+            for (int i = 0; i < _xTickTexts.Length; i++)
+            {
+                TMP_Text text = CreateText("XAxisTick" + i, CurrentFontAsset, TextAnchor.LowerCenter);
+                text.gameObject.SetActive(false);
+                _xTickTexts[i] = text;
+            }
+
+            _yTickTexts = new TMP_Text[MaxYAxisTicks];
+            for (int i = 0; i < _yTickTexts.Length; i++)
+            {
+                TMP_Text text = CreateText("YAxisTick" + i, CurrentFontAsset, TextAnchor.MiddleLeft);
+                text.gameObject.SetActive(false);
+                _yTickTexts[i] = text;
+            }
         }
 
         protected override void ApplyFontToTexts(TMP_FontAsset font)
@@ -37,14 +60,28 @@ namespace TimingShow.HUD.ScatterDrawerBase
             ApplyFontToText(_avgValueText, font);
             ApplyFontToText(_detailText, font);
             ApplyFontToText(_hintText, font);
+            if (_xTickTexts != null) for (int i = 0; i < _xTickTexts.Length; i++) ApplyFontToText(_xTickTexts[i], font);
+            if (_yTickTexts != null) for (int i = 0; i < _yTickTexts.Length; i++) ApplyFontToText(_yTickTexts[i], font);
             ApplyPlayerLegendFont(font);
         }
 
         protected override void ToggleTexts(bool active)
         {
             base.ToggleTexts(active);
-            if (_xStartText != null && _xStartText.gameObject.activeSelf != active) _xStartText.gameObject.SetActive(active);
-            if (_xEndText != null && _xEndText.gameObject.activeSelf != active) _xEndText.gameObject.SetActive(active);
+
+            bool showXAxisLabels = active && !UsesDynamicAxisTicks;
+            if (_xStartText != null && _xStartText.gameObject.activeSelf != showXAxisLabels) _xStartText.gameObject.SetActive(showXAxisLabels);
+            if (_xEndText != null && _xEndText.gameObject.activeSelf != showXAxisLabels) _xEndText.gameObject.SetActive(showXAxisLabels);
+
+            bool showTicks = active && UsesDynamicAxisTicks;
+            if (_xTickTexts != null) for (int i = 0; i < _xTickTexts.Length; i++)
+            {
+                if (_xTickTexts[i] != null && _xTickTexts[i].gameObject.activeSelf != showTicks) _xTickTexts[i].gameObject.SetActive(showTicks);
+            }
+            if (_yTickTexts != null) for (int i = 0; i < _yTickTexts.Length; i++)
+            {
+                if (_yTickTexts[i] != null && _yTickTexts[i].gameObject.activeSelf != showTicks) _yTickTexts[i].gameObject.SetActive(showTicks);
+            }
 
             if (_avgValueText != null)
             {
@@ -75,23 +112,6 @@ namespace TimingShow.HUD.ScatterDrawerBase
             float labelHeight = 16f * (fontSize / 12f);
             Color color = ScatterAxisTextColor;
 
-            string startText = string.Empty;
-            string endText = string.Empty;
-
-            if (_hasData)
-            {
-                if (_useTimeAxis)
-                {
-                    startText = _manualViewActive ? FormatDetailTime(_viewXMin) : $"{_viewXMin / 1000f:F1}s";
-                    endText = _manualViewActive ? FormatDetailTime(_viewXMax) : $"{_viewXMax / 1000f:F1}s";
-                }
-                else
-                {
-                    startText = $"#{Mathf.Max(0, Mathf.RoundToInt(_viewXMin)) + 1}";
-                    endText = $"#{Mathf.Max(0, Mathf.RoundToInt(_viewXMax)) + 1}";
-                }
-            }
-
             bool labelsInside = AxisLabelsInside;
             float axisY;
             if (labelsInside)
@@ -104,31 +124,59 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 axisY = -3f * scale;
             }
 
-            Vector2 startPivot = labelsInside ? new Vector2(0f, 0f) : new Vector2(0f, 1f);
-            Vector2 endPivot = labelsInside ? new Vector2(1f, 0f) : new Vector2(1f, 1f);
-            TextAlignmentOptions startAlign = labelsInside ? TextAlignmentOptions.BottomLeft : TextAlignmentOptions.TopLeft;
-            TextAlignmentOptions endAlign = labelsInside ? TextAlignmentOptions.BottomRight : TextAlignmentOptions.TopRight;
-
-            float xStartX;
-            float xEndX;
-            float xLabelMaxWidth;
-            if (labelsInside)
+            if (UsesDynamicAxisTicks)
             {
-                xStartX = AxisBandLeft > 1f ? Mathf.Min(AxisBandLeft, w * 0.5f) : 2f * scale;
-                xEndX = w - 2f * scale;
-                xLabelMaxWidth = Mathf.Max(1f, (xEndX - xStartX) * 0.5f);
+                if (_xStartText.gameObject.activeSelf) _xStartText.gameObject.SetActive(false);
+                if (_xEndText.gameObject.activeSelf) _xEndText.gameObject.SetActive(false);
+                UpdateAxisTickLabels(w, h, scale, labelsInside, axisY, color);
             }
             else
             {
-                xStartX = 2f * scale;
-                xEndX = w - 2f * scale;
-                xLabelMaxWidth = Mathf.Max(1f, w - 4f * scale);
-            }
+                string startText = string.Empty;
+                string endText = string.Empty;
 
-            SetupXAxisText(_xStartText, startText, new Vector2(xStartX, axisY),
-                startPivot, startAlign, fontSize, labelHeight, color, xLabelMaxWidth);
-            SetupXAxisText(_xEndText, endText, new Vector2(xEndX, axisY),
-                endPivot, endAlign, fontSize, labelHeight, color, xLabelMaxWidth);
+                if (_hasData)
+                {
+                    if (_useTimeAxis)
+                    {
+                        startText = _manualViewActive ? FormatDetailTime(_viewXMin) : $"{_viewXMin / 1000f:F1}s";
+                        endText = _manualViewActive ? FormatDetailTime(_viewXMax) : $"{_viewXMax / 1000f:F1}s";
+                    }
+                    else
+                    {
+                        startText = $"#{Mathf.Max(0, Mathf.RoundToInt(_viewXMin)) + 1}";
+                        endText = $"#{Mathf.Max(0, Mathf.RoundToInt(_viewXMax)) + 1}";
+                    }
+                }
+
+                Vector2 startPivot = labelsInside ? new Vector2(0f, 0f) : new Vector2(0f, 1f);
+                Vector2 endPivot = labelsInside ? new Vector2(1f, 0f) : new Vector2(1f, 1f);
+                TextAlignmentOptions startAlign = labelsInside ? TextAlignmentOptions.BottomLeft : TextAlignmentOptions.TopLeft;
+                TextAlignmentOptions endAlign = labelsInside ? TextAlignmentOptions.BottomRight : TextAlignmentOptions.TopRight;
+
+                float xStartX;
+                float xEndX;
+                float xLabelMaxWidth;
+                if (labelsInside)
+                {
+                    xStartX = AxisBandLeft > 1f ? Mathf.Min(AxisBandLeft, w * 0.5f) : 2f * scale;
+                    xEndX = w - 2f * scale;
+                    xLabelMaxWidth = Mathf.Max(1f, (xEndX - xStartX) * 0.5f);
+                }
+                else
+                {
+                    xStartX = 2f * scale;
+                    xEndX = w - 2f * scale;
+                    xLabelMaxWidth = Mathf.Max(1f, w - 4f * scale);
+                }
+
+                SetupXAxisText(_xStartText, startText, new Vector2(xStartX, axisY),
+                    startPivot, startAlign, fontSize, labelHeight, color, xLabelMaxWidth);
+                SetupXAxisText(_xEndText, endText, new Vector2(xEndX, axisY),
+                    endPivot, endAlign, fontSize, labelHeight, color, xLabelMaxWidth);
+
+                SetAxisTickTextsActive(false);
+            }
 
             ReportAxisFooterHeight(Mathf.Abs(axisY) + labelHeight + 1f);
 
@@ -136,6 +184,105 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
             bool showAvgLabel = _avgAvailable && ScatterShowAvgLine;
             UpdateAvgValueLabel(showAvgLabel, settings, scale, w, h);
+        }
+
+        private void SetAxisTickTextsActive(bool active)
+        {
+            if (_xTickTexts != null) for (int i = 0; i < _xTickTexts.Length; i++)
+            {
+                if (_xTickTexts[i] != null && _xTickTexts[i].gameObject.activeSelf != active) _xTickTexts[i].gameObject.SetActive(active);
+            }
+            if (_yTickTexts != null) for (int i = 0; i < _yTickTexts.Length; i++)
+            {
+                if (_yTickTexts[i] != null && _yTickTexts[i].gameObject.activeSelf != active) _yTickTexts[i].gameObject.SetActive(active);
+            }
+        }
+
+        private void UpdateAxisTickLabels(float w, float h, float scale, bool labelsInside, float axisY, Color color)
+        {
+            ComputeAxisTicks(w, h, scale);
+
+            int xFontSize = Mathf.Clamp(Mathf.RoundToInt(10f * scale), 8, 24);
+            int yFontSize = Mathf.Clamp(Mathf.RoundToInt(10f * scale), 8, 24);
+            float xLabelHeight = 16f * (xFontSize / 12f);
+            float yBoxHeight = 18f * (yFontSize / 12f);
+            Color tickColor = color;
+            tickColor.a *= 0.85f;
+
+            for (int i = 0; i < _xTickTexts.Length; i++)
+            {
+                TMP_Text text = _xTickTexts[i];
+                if (text == null) continue;
+
+                bool show = i < _xTickLabels.Count;
+                if (text.gameObject.activeSelf != show) text.gameObject.SetActive(show);
+                if (!show) continue;
+
+                string label = _xTickLabels[i];
+                text.text = label;
+                text.fontSize = xFontSize;
+                text.color = tickColor;
+
+                float fraction = _xTickFractions[i];
+                bool leftEdge = fraction <= 0.0001f;
+                bool rightEdge = fraction >= 0.9999f;
+                float x = leftEdge ? 1f : rightEdge ? Mathf.Max(1f, w - 1f) : fraction * w;
+
+                Vector2 pivot;
+                TextAlignmentOptions alignment;
+                if (labelsInside)
+                {
+                    pivot = leftEdge ? new Vector2(0f, 0f) : rightEdge ? new Vector2(1f, 0f) : new Vector2(0.5f, 0f);
+                    alignment = leftEdge ? TextAlignmentOptions.BottomLeft : rightEdge ? TextAlignmentOptions.BottomRight : TextAlignmentOptions.Bottom;
+                }
+                else
+                {
+                    pivot = leftEdge ? new Vector2(0f, 1f) : rightEdge ? new Vector2(1f, 1f) : new Vector2(0.5f, 1f);
+                    alignment = leftEdge ? TextAlignmentOptions.TopLeft : rightEdge ? TextAlignmentOptions.TopRight : TextAlignmentOptions.Top;
+                }
+
+                text.alignment = alignment;
+                float measured = MeasureTextWidth(text, label, xFontSize);
+                if (!leftEdge && !rightEdge)
+                    x = Mathf.Clamp(x, measured * 0.5f + 1f, Mathf.Max(measured * 0.5f + 1f, w - measured * 0.5f - 1f));
+
+                float labelY = labelsInside ? axisY + 2f * scale : axisY;
+                RectTransform rt = text.rectTransform;
+                rt.pivot = pivot;
+                rt.anchoredPosition = new Vector2(x, labelY);
+                rt.sizeDelta = new Vector2(measured, xLabelHeight);
+            }
+
+            float maxYWidth = 0f;
+            for (int i = 0; i < _yTickTexts.Length; i++)
+            {
+                TMP_Text text = _yTickTexts[i];
+                if (text == null) continue;
+
+                bool show = i < _yTickLabels.Count;
+                if (text.gameObject.activeSelf != show) text.gameObject.SetActive(show);
+                if (!show) continue;
+
+                string label = _yTickLabels[i];
+                text.text = label;
+                text.fontSize = yFontSize;
+                text.color = tickColor;
+                text.alignment = labelsInside ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.MidlineRight;
+
+                float fraction = _yTickFractions[i];
+                bool bottomEdge = fraction <= 0.0001f;
+                bool topEdge = fraction >= 0.9999f;
+                float y = bottomEdge ? 1f : topEdge ? Mathf.Max(1f, h - 1f) : fraction * h;
+                RectTransform rt = text.rectTransform;
+                rt.pivot = new Vector2(labelsInside ? 0f : 1f, bottomEdge ? 0f : topEdge ? 1f : 0.5f);
+                rt.anchoredPosition = new Vector2(labelsInside ? AxisLabelGap : -AxisLabelGap, y);
+
+                float width = MeasureTextWidth(text, label, yFontSize);
+                rt.sizeDelta = new Vector2(width, yBoxHeight);
+                if (width > maxYWidth) maxYWidth = width;
+            }
+
+            if (maxYWidth > 0f) ReportAxisLabelWidth(maxYWidth);
         }
 
         private void UpdateAvgValueLabel(bool visible, Settings settings, float scale, float w, float h)

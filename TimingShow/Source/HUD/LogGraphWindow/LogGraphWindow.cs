@@ -69,6 +69,9 @@ namespace TimingShow.HUD.LogGraphWindow
         private const float BaseAxisLabelGap = 6f;
         private const float BaseAxisLabelMargin = 3f;
         private const float TextLineRatio = 1.35f;
+
+        private const float OpenAnimDuration = 0.18f;
+        private const float OpenAnimStartScale = 0.94f;
         
         private static float UiScale
         {
@@ -295,6 +298,10 @@ namespace TimingShow.HUD.LogGraphWindow
         private TimingLogData _data;
         private bool _closed;
         private bool _pendingTextRefresh;
+        private CanvasGroup _canvasGroup;
+        private float _openAnimElapsed;
+        private Vector2 _openAnimTargetPosition;
+        private Vector2 _openAnimSize;
         private TextMeshProUGUI _statsTitleText;
         private readonly TextMeshProUGUI[] _statLabels = new TextMeshProUGUI[4];
         private readonly TextMeshProUGUI[] _statValues = new TextMeshProUGUI[4];
@@ -339,7 +346,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private static void Trace(string message)
         {
             if (!DiagnoseInput) return;
-            ModContext.Logger?.Log("[LogGraphWindow] " + message);
+            ModLog.UnityLog("[LogGraphWindow] " + message);
         }
         
         public static bool IsOpen
@@ -410,6 +417,7 @@ namespace TimingShow.HUD.LogGraphWindow
             CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
             canvasGroup.blocksRaycasts = true;
             canvasGroup.interactable = true;
+            canvasGroup.alpha = 0f;
 
             root.AddComponent<GraphicRaycaster>();
             
@@ -423,6 +431,7 @@ namespace TimingShow.HUD.LogGraphWindow
             _instance = window;
             window._windowRect = windowRect;
             window._closed = false;
+            window._canvasGroup = canvasGroup;
             
             _dragProxy = window;
             _hoverProxy = window;
@@ -563,6 +572,8 @@ namespace TimingShow.HUD.LogGraphWindow
             window.CreateChartUi(graphFont);
             window.ApplyLayout(size, position);
             window._pendingTextRefresh = true;
+            window._openAnimTargetPosition = position;
+            window._openAnimSize = size;
         }
 
         private static GameObject CreateChartArea(Transform parent, string name, out RectTransform rect)
@@ -609,7 +620,10 @@ namespace TimingShow.HUD.LogGraphWindow
                 _pendingTextRefresh = false;
                 RefreshAllTextMeshes();
             }
-            
+
+            UpdateOpenAnimation();
+            TickRangeFilter();
+
             if ((_chartMenuOpen || _playerMenuOpen) && Input.GetKeyDown(KeyCode.Escape))
                 CloseMenus();
 
@@ -622,6 +636,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private void RefreshAllTextMeshes()
         {
             if (_root == null) return;
+
             Canvas.ForceUpdateCanvases();
 
             TMP_Text[] texts = _root.GetComponentsInChildren<TMP_Text>(true);
@@ -629,6 +644,26 @@ namespace TimingShow.HUD.LogGraphWindow
             {
                 if (texts[i] != null) texts[i].ForceMeshUpdate();
             }
+        }
+
+        private void UpdateOpenAnimation()
+        {
+            if (_openAnimElapsed >= OpenAnimDuration) return;
+            if (_windowRect == null || _dragging || _resizing) return;
+
+            _openAnimElapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(_openAnimElapsed / OpenAnimDuration);
+            float eased = 1f - Mathf.Pow(1f - progress, 3f);
+            float scale = Mathf.LerpUnclamped(OpenAnimStartScale, 1f, eased);
+            _windowRect.localScale = new Vector3(scale, scale, 1f);
+            _windowRect.anchoredPosition = _openAnimTargetPosition + _openAnimSize * ((1f - scale) * 0.5f);
+            if (_canvasGroup != null) _canvasGroup.alpha = eased;
+
+            if (progress < 1f) return;
+
+            _windowRect.localScale = Vector3.one;
+            _windowRect.anchoredPosition = _openAnimTargetPosition;
+            if (_canvasGroup != null) _canvasGroup.alpha = 1f;
         }
 
         private void OnDestroy()

@@ -198,7 +198,7 @@ namespace TimingShow
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Log("Players.ResolvePlayerId(planet) fallback failed: " + e.Message);
+                ModLog.UnityLog("Players.ResolvePlayerId(planet) fallback failed: " + e.Message);
             }
 
             return 0;
@@ -221,7 +221,7 @@ namespace TimingShow
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Log("Players.ResolvePlayerId(tracker) failed: " + e.Message);
+                ModLog.UnityLog("Players.ResolvePlayerId(tracker) failed: " + e.Message);
             }
 
             return 0;

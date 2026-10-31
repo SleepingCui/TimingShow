@@ -41,7 +41,6 @@ namespace TimingShow.SessionReport
             if (settings == null || settings.ReportKey == KeyCode.None) return;
             if (ModContext.IsPlaying && !ModContext.IsLevelFinished) return;
             if (Options.Options.HotkeySuppressed) return;
-
             if (!Input.GetKeyDown(settings.ReportKey)) return;
 
             LastSessionReport.ToggleWindow();

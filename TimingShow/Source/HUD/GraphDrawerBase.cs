@@ -23,6 +23,7 @@ namespace TimingShow.HUD
         protected abstract Color LineColor { get; }
         protected abstract int MaxPoints { get; }
         public abstract string GraphName { get; }
+        protected virtual string PerfName => GraphName;
         protected virtual int DataVersion => ModContext.XAccVersion;
 
         protected virtual bool ShowBorder => false;
@@ -144,7 +145,7 @@ namespace TimingShow.HUD
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                ModContext.Logger?.Log("Graph font file does not exist: " + path);
+                ModLog.UnityLog("Graph font file does not exist: " + path);
                 return null;
             }
 
@@ -152,7 +153,7 @@ namespace TimingShow.HUD
             if (!string.Equals(extension, ".ttf", System.StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(extension, ".otf", System.StringComparison.OrdinalIgnoreCase))
             {
-                ModContext.Logger?.Log("Unsupported graph font file: " + path);
+                ModLog.UnityLog("Unsupported graph font file: " + path);
                 return null;
             }
 
@@ -162,7 +163,7 @@ namespace TimingShow.HUD
                 MethodInfo loadFromPath = typeof(Font).GetMethod("Internal_CreateFontFromPath", BindingFlags.Static | BindingFlags.NonPublic);
                 if (loadFromPath == null)
                 {
-                    ModContext.Logger?.Log("Unity does not expose font loading from path");
+                    ModLog.UnityLog("Unity does not expose font loading from path");
                     return null;
                 }
 
@@ -171,7 +172,7 @@ namespace TimingShow.HUD
                 TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(sourceFont);
                 if (fontAsset == null)
                 {
-                    ModContext.Logger?.Log("Failed to build graph font asset: " + path);
+                    ModLog.UnityLog("Failed to build graph font asset: " + path);
                     return null;
                 }
 
@@ -181,7 +182,7 @@ namespace TimingShow.HUD
             }
             catch (System.Exception e)
             {
-                ModContext.Logger?.Log("Failed to load graph font: " + e.Message);
+                ModLog.UnityLog("Failed to load graph font: " + e.Message);
                 return null;
             }
         }
@@ -199,7 +200,7 @@ namespace TimingShow.HUD
             }
             catch (System.Exception e)
             {
-                ModContext.Logger?.Log("Failed to find game graph font: " + e.Message);
+                ModLog.UnityLog("Failed to find game graph font: " + e.Message);
             }
 
             return TMP_Settings.defaultFontAsset;
@@ -260,8 +261,10 @@ namespace TimingShow.HUD
             Rect rect = rectTransform.rect;
             bool rectChanged = rect.width != _lastRectWidth || rect.height != _lastRectHeight;
             int settingsHash = ComputeSettingsHash();
+            bool settingsChanged = settingsHash != _lastSettingsHash;
+            bool dataChanged = _lastDataVersion != DataVersion;
             bool continuousRedraw = NeedsContinuousRedraw();
-            bool needsRedraw = _lastDataVersion != DataVersion || rectChanged || settingsHash != _lastSettingsHash || continuousRedraw;
+            bool needsRedraw = dataChanged || rectChanged || settingsChanged || continuousRedraw;
             bool frameAnimation = UpdateFrameAnimation();
 
             if (needsRedraw)
@@ -291,11 +294,17 @@ namespace TimingShow.HUD
 
             if (PerfStatsRecorder.IsRecording)
             {
-                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(GraphName);
+                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(PerfName);
                 int frameId = PerfStatsRecorder.CurrentFrameId;
 
                 if (needsRedraw)
                 {
+                    ds.Rebuilds++;
+                    if (dataChanged) ds.RebuildData++;
+                    else if (rectChanged) ds.RebuildLayout++;
+                    else if (settingsChanged) ds.RebuildSettings++;
+                    else ds.RebuildContinuous++;
+
                     ds.LastUpdateFrameId = frameId;
                     ds.LastUpdateMs = _perfUpdateMs;
                 }
@@ -338,9 +347,11 @@ namespace TimingShow.HUD
         protected virtual void ToggleTexts(bool active)
         {
             if (_titleText != null && _titleText.gameObject.activeSelf != active) _titleText.gameObject.SetActive(active);
-            if (_topLabelText != null && _topLabelText.gameObject.activeSelf != active) _topLabelText.gameObject.SetActive(active);
-            if (_tidLabelText != null && _tidLabelText.gameObject.activeSelf != active) _tidLabelText.gameObject.SetActive(active);
-            if (_botLabelText != null && _botLabelText.gameObject.activeSelf != active) _botLabelText.gameObject.SetActive(active);
+
+            bool showScale = active && !UsesDynamicAxisTicks;
+            if (_topLabelText != null && _topLabelText.gameObject.activeSelf != showScale) _topLabelText.gameObject.SetActive(showScale);
+            if (_tidLabelText != null && _tidLabelText.gameObject.activeSelf != showScale) _tidLabelText.gameObject.SetActive(showScale);
+            if (_botLabelText != null && _botLabelText.gameObject.activeSelf != showScale) _botLabelText.gameObject.SetActive(showScale);
 
             bool perfActive = active && ShowPerfInfo;
             if (_perfText != null && _perfText.gameObject.activeSelf != perfActive) _perfText.gameObject.SetActive(perfActive);
@@ -406,6 +417,8 @@ namespace TimingShow.HUD
         protected float AxisLabelGap => 6f * Mathf.Max(0.01f, Scale);
 
         protected virtual bool AxisLabelsInside => false;
+
+        protected virtual bool UsesDynamicAxisTicks => false;
 
         protected void ReportAxisLabelWidth(float width)
         {
@@ -478,10 +491,6 @@ namespace TimingShow.HUD
             float scale = Mathf.Max(0.01f, Scale);
             float w = rectTransform.rect.width;
             float h = rectTransform.rect.height;
-            float minY = GetMinY();
-            float maxY = GetMaxY();
-            float midY = (minY + maxY) * 0.5f;
-
             if (_titleText != null)
             {
                 int titleFontSize = Mathf.Clamp(Mathf.RoundToInt(h * 0.1f), 10, 100);
@@ -495,59 +504,72 @@ namespace TimingShow.HUD
                 rt.sizeDelta = new Vector2(w * 0.8f, h * 0.4f);
             }
 
-            int scaleFontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
-            Color scaleColor = new Color(1f, 1f, 1f, 0.8f);
-            string topLabel = FormatYLabel(maxY);
-            string midLabel = FormatYLabel(midY);
-            string botLabel = FormatYLabel(minY);
-
-            PrepareLeftScaleText(_topLabelText, topLabel, scaleFontSize, scaleColor);
-            PrepareLeftScaleText(_tidLabelText, midLabel, scaleFontSize, scaleColor);
-            PrepareLeftScaleText(_botLabelText, botLabel, scaleFontSize, scaleColor);
-
-            float measureWidth = Mathf.Max(
-                MeasureTextWidth(_topLabelText, topLabel, scaleFontSize),
-                Mathf.Max(
-                    MeasureTextWidth(_tidLabelText, midLabel, scaleFontSize),
-                    MeasureTextWidth(_botLabelText, botLabel, scaleFontSize)));
-
-            float boxWidth = measureWidth;
-            if (_axisBandLeft > 1f) boxWidth = Mathf.Min(boxWidth, Mathf.Max(1f, _axisBandLeft - AxisLabelGap));
-
-            float boxHeight = 24f * (scaleFontSize / 12f);
-
-            if (AxisLabelsInside)
+            if (UsesDynamicAxisTicks)
             {
-                float maxHeight = Mathf.Max(1f, h);
-                float topBoxHeight = Mathf.Min(boxHeight, maxHeight);
-                float bottomBoxHeight = Mathf.Min(boxHeight, maxHeight);
-                float midBoxHeight = Mathf.Min(boxHeight, maxHeight);
-                float topCenter = Mathf.Max(h - topBoxHeight * 0.5f, h * 0.5f);
-                float bottomCenter = Mathf.Min(bottomBoxHeight * 0.5f, h * 0.5f);
-
-                PlaceLeftScaleText(_topLabelText, new Vector2(AxisLabelGap, topCenter), boxWidth, topBoxHeight);
-                PlaceLeftScaleText(_tidLabelText, new Vector2(AxisLabelGap, h * 0.5f), boxWidth, midBoxHeight);
-                PlaceLeftScaleText(_botLabelText, new Vector2(AxisLabelGap, bottomCenter), boxWidth, bottomBoxHeight);
+                if (_topLabelText != null) _topLabelText.gameObject.SetActive(false);
+                if (_tidLabelText != null) _tidLabelText.gameObject.SetActive(false);
+                if (_botLabelText != null) _botLabelText.gameObject.SetActive(false);
             }
             else
             {
-                float topBoxHeight = boxHeight;
-                float bottomBoxHeight = boxHeight;
-                if (_axisBandTop > 1f) topBoxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, 2f * _axisBandTop));
-                if (_axisBandBottom > 1f) bottomBoxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, 2f * _axisBandBottom));
-                float midBoxHeight = boxHeight;
-                if (_axisBandTop > 1f && _axisBandBottom > 1f)
+                float minY = GetMinY();
+                float maxY = GetMaxY();
+                float midY = (minY + maxY) * 0.5f;
+
+                int scaleFontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
+                Color scaleColor = new Color(1f, 1f, 1f, 0.8f);
+                string topLabel = FormatYLabel(maxY);
+                string midLabel = FormatYLabel(midY);
+                string botLabel = FormatYLabel(minY);
+
+                PrepareLeftScaleText(_topLabelText, topLabel, scaleFontSize, scaleColor);
+                PrepareLeftScaleText(_tidLabelText, midLabel, scaleFontSize, scaleColor);
+                PrepareLeftScaleText(_botLabelText, botLabel, scaleFontSize, scaleColor);
+
+                float measureWidth = Mathf.Max(
+                    MeasureTextWidth(_topLabelText, topLabel, scaleFontSize),
+                    Mathf.Max(
+                        MeasureTextWidth(_tidLabelText, midLabel, scaleFontSize),
+                        MeasureTextWidth(_botLabelText, botLabel, scaleFontSize)));
+
+                float boxWidth = measureWidth;
+                if (_axisBandLeft > 1f) boxWidth = Mathf.Min(boxWidth, Mathf.Max(1f, _axisBandLeft - AxisLabelGap));
+
+                float boxHeight = 24f * (scaleFontSize / 12f);
+
+                if (AxisLabelsInside)
                 {
-                    float allowedHeight = 2f * Mathf.Min(_axisBandTop, _axisBandBottom) + h;
-                    midBoxHeight = Mathf.Min(midBoxHeight, Mathf.Max(1f, allowedHeight));
+                    float maxHeight = Mathf.Max(1f, h);
+                    float topBoxHeight = Mathf.Min(boxHeight, maxHeight);
+                    float bottomBoxHeight = Mathf.Min(boxHeight, maxHeight);
+                    float midBoxHeight = Mathf.Min(boxHeight, maxHeight);
+                    float topCenter = Mathf.Max(h - topBoxHeight * 0.5f, h * 0.5f);
+                    float bottomCenter = Mathf.Min(bottomBoxHeight * 0.5f, h * 0.5f);
+
+                    PlaceLeftScaleText(_topLabelText, new Vector2(AxisLabelGap, topCenter), boxWidth, topBoxHeight);
+                    PlaceLeftScaleText(_tidLabelText, new Vector2(AxisLabelGap, h * 0.5f), boxWidth, midBoxHeight);
+                    PlaceLeftScaleText(_botLabelText, new Vector2(AxisLabelGap, bottomCenter), boxWidth, bottomBoxHeight);
+                }
+                else
+                {
+                    float topBoxHeight = boxHeight;
+                    float bottomBoxHeight = boxHeight;
+                    if (_axisBandTop > 1f) topBoxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, 2f * _axisBandTop));
+                    if (_axisBandBottom > 1f) bottomBoxHeight = Mathf.Min(boxHeight, Mathf.Max(1f, 2f * _axisBandBottom));
+                    float midBoxHeight = boxHeight;
+                    if (_axisBandTop > 1f && _axisBandBottom > 1f)
+                    {
+                        float allowedHeight = 2f * Mathf.Min(_axisBandTop, _axisBandBottom) + h;
+                        midBoxHeight = Mathf.Min(midBoxHeight, Mathf.Max(1f, allowedHeight));
+                    }
+
+                    PlaceLeftScaleText(_topLabelText, new Vector2(-AxisLabelGap, h), boxWidth, topBoxHeight);
+                    PlaceLeftScaleText(_tidLabelText, new Vector2(-AxisLabelGap, h * 0.5f), boxWidth, midBoxHeight);
+                    PlaceLeftScaleText(_botLabelText, new Vector2(-AxisLabelGap, 0f), boxWidth, bottomBoxHeight);
                 }
 
-                PlaceLeftScaleText(_topLabelText, new Vector2(-AxisLabelGap, h), boxWidth, topBoxHeight);
-                PlaceLeftScaleText(_tidLabelText, new Vector2(-AxisLabelGap, h * 0.5f), boxWidth, midBoxHeight);
-                PlaceLeftScaleText(_botLabelText, new Vector2(-AxisLabelGap, 0f), boxWidth, bottomBoxHeight);
+                ReportAxisLabelWidth(measureWidth);
             }
-
-            ReportAxisLabelWidth(measureWidth);
 
             UpdatePerfText();
         }
@@ -720,10 +742,18 @@ namespace TimingShow.HUD
             }
 
             DrawQuad(vh, Vector2.zero, new Vector2(w, h), BgColor);
-            DrawGridLines(vh, w, h);
 
+            long mark = PerfPhases.Mark();
+            DrawGridLines(vh, w, h);
+            PerfPhases.Record(PerfPhase.DrawGrid, PerfPhases.Since(mark));
+
+            mark = PerfPhases.Mark();
             DrawReferenceLines(vh, w, h);
+            PerfPhases.Record(PerfPhase.DrawReference, PerfPhases.Since(mark));
+
+            mark = PerfPhases.Mark();
             DrawSeries(vh, w, h);
+            PerfPhases.Record(PerfPhase.DrawSeries, PerfPhases.Since(mark));
 
             if (ShowBorder) DrawBorderLines(vh, w, h);
 
@@ -737,7 +767,7 @@ namespace TimingShow.HUD
 
             if (PerfStatsRecorder.IsRecording)
             {
-                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(GraphName);
+                PerfStatsRecorder.DrawerStats ds = PerfStatsRecorder.GetDrawer(PerfName);
                 ds.LastMeshFrameId = PerfStatsRecorder.CurrentFrameId;
                 ds.LastMeshMs = _perfMeshMs;
                 ds.LastVertices = _perfVertexCount;

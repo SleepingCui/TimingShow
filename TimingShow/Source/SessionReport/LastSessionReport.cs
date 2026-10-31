@@ -26,7 +26,6 @@ namespace TimingShow.SessionReport
         {
             get { return _data; }
         }
-        
         public static void BeginSession(string songName, string levelPath, double bpm, double speed, double pitch)
         {
             _songName = songName;
@@ -55,7 +54,7 @@ namespace TimingShow.SessionReport
                 if (live == null || live.Count == 0) return;
 
                 TimingLogData data = new TimingLogData();
-                data.FilePath = null;  
+                data.FilePath = null;   
                 data.SongName = string.IsNullOrEmpty(_songName) ? "?" : _songName;
                 data.LevelPath = _levelPath;
                 data.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();

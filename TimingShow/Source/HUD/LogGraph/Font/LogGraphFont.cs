@@ -19,6 +19,9 @@ namespace TimingShow.HUD
         private const string BundledLicenseFileName = "OFL.txt";
         private const string KoreanLanguage = "한국어";
 
+        // Language keys come from lang.json; Korean uses the bundled Gmarket Sans.
+        private const string KoreanLanguage = "한국어";
+
         private const string CjkProbe = "字";
         private const string HangulProbe = "한";
         private const string LatinProbe = "Aa0";
@@ -82,12 +85,12 @@ namespace TimingShow.HUD
                 AddFallback(_primary, cjk);
                 AddFallback(_primary, hangul);
                 AddFallback(_primary, latin);
-                ModContext.Logger?.Log("Log graph font: "
+                ModLog.UnityLog("Log graph font: "
                     + (bundled != null ? "bundled '" + bundled.name + "'" : "system font '" + _primary.name + "'"));
             }
             else
             {
-                ModContext.Logger?.Log("Log graph font: no usable font found");
+                ModLog.UnityLog("Log graph font: no usable font found");
             }
 
             return _primary;
@@ -96,6 +99,19 @@ namespace TimingShow.HUD
         internal static TMP_FontAsset ResolveSettingsFont()
         {
             return Resolve();
+        }
+
+        internal static void EnsureGlyphs(TMP_FontAsset font, string text)
+        {
+            if (font == null || string.IsNullOrEmpty(text)) return;
+            if (font.TryAddCharacters(text, out string missing) && string.IsNullOrEmpty(missing)) return;
+
+            TMP_FontAsset fallback = Resolve();
+            if (fallback == null || ReferenceEquals(fallback, font)) return;
+
+            if (font.fallbackFontAssetTable == null) font.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            if (!font.fallbackFontAssetTable.Contains(fallback)) font.fallbackFontAssetTable.Add(fallback);
+            fallback.TryAddCharacters(text, out _);
         }
 
         private static void PreloadSettingsGlyphs(TMP_FontAsset asset)
@@ -112,7 +128,7 @@ namespace TimingShow.HUD
                 "Label_MaxRenderPoints", "Label_BandThresholdBpm",
                 "Toggle_ShowBorder", "Label_GridColor", "Label_PointColor", "Label_ZeroLineColor", "Label_AvgLineColor",
                 "Label_AxisTextColor", "Label_BandPerfectColor", "Label_BandElPerfectColor",
-                "Label_BandEarlyLateColor", "Label_BandXpColor", "Btn_ResetColor"
+                "Label_BandEarlyLateColor", "Label_BandXpColor", "Btn_ResetColor", "LogGraph_RangeFilter"
             };
 
             System.Text.StringBuilder characters = new System.Text.StringBuilder("0123456789.-+%: ");
@@ -121,7 +137,7 @@ namespace TimingShow.HUD
             if (!asset.TryAddCharacters(characters.ToString(), out string missing)
                 || !string.IsNullOrEmpty(missing))
             {
-                ModContext.Logger?.Log("Log graph font: settings glyph preload incomplete: " + missing);
+                ModLog.UnityLog("Log graph font: settings glyph preload incomplete: " + missing);
             }
         }
 
@@ -158,10 +174,10 @@ namespace TimingShow.HUD
                 string probe = korean ? HangulProbe : (CjkProbe + HangulProbe + LatinProbe);
                 if (!asset.TryAddCharacters(probe, out string missing) || !string.IsNullOrEmpty(missing))
                 {
-                    ModContext.Logger?.Log("Log graph font: bundled font missing probe glyphs '" + probe + "': " + missing);
+                    ModLog.UnityLog("Log graph font: bundled font missing probe glyphs '" + probe + "': " + missing);
                 }
 
-                ModContext.Logger?.Log("Log graph font: loaded bundled '" + _bundledSource.name
+                ModLog.UnityLog("Log graph font: loaded bundled '" + _bundledSource.name
                     + "' (" + asset.atlasWidth + "x" + asset.atlasHeight + ")");
                 return asset;
             }
@@ -208,12 +224,16 @@ namespace TimingShow.HUD
             }
             catch (Exception)
             {
+                // Unity not fully initialized; fall through to the OS temp directory.
             }
 
             if (string.IsNullOrEmpty(root)) root = Path.GetTempPath();
             return Path.Combine(root, "TimingShow");
         }
 
+        // Unity's Font API needs a real file path, so the bundled font must live on
+        // disk. Extract into the game's temporary cache and refresh it when the
+        // embedded copy differs from the cached one (mod updates reuse the same name).
         private static void ExtractIfChanged(string resourceName, string path)
         {
             try
@@ -319,7 +339,7 @@ namespace TimingShow.HUD
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Log("Log graph font: create '" + familyName + "' failed: " + e.Message);
+                ModLog.UnityLog("Log graph font: create '" + familyName + "' failed: " + e.Message);
                 asset = null;
             }
 
@@ -383,7 +403,7 @@ namespace TimingShow.HUD
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Log("Log graph font: custom atlas creation failed: " + e.Message);
+                ModLog.UnityLog("Log graph font: custom atlas creation failed: " + e.Message);
             }
 
             return null;

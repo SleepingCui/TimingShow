@@ -32,7 +32,9 @@ namespace TimingShow.LevelEditor
 
                 if (!string.IsNullOrEmpty(currentPath))
                     return string.Equals(LevelPath, currentPath, StringComparison.OrdinalIgnoreCase);
-                
+
+                // Level path briefly unavailable while the editor settles; fall back to
+                // the floor count instead of discarding the snapshot.
             }
 
             return FloorCount > 0 && currentFloors == FloorCount;
@@ -52,11 +54,14 @@ namespace TimingShow.LevelEditor
         {
             get { return _pending != null; }
         }
-        
+
+        // Must run before EndSession() resets Players and clears ModContext.TimingScatterSamples.
         internal static void CaptureFromSession()
         {
             try
             {
+                // A repeated SwitchToEditMode call after EndSession() must not wipe
+                // the snapshot that was already captured for this return.
                 if (!ModContext.IsPlaying) return;
 
                 List<TimingScatterSample> source = ModContext.TimingScatterSamples;
@@ -114,7 +119,8 @@ namespace TimingShow.LevelEditor
             }
         }
 
-
+        // Loads an existing JSON/TLog into the editor marker view. Only logs that
+        // carry floor IDs (JSON v8+ / TLog v9+) can be placed on the track.
         internal static bool TryLoadFromLog(string logPath, out int sampleCount, out string errorKey)
         {
             sampleCount = 0;

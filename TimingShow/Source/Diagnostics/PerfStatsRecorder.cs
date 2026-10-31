@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
+using TimingShow.Logging;
 
 namespace TimingShow.Diagnostics
 {
@@ -22,6 +24,17 @@ namespace TimingShow.Diagnostics
             public double MeshMsMax;
             public long VertexSum;
             public int VertexMax;
+
+            public long Rebuilds;
+            public long RebuildData;
+            public long RebuildSettings;
+            public long RebuildLayout;
+            public long RebuildContinuous;
+            public long DroppedPoints;
+            public long OutliersExcluded;
+            public long SegmentSum;
+            public long SegmentSamples;
+            public int LastSegments;
 
             public float LastUpdateMs;
             public float LastTextMs;
@@ -53,6 +66,14 @@ namespace TimingShow.Diagnostics
             public int DrawersDrawn;
             public int Hits;
             public float HitMs;
+            public int AllocBytes;
+            public int HudAllocBytes;
+            public byte Gen0Delta;
+            public long LogLogicalBytes;
+            public long LogCompressedBytes;
+            public long LogBufferedBytes;
+            public int LogFlushCount;
+            public float LogPersistAgeSec;
         }
 
         private const int FrameCap = 400000;
@@ -125,6 +146,8 @@ namespace TimingShow.Diagnostics
         {
             Reset();
             _active = true;
+            PerfPhases.Enabled = true;
+            GcStats.BeginSession();
             _levelPath = levelPath ?? "";
             _songName = songName ?? "";
             _startedUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
@@ -135,7 +158,14 @@ namespace TimingShow.Diagnostics
         {
             if (!_active) return _frameId;
             _frameId++;
+            GcStats.BeginFrame();
             return _frameId;
+        }
+
+        public static void MarkHudEnd()
+        {
+            if (!_active) return;
+            GcStats.MarkHudEnd();
         }
 
         public static void EndFrame(int frameId, float deltaMs, float hudMs)
@@ -218,12 +248,27 @@ namespace TimingShow.Diagnostics
             _hitsThisFrame = 0;
             _hitMsThisFrame = 0.0;
 
+            GcStats.FrameGc gc = GcStats.CompleteFrame();
+            s.AllocBytes = gc.AllocBytes;
+            s.HudAllocBytes = gc.HudAllocBytes;
+            s.Gen0Delta = gc.Gen0Delta;
+
+            long logLogical, logCompressed, logBuffered;
+            double logAge;
+            TimingLogger.GetWriteGauges(out logLogical, out logCompressed, out logBuffered, out logAge);
+            s.LogLogicalBytes = logLogical;
+            s.LogCompressedBytes = logCompressed;
+            s.LogBufferedBytes = logBuffered;
+            s.LogFlushCount = (int)LogWriteStats.FlushCount;
+            s.LogPersistAgeSec = (float)logAge;
+
             if (Samples.Count < FrameCap) Samples.Add(s);
         }
 
         public static void EndSession(string result)
         {
             if (!_active) return;
+            GcStats.CaptureObjects();
             _active = false;
             Clock.Stop();
 
@@ -233,7 +278,7 @@ namespace TimingShow.Diagnostics
             }
             catch (Exception e)
             {
-                if (ModContext.Logger != null) ModContext.Logger.Error("PerfLog write failed: " + e.Message);
+                ModLog.UnityLog("PerfLog write failed: " + e.Message);
             }
 
             Reset();
@@ -242,6 +287,9 @@ namespace TimingShow.Diagnostics
         private static void Reset()
         {
             _active = false;
+            PerfPhases.Reset();
+            GcStats.Reset();
+            LogWriteStats.Reset();
             _frameId = 0;
             Samples.Clear();
             Drawers.Clear();
@@ -287,6 +335,15 @@ namespace TimingShow.Diagnostics
             string root = settings != null ? settings.LogDirectory : null;
             if (string.IsNullOrEmpty(root)) return;
 
+            try
+            {
+                TimingLogger.FlushForReport();
+            }
+            catch (Exception e)
+            {
+                ModLog.UnityLog("Perf log flush failed: " + e.Message);
+            }
+
             string dir = Path.Combine(root, "PerfLogs");
             Directory.CreateDirectory(dir);
 
@@ -295,10 +352,60 @@ namespace TimingShow.Diagnostics
             string basePath = Path.Combine(dir, "perf_" + safeSong + "_" + stamp);
 
             UTF8Encoding utf8 = new UTF8Encoding(false);
-            File.WriteAllText(basePath + ".txt", BuildTextReport(result), utf8);
-            File.WriteAllText(basePath + ".csv", BuildCsv(), utf8);
+            WriteTarGzReport(basePath + ".tar.gz", BuildTextReport(result), BuildCsv(), utf8);
 
-            if (ModContext.Logger != null) ModContext.Logger.Log("Perf report written: " + basePath + ".txt");
+            if (ModContext.Logger != null) ModContext.Logger.Log("Perf report written: " + basePath + ".tar.gz");
+        }
+
+        private static void WriteTarGzReport(string path, string report, string csv, UTF8Encoding utf8)
+        {
+            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read))
+            using (GZipStream gz = new GZipStream(fs, CompressionLevel.Optimal, false))
+            {
+                WriteTarEntry(gz, "report.txt", utf8.GetBytes(report));
+                WriteTarEntry(gz, "frames.csv", utf8.GetBytes(csv));
+                byte[] end = new byte[1024];
+                gz.Write(end, 0, end.Length);
+            }
+        }
+
+        private static void WriteTarEntry(Stream stream, string name, byte[] data)
+        {
+            byte[] header = new byte[512];
+            byte[] nameBytes = Encoding.ASCII.GetBytes(name);
+            Array.Copy(nameBytes, header, nameBytes.Length);
+            WriteOctal(header, 100, 8, 420);
+            WriteOctal(header, 108, 8, 0);
+            WriteOctal(header, 116, 8, 0);
+            WriteOctal(header, 124, 12, data.Length);
+            WriteOctal(header, 136, 12, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            for (int i = 148; i < 156; i++) header[i] = 32;
+            header[156] = (byte)'0';
+            byte[] magic = Encoding.ASCII.GetBytes("ustar\0");
+            Array.Copy(magic, 0, header, 257, magic.Length);
+            header[263] = (byte)'0';
+            header[264] = (byte)'0';
+
+            int checksum = 0;
+            for (int i = 0; i < header.Length; i++) checksum += header[i];
+            WriteOctal(header, 148, 7, checksum);
+            header[155] = 32;
+
+            stream.Write(header, 0, header.Length);
+            stream.Write(data, 0, data.Length);
+
+            int pad = (512 - data.Length % 512) % 512;
+            if (pad > 0) stream.Write(new byte[pad], 0, pad);
+        }
+
+        private static void WriteOctal(byte[] buffer, int offset, int length, long value)
+        {
+            string octal = Convert.ToString(value, 8);
+            int digits = length - 1;
+            if (octal.Length > digits) octal = octal.Substring(octal.Length - digits);
+            octal = octal.PadLeft(digits, '0');
+            for (int i = 0; i < digits; i++) buffer[offset + i] = (byte)octal[i];
+            buffer[offset + digits] = 0;
         }
 
         private static string BuildTextReport(string result)
@@ -548,6 +655,11 @@ namespace TimingShow.Diagnostics
             }
             sb.AppendLine();
 
+            AppendDrawerRebuilds(sb, inv);
+            AppendPhaseTable(sb, inv);
+            AppendLogSection(sb, inv);
+            AppendGcSection(sb, inv);
+
             sb.AppendLine("--- Settings snapshot ---");
             if (settings != null)
             {
@@ -567,9 +679,232 @@ namespace TimingShow.Diagnostics
                 sb.AppendLine("IgnoreOutliers            : " + settings.TimingScatter_IgnoreOutliers);
                 sb.AppendLine("ShowPerfInfo              : " + settings.TimingScatter_ShowPerfInfo);
                 sb.AppendLine("UseHitAxis                : " + settings.TimingScatter_UseHitAxis);
+                sb.AppendLine("LogBufferSizeKB           : " + settings.LogBufferSizeKB);
+                sb.AppendLine("UseJsonWriter             : " + settings.UseJsonWriter);
             }
 
             return sb.ToString();
+        }
+
+        private static void AppendDrawerRebuilds(StringBuilder sb, CultureInfo inv)
+        {
+            sb.AppendLine("--- Drawer rebuilds and rendered geometry ---");
+            sb.AppendLine(Pad("Drawer", 20) + Pad("Frames", 9) + Pad("Rebuilds", 9) + Pad("data", 7) + Pad("settings", 9) +
+                           Pad("layout", 8) + Pad("continuous", 11) + Pad("notRendered", 12) + Pad("outliers", 9) + "segs");
+            foreach (KeyValuePair<string, DrawerStats> kv in Drawers)
+            {
+                DrawerStats d = kv.Value;
+                if (d.Frames <= 0) continue;
+                double segs = d.SegmentSamples > 0 ? (double)d.SegmentSum / d.SegmentSamples : 0.0;
+                sb.AppendLine(Pad(DisplayDrawerName(d.Name), 20) + Pad(d.Frames.ToString(inv), 9) + Pad(d.Rebuilds.ToString(inv), 9) +
+                               Pad(d.RebuildData.ToString(inv), 7) + Pad(d.RebuildSettings.ToString(inv), 9) +
+                               Pad(d.RebuildLayout.ToString(inv), 8) + Pad(d.RebuildContinuous.ToString(inv), 11) +
+                               Pad(d.DroppedPoints.ToString(inv), 12) + Pad(d.OutliersExcluded.ToString(inv), 9) +
+                               segs.ToString("F1", inv));
+            }
+            sb.AppendLine();
+        }
+
+        private static void AppendPhaseTable(StringBuilder sb, CultureInfo inv)
+        {
+            double total = 0.0;
+            for (int i = 0; i < PerfPhases.Stats.Length; i++) total += PerfPhases.Stats[i].Total;
+            if (total <= 0.0) return;
+
+            sb.AppendLine("--- Update/draw phases (total time across all drawers) ---");
+            sb.AppendLine("(DrawSeries contains the child draw phases, so shares overlap)");
+            sb.AppendLine(Pad("Phase", 20) + Pad("N", 9) + Pad("avg ms", 10) + Pad("p95 ms", 10) + Pad("max ms", 10) + "share");
+            for (int i = 0; i < PerfPhases.Stats.Length; i++)
+            {
+                PerfHistogram hist = PerfPhases.Stats[i];
+                if (hist.Count <= 0) continue;
+                double share = hist.Total / total * 100.0;
+                sb.AppendLine(Pad(((PerfPhase)i).ToString(), 20) + Pad(hist.Count.ToString(inv), 9) +
+                               Pad(hist.Mean.ToString("F3", inv), 10) +
+                               Pad(hist.Percentile(0.95).ToString("F3", inv), 10) +
+                               Pad(hist.Max.ToString("F3", inv), 10) +
+                               share.ToString("F1", inv) + "%");
+            }
+            sb.AppendLine();
+        }
+
+        private static void AppendLogSection(StringBuilder sb, CultureInfo inv)
+        {
+            sb.AppendLine("--- Log writer ---");
+            Settings settings = ModContext.Settings;
+            bool binary = settings == null || !settings.UseJsonWriter;
+            sb.AppendLine("Format        : " + (binary ? "binary (gzip Optimal)" : "json (StringBuilder, written on close)"));
+            if (settings != null) sb.AppendLine("Buffer size   : " + settings.LogBufferSizeKB + " KB");
+            sb.AppendLine("Write errors  : " + LogWriteStats.WriteErrors.ToString(inv));
+
+            long hits = LogWriteStats.Hits;
+            sb.AppendLine("Hits written  : " + hits.ToString(inv) +
+                           (binary && hits > 0 ? ", " + ((double)LogWriteStats.HitBytes / hits).ToString("F1", inv) + " B/hit" : ""));
+            if (hits > 0 && LogWriteStats.HitUs.Count > 0)
+            {
+                sb.AppendLine("Write cost    : p50 " + LogWriteStats.HitUs.Percentile(0.50).ToString("F1", inv) + " us, p95 " +
+                               LogWriteStats.HitUs.Percentile(0.95).ToString("F1", inv) + " us, p99 " +
+                               LogWriteStats.HitUs.Percentile(0.99).ToString("F1", inv) + " us, max " +
+                               LogWriteStats.HitUs.Max.ToString("F1", inv) + " us");
+            }
+
+            sb.AppendLine("Flush count   : " + LogWriteStats.FlushCount.ToString(inv) +
+                           " (header " + LogWriteStats.FlushByReason[(int)LogWriteStats.FlushReason.Header].ToString(inv) +
+                           ", report " + LogWriteStats.FlushByReason[(int)LogWriteStats.FlushReason.Report].ToString(inv) +
+                           ", close " + LogWriteStats.FlushByReason[(int)LogWriteStats.FlushReason.Close].ToString(inv) + ")");
+            if (LogWriteStats.FlushCount > 0)
+            {
+                sb.AppendLine("Flush cost    : total " + LogWriteStats.FlushTotalMs.ToString("F1", inv) + " ms, max " +
+                               LogWriteStats.FlushMaxMs.ToString("F1", inv) + " ms, stalls >10ms " + LogWriteStats.FlushStalls.ToString(inv));
+            }
+
+            long peakBuffered = 0;
+            float peakAt = 0f;
+            float maxAge = 0f;
+            for (int i = 0; i < Samples.Count; i++)
+            {
+                FrameSample s = Samples[i];
+                if (s.LogBufferedBytes > peakBuffered)
+                {
+                    peakBuffered = s.LogBufferedBytes;
+                    peakAt = s.TimeSec;
+                }
+                if (s.LogPersistAgeSec > maxAge) maxAge = s.LogPersistAgeSec;
+            }
+
+            if (Samples.Count > 0)
+            {
+                FrameSample last = Samples[Samples.Count - 1];
+                double ratio = last.LogCompressedBytes > 0 ? (double)last.LogLogicalBytes / last.LogCompressedBytes : 0.0;
+                sb.AppendLine("Bytes written : logical " + (last.LogLogicalBytes / 1024.0).ToString("F1", inv) + " KB" +
+                               (binary ? ", gzip " + (last.LogCompressedBytes / 1024.0).ToString("F1", inv) + " KB (" + ratio.ToString("F2", inv) + "x)" : ""));
+                string fill = settings != null && settings.LogBufferSizeKB > 0
+                    ? " / " + settings.LogBufferSizeKB + " KB setting"
+                    : "";
+                sb.AppendLine("Buffer peak   : " + (peakBuffered / 1024.0).ToString("F1", inv) + " KB at t=" + peakAt.ToString("F1", inv) + " s" + fill);
+                sb.AppendLine("Persist lag   : max " + maxAge.ToString("F1", inv) + " s between flushes" +
+                               (maxAge > 10f ? " (unsaved data at risk until the next flush)" : ""));
+            }
+
+            if (LogWriteStats.CloseRecorded)
+            {
+                sb.AppendLine("Close         : flush " + LogWriteStats.CloseFlushMs.ToString("F1", inv) + " ms + dispose " +
+                               LogWriteStats.CloseDisposeMs.ToString("F1", inv) + " ms");
+            }
+            else
+            {
+                sb.AppendLine("Close         : not reached before this report");
+            }
+            sb.AppendLine();
+        }
+
+        private static void AppendGcSection(StringBuilder sb, CultureInfo inv)
+        {
+            sb.AppendLine("--- GC and allocation ---");
+            sb.AppendLine("Alloc probe   : " + GcStats.ProbeName + (GcStats.Available ? "" : " (not available, values approximate)"));
+            if (Samples.Count == 0)
+            {
+                sb.AppendLine();
+                return;
+            }
+
+            List<float> allocKb = new List<float>(Samples.Count);
+            double hudBytes = 0.0;
+            double totalBytes = 0.0;
+            int maxIndex = -1;
+            int maxAlloc = 0;
+            for (int i = 0; i < Samples.Count; i++)
+            {
+                FrameSample s = Samples[i];
+                allocKb.Add(s.AllocBytes / 1024.0f);
+                totalBytes += s.AllocBytes;
+                hudBytes += s.HudAllocBytes;
+                if (s.AllocBytes > maxAlloc)
+                {
+                    maxAlloc = s.AllocBytes;
+                    maxIndex = i;
+                }
+            }
+
+            float[] sortedAlloc = SortedCopy(allocKb);
+            sb.AppendLine("Alloc / frame : avg " + (totalBytes / Samples.Count / 1024.0).ToString("F1", inv) + " KB, p50 " +
+                           Percentile(sortedAlloc, 0.50).ToString("F1", inv) + " KB, p95 " +
+                           Percentile(sortedAlloc, 0.95).ToString("F1", inv) + " KB, max " +
+                           (maxAlloc / 1024.0).ToString("F1", inv) + " KB" +
+                           (maxIndex >= 0 ? " (t=" + Samples[maxIndex].TimeSec.ToString("F1", inv) + " s)" : ""));
+            sb.AppendLine("HUD share     : " + (totalBytes > 0 ? (hudBytes / totalBytes * 100.0).ToString("F1", inv) : "0.0") + "% of allocated bytes");
+            sb.AppendLine("Alloc total   : " + (GcStats.TotalAllocBytes / (1024.0 * 1024.0)).ToString("F2", inv) + " MB over " + Samples.Count.ToString(inv) + " frames");
+            sb.AppendLine("Collections   : gen0 " + GcStats.Gen0Collections.ToString(inv) + ", gen1 " +
+                           GcStats.Gen1Collections.ToString(inv) + ", gen2 " + GcStats.Gen2Collections.ToString(inv));
+
+            float[] sortedFrame = new float[Samples.Count];
+            for (int i = 0; i < Samples.Count; i++) sortedFrame[i] = Samples[i].FrameMs;
+            Array.Sort(sortedFrame);
+            double median = Percentile(sortedFrame, 0.50);
+            int spikes = 0;
+            int spikesWithGc = 0;
+            for (int i = 0; i < Samples.Count; i++)
+            {
+                if (Samples[i].FrameMs <= median * 2.0) continue;
+                spikes++;
+                for (int j = i - 1; j <= i + 1; j++)
+                {
+                    if (j < 0 || j >= Samples.Count) continue;
+                    if (Samples[j].Gen0Delta > 0)
+                    {
+                        spikesWithGc++;
+                        break;
+                    }
+                }
+            }
+            sb.AppendLine("Frame spikes  : " + spikes.ToString(inv) + " frames above 2x median, " + spikesWithGc.ToString(inv) +
+                           " with a gen0 collection within +-1 frame");
+
+            int[] slowest = new int[5];
+            for (int i = 0; i < slowest.Length; i++) slowest[i] = -1;
+            for (int i = 0; i < Samples.Count; i++)
+            {
+                for (int slot = 0; slot < slowest.Length; slot++)
+                {
+                    if (slowest[slot] < 0 || Samples[i].FrameMs > Samples[slowest[slot]].FrameMs)
+                    {
+                        for (int shift = slowest.Length - 1; shift > slot; shift--) slowest[shift] = slowest[shift - 1];
+                        slowest[slot] = i;
+                        break;
+                    }
+                }
+            }
+            if (slowest[0] >= 0)
+            {
+                sb.AppendLine("Slowest frames: " + Pad("t(s)", 9) + Pad("ms", 9) + Pad("alloc KB", 10) + "gen0");
+                for (int i = 0; i < slowest.Length; i++)
+                {
+                    if (slowest[i] < 0) break;
+                    FrameSample slow = Samples[slowest[i]];
+                    sb.AppendLine("                " + Pad(slow.TimeSec.ToString("F1", inv), 9) +
+                                   Pad(slow.FrameMs.ToString("F1", inv), 9) +
+                                   Pad((slow.AllocBytes / 1024.0).ToString("F1", inv), 10) +
+                                   slow.Gen0Delta.ToString(inv));
+                }
+            }
+
+            if (GcStats.Objects.Count > 0)
+            {
+                sb.AppendLine("Object scan   : " + GcStats.ScanCount.ToString(inv) + " snapshots (session start/end), longest " +
+                               GcStats.ScanMaxMs.ToString("F1", inv) + " ms");
+                sb.AppendLine("Live objects  : " + Pad("Type", 14) + Pad("start", 8) + Pad("end", 8) + "max");
+                for (int i = 0; i < GcStats.Objects.Count; i++)
+                {
+                    GcStats.ObjectCount o = GcStats.Objects[i];
+                    sb.AppendLine("                " + Pad(o.Name, 14) + Pad(o.First.ToString(inv), 8) + Pad(o.Last.ToString(inv), 8) + o.Max.ToString(inv));
+                }
+            }
+            sb.AppendLine();
+        }
+
+        private static string DisplayDrawerName(string name)
+        {
+            return string.IsNullOrEmpty(name) ? "(unnamed)" : name;
         }
 
         private static string BuildCsv()
@@ -578,7 +913,7 @@ namespace TimingShow.Diagnostics
             CultureInfo inv = CultureInfo.InvariantCulture;
             // Cost cells are left empty when that metric did not execute on the frame, so a zero
             // is never confused with a carried-over reading; the matching *_ran flag disambiguates.
-            sb.AppendLine("time_s,frame_ms,fps,hud_ms,points,scatter_render_points,scatter_mesh_ms,scatter_text_ms,scatter_update_ms,scatter_vtx,scatter_mesh_ran,scatter_text_ran,scatter_update_ran,mesh_total_ms,vtx_total,drawers,hits,hit_ms");
+            sb.AppendLine("time_s,frame_ms,fps,hud_ms,points,scatter_render_points,scatter_mesh_ms,scatter_text_ms,scatter_update_ms,scatter_vtx,scatter_mesh_ran,scatter_text_ran,scatter_update_ran,mesh_total_ms,vtx_total,drawers,hits,hit_ms,alloc_bytes,hud_alloc_bytes,gen0,log_logical_bytes,log_gz_bytes,log_buffered_bytes,log_flush_count,log_persist_age_s");
             for (int i = 0; i < Samples.Count; i++)
             {
                 FrameSample s = Samples[i];
@@ -600,7 +935,15 @@ namespace TimingShow.Diagnostics
                   .Append(s.TotalVerts.ToString(inv)).Append(',')
                   .Append(s.DrawersDrawn.ToString(inv)).Append(',')
                   .Append(s.Hits.ToString(inv)).Append(',')
-                  .Append(s.HitMs.ToString("F3", inv)).Append('\n');
+                  .Append(s.HitMs.ToString("F3", inv)).Append(',')
+                  .Append(s.AllocBytes.ToString(inv)).Append(',')
+                  .Append(s.HudAllocBytes.ToString(inv)).Append(',')
+                  .Append(s.Gen0Delta.ToString(inv)).Append(',')
+                  .Append(s.LogLogicalBytes.ToString(inv)).Append(',')
+                  .Append(s.LogCompressedBytes.ToString(inv)).Append(',')
+                  .Append(s.LogBufferedBytes.ToString(inv)).Append(',')
+                  .Append(s.LogFlushCount.ToString(inv)).Append(',')
+                  .Append(s.LogPersistAgeSec.ToString("F3", inv)).Append('\n');
             }
             return sb.ToString();
         }

@@ -17,7 +17,7 @@ namespace TimingShow
                 if (File.Exists(jsonPath))
                 {
                     _langData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(jsonPath, System.Text.Encoding.UTF8));
-                    ModContext.Logger.Log("Languages loaded successfully");
+                    ModLog.UnityLog("Languages loaded successfully");
                 }
                 else
                 {

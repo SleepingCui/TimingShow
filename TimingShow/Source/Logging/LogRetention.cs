@@ -46,7 +46,7 @@ namespace TimingShow.Logging
                 lock (Sync) _pending = false;
 
                 try { CleanupOnce(directory, keep, sort); }
-                catch (Exception e) { ModContext.Logger?.Error("Log auto-clean failed: " + e.Message); }
+                catch (Exception e) { ModLog.UnityLog("Log auto-clean failed: " + e.Message); }
 
                 Interlocked.Increment(ref _completedVersion);
 
@@ -74,7 +74,7 @@ namespace TimingShow.Logging
             }
             catch (Exception e)
             {
-                ModContext.Logger?.Log("Log auto-clean skipped: " + e.Message);
+                ModLog.UnityLog("Log auto-clean skipped: " + e.Message);
                 return;
             }
 
@@ -123,7 +123,7 @@ namespace TimingShow.Logging
                 }
                 catch (Exception e)
                 {
-                    ModContext.Logger?.Error("Failed to auto-clean log " + entries[i].FileName + ": " + e.Message);
+                    ModLog.UnityLog("Failed to auto-clean log " + entries[i].FileName + ": " + e.Message);
                 }
             }
         }
