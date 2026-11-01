@@ -17,9 +17,16 @@ namespace TimingShow.HUD.LogGraphSettingsUI
         private const float BaseToggleSize = 14f;
         private const float BaseLabelRatio = 0.42f;
         private const float LineHeightRatio = 1.4f;
-        
+        private const float SheetShadowSpread = 16f;
+        private const float SheetShadowOffset = 4f;
+
         private static readonly Color PanelColor = new Color(0.07f, 0.08f, 0.12f, 1f);
-        private static readonly Color BorderColor = new Color(1f, 1f, 1f, 0.28f);
+        private static readonly Color PanelTopColor = new Color(0.101f, 0.114f, 0.157f, 0.985f);
+        private static readonly Color PanelBottomColor = new Color(0.047f, 0.055f, 0.082f, 0.99f);
+        private static readonly Color SheetBorderColor = new Color(0f, 0f, 0f, 0.5f);
+        private static readonly Color SheetHighlightColor = new Color(1f, 1f, 1f, 0.10f);
+        private static readonly Color SheetShadowColor = new Color(0f, 0f, 0f, 0.5f);
+        private static readonly Color BorderColor = new Color(1f, 1f, 1f, 0.22f);
         private static readonly Color RowHoverColor = new Color(1f, 1f, 1f, 0.06f);
         private static readonly Color TabColor = new Color(1f, 1f, 1f, 0.06f);
         private static readonly Color TabActiveColor = new Color(1f, 1f, 1f, 0.18f);
