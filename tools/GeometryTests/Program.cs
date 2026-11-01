@@ -18,6 +18,7 @@ namespace TimingShow.GeometryTests
         private static int _colorCases;
         private static int _colorClampedLabels;
         private static int _chromeCases;
+        private static int _chromeSelectorOverflows;
         private static readonly List<string> Failures = new List<string>();
         private static readonly List<string> Clipped = new List<string>();
 
@@ -107,7 +108,8 @@ namespace TimingShow.GeometryTests
             Console.WriteLine("labels clipped    : " + _labelClippedByContainer + " / " + _labelCases + " (inside the window but outside graphContainer, entering the RectMask2D clip region)");
             Console.WriteLine("grid line ratios  : " + _gridCases + " sets (all inside the open interval (0,1))");
             Console.WriteLine("color item geom   : " + _colorCases + " sets (extreme combinations clamping label width to 1px: " + _colorClampedLabels + ")");
-            Console.WriteLine("window chrome     : " + _chromeCases + " window/scale combinations (header, sidebar, stats rows, view toggle, clamp)");
+            Console.WriteLine("window chrome     : " + _chromeCases + " window/scale combinations (header, sidebar, stats rows, chart selector, clamp)");
+            Console.WriteLine("selector overflow : " + _chromeSelectorOverflows + " selector layouts wider than the header room (SelectorRects has no hide/clamp fallback)");
 
             if (Failures.Count > 0)
             {
@@ -212,10 +214,7 @@ namespace TimingShow.GeometryTests
             MethodInfo settingsRect = Require(window, "SettingsRect");
             MethodInfo sidebarRect = Require(window, "SidebarRect");
             MethodInfo statsRowMetrics = Require(window, "StatsRowMetrics");
-            MethodInfo viewToggleFits = Require(window, "ViewToggleFits");
-            MethodInfo viewToggleRects = Require(window, "ViewToggleRects");
-            MethodInfo hitViewToggle = Require(window, "HitViewToggle");
-            MethodInfo metaReserve = Require(window, "MetaReserveWidth");
+            MethodInfo selectorRects = Require(window, "SelectorRects");
 
             Type vectorType = clampSize.GetParameters()[0].ParameterType;
 
@@ -236,6 +235,10 @@ namespace TimingShow.GeometryTests
                 double statsMinWidth = PropF(window, "StatsMinWidth");
                 double statsPanelWidth = PropF(window, "StatsPanelWidth");
                 double titleLeft = PropF(window, "TitleLeftPadding");
+                double titleRight = PropF(window, "TitleRightPadding");
+                double headerPadding = PropF(window, "HeaderPadding");
+                double selectorHeight = PropF(window, "SelectorHeight");
+                double selectorGap = PropF(window, "SelectorGap");
 
                 Check(Math.Abs(PropF(window, "UiScale") - clampedScale) < 1e-4,
                     "chrome UiScale " + scale + " : UiScale does not reflect LogGraph_UIScale");
@@ -294,39 +297,38 @@ namespace TimingShow.GeometryTests
                     Check(mValue >= mRow - mLabel - Eps, id + " : stats value+label shorter than row " + mValue + "+" + mLabel + " / row " + mRow);
                     Check(mRowsTop + 4 * mRow <= ch + Eps, id + " : stats rows overflow content height " + (mRowsTop + 4 * mRow) + " / " + ch);
 
-                    bool fits = CallBool(viewToggleFits, (float)w);
                     object sizeVec = MakeVector(vectorType, w, h);
-                    object[] rectsArgs = { sizeVec, null, null };
-                    viewToggleRects.Invoke(null, rectsArgs);
-                    BoxF toggleScatter = Box(rectsArgs[1]);
-                    BoxF toggleDistribution = Box(rectsArgs[2]);
-                    bool toggleNonEmpty = toggleScatter.Width > 1;
+                    object[] chartArgs = { sizeVec, false, null, null };
+                    selectorRects.Invoke(null, chartArgs);
+                    BoxF chartSelector = Box(chartArgs[2]);
+                    BoxF hiddenPlayerSelector = Box(chartArgs[3]);
 
-                    Check(fits == toggleNonEmpty, id + " : ViewToggleFits disagrees with ViewToggleRects (" + fits + " vs " + toggleNonEmpty + ")");
+                    Check(Math.Abs(chartSelector.X1 - (w - titleRight)) < Eps, id + " : chart selector is not right aligned " + chartSelector);
+                    Check(Math.Abs(chartSelector.Y1 - (h - headerPadding)) < Eps, id + " : chart selector does not respect the header padding " + chartSelector);
+                    Check(Math.Abs(chartSelector.Height - selectorHeight) < Eps, id + " : chart selector height != SelectorHeight " + chartSelector);
+                    Check(chartSelector.Height <= headerHeight - headerPadding * 2f + Eps, id + " : chart selector overflows the header band " + chartSelector);
+                    Check(chartSelector.Y0 >= h - headerHeight - Eps && chartSelector.Y1 <= h + Eps, id + " : chart selector escapes the header " + chartSelector);
+                    Check(hiddenPlayerSelector.Width < Eps && hiddenPlayerSelector.Height < Eps, id + " : player selector is not hidden for single player " + hiddenPlayerSelector);
 
-                    if (fits && toggleNonEmpty)
-                    {
-                        Check(toggleScatter.X0 >= titleLeft - Eps, id + " : view toggle escapes left edge " + toggleScatter);
-                        Check(toggleDistribution.X1 <= w + Eps, id + " : view toggle escapes right edge " + toggleDistribution);
-                        Check(Math.Abs(toggleDistribution.X0 - toggleScatter.X1) < Eps, id + " : view toggle items are not adjacent");
-                        Check(Math.Abs(toggleDistribution.Width - toggleScatter.Width) < Eps, id + " : view toggle item widths differ");
-                        Check(toggleScatter.Height > 0 && Math.Abs(toggleScatter.Height - toggleDistribution.Height) < Eps, id + " : view toggle item height invalid");
-                        Check(toggleScatter.Y0 >= -Eps && toggleScatter.Y1 <= h + Eps, id + " : view toggle escapes vertically " + toggleScatter);
+                    if (w - titleRight - titleLeft >= chartSelector.Width - Eps)
+                        Check(chartSelector.X0 >= titleLeft - Eps, id + " : chart selector overlaps the title area " + chartSelector);
+                    else
+                        _chromeSelectorOverflows++;
 
-                        object scatterCenter = MakeVector(vectorType, toggleScatter.X0 + toggleScatter.Width * 0.5, toggleScatter.Y0 + toggleScatter.Height * 0.5);
-                        object distributionCenter = MakeVector(vectorType, toggleDistribution.X0 + toggleDistribution.Width * 0.5, toggleDistribution.Y0 + toggleDistribution.Height * 0.5);
-                        object outside = MakeVector(vectorType, 1.0, 1.0);
+                    object[] playerArgs = { sizeVec, true, null, null };
+                    selectorRects.Invoke(null, playerArgs);
+                    BoxF chartWithPlayer = Box(playerArgs[2]);
+                    BoxF playerSelector = Box(playerArgs[3]);
 
-                        object[] hitArgs = { scatterCenter, sizeVec, false };
-                        bool hit = Convert.ToBoolean(hitViewToggle.Invoke(null, hitArgs));
-                        Check(hit && !Convert.ToBoolean(hitArgs[2]), id + " : scatter toggle center does not hit the scatter item");
-                        hitArgs = new object[] { distributionCenter, sizeVec, false };
-                        hit = Convert.ToBoolean(hitViewToggle.Invoke(null, hitArgs));
-                        Check(hit && Convert.ToBoolean(hitArgs[2]), id + " : distribution toggle center does not hit the distribution item");
-                        hitArgs = new object[] { outside, sizeVec, false };
-                        hit = Convert.ToBoolean(hitViewToggle.Invoke(null, hitArgs));
-                        Check(!hit, id + " : empty corner wrongly hits a view toggle");
-                    }
+                    Check(chartWithPlayer.Equals(chartSelector), id + " : enabling the player selector moves the chart selector");
+                    Check(playerSelector.Width > Eps && Math.Abs(playerSelector.Height - chartSelector.Height) < Eps, id + " : player selector geometry invalid " + playerSelector);
+                    Check(Math.Abs(playerSelector.Y0 - chartSelector.Y0) < Eps, id + " : player selector is not on the chart selector row " + playerSelector);
+                    Check(Math.Abs(chartSelector.X0 - (playerSelector.X1 + selectorGap)) < Eps, id + " : player selector is not gap-adjacent " + playerSelector + " / " + chartSelector);
+
+                    if (w - titleRight - titleLeft >= chartSelector.Width + selectorGap + playerSelector.Width - Eps)
+                        Check(playerSelector.X0 >= titleLeft - Eps, id + " : player selector overlaps the title area " + playerSelector);
+                    else
+                        _chromeSelectorOverflows++;
 
                     foreach (double screenW in screenWidths)
                     foreach (double screenH in screenHeights)
@@ -353,20 +355,19 @@ namespace TimingShow.GeometryTests
                         Check(py >= -Eps && py <= Math.Max(0, screenH - oy) + Eps, id + " : ClampPosition y out of range " + py);
                     }
 
-                    Check(Math.Abs(CallF(metaReserve, (float)w)) < 1e-4,
-                        id + " : MetaReserveWidth should be 0 without a window instance");
                 }
 
-                bool previous = false;
-                bool seenFit = false;
-                foreach (double probe in new[] { 200.0, 480.0, 600.0, 800.0, 1000.0, 1200.0, 1600.0, 1920.0, 2560.0, 3840.0 })
+                double previousSelectorWidth = -1;
+                foreach (double probe in new[] { 480.0, 900.0, 1440.0, 3840.0 })
                 {
-                    bool current = CallBool(viewToggleFits, (float)probe);
-                    Check(!(previous && !current), "chrome UiScale " + scale + " : ViewToggleFits is not monotonic at width " + probe);
-                    previous = current;
-                    seenFit |= current;
+                    object[] probeArgs = { MakeVector(vectorType, probe, 900), false, null, null };
+                    selectorRects.Invoke(null, probeArgs);
+                    double probeWidth = Box(probeArgs[2]).Width;
+                    if (previousSelectorWidth >= 0)
+                        Check(Math.Abs(probeWidth - previousSelectorWidth) < Eps,
+                            "chrome UiScale " + scale + " : chart selector width changes with window width " + probe);
+                    previousSelectorWidth = probeWidth;
                 }
-                Check(seenFit, "chrome UiScale " + scale + " : ViewToggleFits never fits even at 3840px");
             }
         }
 
