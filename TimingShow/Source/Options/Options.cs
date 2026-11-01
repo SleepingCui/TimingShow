@@ -451,6 +451,7 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.LogGraph_DistinguishPlayers, "Toggle_DistinguishPlayers");
                 Toggle(ref ModContext.Settings.LogGraph_ShowZeroLine, "Toggle_ShowZeroLine");
                 Toggle(ref ModContext.Settings.LogGraph_ShowAvgLine, "Toggle_ShowAvgLine");
+                Toggle(ref ModContext.Settings.LogGraph_ShowHitDetails, "Toggle_ShowHitDetails");
                 IntField("Label_MaxRenderPoints", ref _logGraphMaxPointsText, ref ModContext.Settings.LogGraph_MaxRenderPoints, 20, 8000, 800);
                 SliderFloat("Label_PointSize", ref ModContext.Settings.LogGraph_PointSize, 1.0f, 12.0f);
 

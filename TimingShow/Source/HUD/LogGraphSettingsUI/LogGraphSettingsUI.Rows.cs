@@ -176,6 +176,9 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             rows.Add(Toggle("Toggle_ShowXpBand",
                 () => _draft.ShowXpBand,
                 v => _draft.ShowXpBand = v));
+            rows.Add(Toggle("Toggle_ShowHitDetails",
+                () => _draft.ShowHitDetails,
+                v => _draft.ShowHitDetails = v));
             rows.Add(Slider("Label_BandThresholdBpm", 100f, 600f, false, "F0",
                 () => _draft.BandThresholdBpm,
                 v => _draft.BandThresholdBpm = v));

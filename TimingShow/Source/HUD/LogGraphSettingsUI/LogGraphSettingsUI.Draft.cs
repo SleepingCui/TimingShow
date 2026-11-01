@@ -20,6 +20,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             public bool ShowGrid = true;
             public bool ShowJudgeBands = true;
             public bool ShowXpBand = true;
+            public bool ShowHitDetails;
             public float BandThresholdBpm = 310f;
             public bool UseCustomFont;
             public Color BgColor = Color.black;
@@ -51,6 +52,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 d.ShowGrid = s.LogGraph_ShowGrid;
                 d.ShowJudgeBands = s.LogGraph_ShowJudgeBands;
                 d.ShowXpBand = s.LogGraph_ShowXpBand;
+                d.ShowHitDetails = s.LogGraph_ShowHitDetails;
                 d.BandThresholdBpm = s.LogGraph_BandThresholdBpm;
                 d.UseCustomFont = s.LogGraph_UseCustomFont;
                 d.BgColor = s.LogGraph_BgColor;
@@ -83,6 +85,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 s.LogGraph_ShowGrid = ShowGrid;
                 s.LogGraph_ShowJudgeBands = ShowJudgeBands;
                 s.LogGraph_ShowXpBand = ShowXpBand;
+                s.LogGraph_ShowHitDetails = ShowHitDetails;
                 s.LogGraph_BandThresholdBpm = BandThresholdBpm;
                 s.LogGraph_UseCustomFont = UseCustomFont;
                 s.LogGraph_BgColor = BgColor;

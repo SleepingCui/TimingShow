@@ -42,6 +42,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
         protected virtual Color ScatterZeroLineColor => ModContext.Settings != null ? ModContext.Settings.TimingScatter_ZeroLineColor : DefaultZeroLineColor;
         protected virtual Color ScatterAvgLineColor => ModContext.Settings != null ? ModContext.Settings.TimingScatter_AvgLineColor : DefaultAvgLineColor;
         protected virtual Color ScatterAxisTextColor => ModContext.Settings != null ? ModContext.Settings.TimingScatter_AxisTextColor : DefaultAxisTextColor;
+        protected virtual bool ScatterShowHitDetails => false;
 
         protected virtual bool RobustYViewport => false;
 
@@ -195,6 +196,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
         {
             base.Update();
             UpdateInteraction();
+            StepDetailFade();
             RefreshBandWindow();
         }
 

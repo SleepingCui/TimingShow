@@ -188,6 +188,7 @@ namespace TimingShow
         public bool LogGraph_ShowGrid = true;
         public bool LogGraph_ShowJudgeBands = true;
         public bool LogGraph_ShowXpBand = true;
+        public bool LogGraph_ShowHitDetails;
         public float LogGraph_BandThresholdBpm = 310f;
         public bool LogGraph_IgnoreOutliers;
         public int LogGraph_MaxRenderPoints = 800;

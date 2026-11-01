@@ -210,6 +210,7 @@ namespace TimingShow.HUD
         protected override bool ScatterShowZeroLine => LogSettings != null && LogSettings.LogGraph_ShowZeroLine;
         protected override bool ScatterShowAvgLine => LogSettings != null && LogSettings.LogGraph_ShowAvgLine;
         protected override float ScatterPointSize => LogSettings != null ? LogSettings.LogGraph_PointSize : 3f;
+        protected override bool ScatterShowHitDetails => LogSettings != null && LogSettings.LogGraph_ShowHitDetails;
         protected override Color ScatterPointColor => LogSettings != null ? LogSettings.LogGraph_PointColor : new Color(0.30f, 0.76f, 1f, 1f);
         protected override Color ScatterZeroLineColor => LogSettings != null ? LogSettings.LogGraph_ZeroLineColor : new Color(1f, 1f, 1f, 0.65f);
         protected override Color ScatterAvgLineColor => LogSettings != null ? LogSettings.LogGraph_AvgLineColor : new Color(1f, 0.85f, 0.20f, 0.95f);

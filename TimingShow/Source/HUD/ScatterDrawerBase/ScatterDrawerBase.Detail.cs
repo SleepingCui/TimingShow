@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -13,7 +14,15 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private const float DetailAccentWidth = 2f;
         private const float DetailMinHitRadius = 6f;
         private const int DetailLineCount = 4;
-        private static readonly Color DetailPanelBgColor = new Color(0f, 0f, 0f, 0.78f);
+        private const float DetailPanelWidth = 190f;
+        private const float DetailPanelWideWidth = 210f;
+        private const float DetailAnimDuration = 0.12f;
+        private const float DetailRiseDistance = 5f;
+        private const float DetailCornerRadius = 7f;
+        private static readonly Color DetailPanelTopColor = new Color(0.085f, 0.095f, 0.13f, 0.95f);
+        private static readonly Color DetailPanelBottomColor = new Color(0.025f, 0.03f, 0.045f, 0.96f);
+        private static readonly Color DetailPanelBorderColor = new Color(1f, 1f, 1f, 0.10f);
+        private static readonly Color DetailShadowColor = new Color(0f, 0f, 0f, 0.45f);
 
         private TMP_Text _detailText;
         private TMP_Text _hintText;
@@ -21,10 +30,16 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private bool _detailVisible;
         private int _hoverSourceIndex = -1;
         private int _detailShownIndex = -1;
+        private bool _detailDetailsShown;
         private int _detailDataVersion = int.MinValue;
         private Vector2 _detailPanelPosition;
         private float _detailPanelWidth;
         private float _detailPanelHeight;
+        private float _detailPad = DetailPanelPadding;
+        private float _detailAlpha;
+        private int _detailFontSize;
+        private float _detailLineHeight;
+        private int _detailLineCount = DetailLineCount;
         private Color _detailAccentColor = Color.white;
         private float _hintHideTime;
 
@@ -105,24 +120,18 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 return;
             }
 
-            Settings settings = ModContext.Settings;
             float scale = Mathf.Max(0.01f, Scale);
             int fontSize = Mathf.Clamp(Mathf.RoundToInt(12 * scale), 8, 32);
-            float lineHeight = 16f * (fontSize / 12f);
             float pad = DetailPanelPadding * (fontSize / 12f);
-            float panelWidth = 190f * (fontSize / 12f) + pad * 2f;
-            int lineCount = ScatterPlayerCount > 1 ? DetailLineCount + 1 : DetailLineCount;
-            float panelHeight = lineHeight * lineCount + pad * 2f;
+            bool showDetails = ScatterShowHitDetails;
+            float panelWidth = (showDetails ? DetailPanelWideWidth : DetailPanelWidth) * (fontSize / 12f) + pad * 2f;
+            float textWidth = panelWidth - pad * 2f;
 
-            _detailText.fontSize = fontSize;
-            _detailText.color = ScatterAxisTextColor;
-            _detailText.alignment = TextAlignmentOptions.TopLeft;
+            if (index != _detailShownIndex || showDetails != _detailDetailsShown || fontSize != _detailFontSize || _detailText.text.Length == 0)
+                RebuildDetailText(index, showDetails, fontSize, textWidth);
 
-            if (index != _detailShownIndex)
-            {
-                _detailShownIndex = index;
-                _detailText.text = BuildDetailText(index);
-            }
+            float lineHeight = _detailLineHeight > 0f ? _detailLineHeight : fontSize * 1.45f;
+            float panelHeight = lineHeight * Mathf.Max(1, _detailLineCount) + pad * 2f + 0.5f;
 
             Vector2 panelPosition = ComputeDetailPanelPosition(index, panelWidth, panelHeight);
             bool moved = (panelPosition - _detailPanelPosition).sqrMagnitude > 0.25f;
@@ -132,13 +141,17 @@ namespace TimingShow.HUD.ScatterDrawerBase
             _detailPanelWidth = panelWidth;
             _detailPanelHeight = panelHeight;
 
+            _detailPad = pad;
+
             RectTransform rt = _detailText.rectTransform;
             rt.pivot = Vector2.zero;
-            rt.anchoredPosition = new Vector2(panelPosition.x + pad, panelPosition.y + pad);
             rt.sizeDelta = new Vector2(panelWidth - pad * 2f, panelHeight - pad * 2f);
 
+            bool appearing = _detailAlpha <= 0.001f;
             _detailVisible = true;
             if (!_detailText.gameObject.activeSelf) _detailText.gameObject.SetActive(true);
+            if (appearing) _detailAlpha = 0f;
+            ApplyDetailVisuals();
             SetVerticesDirty();
         }
 
@@ -148,14 +161,17 @@ namespace TimingShow.HUD.ScatterDrawerBase
             if (!_detailVisible) return;
 
             _detailVisible = false;
-            if (_detailText != null && _detailText.gameObject.activeSelf) _detailText.gameObject.SetActive(false);
             SetVerticesDirty();
         }
 
         private void ClearDetailInteraction()
         {
             _hoverSourceIndex = -1;
-            HideDetailPanel();
+            _detailShownIndex = -1;
+            _detailVisible = false;
+            _detailAlpha = 0f;
+            if (_detailText != null && _detailText.gameObject.activeSelf) _detailText.gameObject.SetActive(false);
+            SetVerticesDirty();
         }
 
         private bool IsRenderableSourceIndex(int index)
@@ -203,17 +219,75 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
         private void DrawDetailPanel(VertexHelper vh, float scale)
         {
-            if (!_detailVisible) return;
+            if (_detailAlpha <= 0.001f) return;
 
             float w = _detailPanelWidth;
             float h = _detailPanelHeight;
             if (w <= 0f || h <= 0f) return;
 
-            float x = _detailPanelPosition.x;
-            float y = _detailPanelPosition.y;
+            float rise = (1f - _detailAlpha) * DetailRiseDistance * scale;
+            Rect rect = new Rect(_detailPanelPosition.x, _detailPanelPosition.y - rise, w, h);
+            float radius = DetailCornerRadius * scale;
 
-            DrawQuad(vh, new Vector2(x, y), new Vector2(x + w, y + h), DetailPanelBgColor);
-            DrawQuad(vh, new Vector2(x, y), new Vector2(x + Mathf.Max(1f, DetailAccentWidth * scale), y + h), _detailAccentColor);
+            LogRoundedRect.DrawShadow(vh, rect, radius, 5f * scale, new Vector2(0f, -1.5f * scale), WithDetailAlpha(DetailShadowColor), 4);
+            LogRoundedRect.DrawFilled(vh, rect, radius, WithDetailAlpha(DetailPanelTopColor), WithDetailAlpha(DetailPanelBottomColor), 10, 1f);
+            LogRoundedRect.DrawBorder(vh, rect, radius, Mathf.Max(0.5f, scale), WithDetailAlpha(DetailPanelBorderColor), WithDetailAlpha(DetailPanelBorderColor), 10, 1f);
+
+            float accentWidth = Mathf.Max(1.5f, DetailAccentWidth * scale);
+            float inset = 2.5f * scale;
+            Rect accent = new Rect(rect.xMin + inset, rect.yMin + inset, accentWidth, Mathf.Max(0f, rect.height - inset * 2f));
+            LogRoundedRect.DrawFilled(vh, accent, accentWidth * 0.5f, WithDetailAlpha(_detailAccentColor), WithDetailAlpha(_detailAccentColor), 8, 1f);
+        }
+
+        private void StepDetailFade()
+        {
+            float target = _detailVisible ? 1f : 0f;
+            if (Mathf.Approximately(_detailAlpha, target)) return;
+
+            _detailAlpha = Mathf.MoveTowards(_detailAlpha, target, Time.unscaledDeltaTime / DetailAnimDuration);
+            ApplyDetailVisuals();
+            SetVerticesDirty();
+        }
+
+        private void ApplyDetailVisuals()
+        {
+            if (_detailText == null) return;
+
+            _detailText.alpha = _detailAlpha;
+            float rise = (1f - _detailAlpha) * DetailRiseDistance * Mathf.Max(0.01f, Scale);
+            _detailText.rectTransform.anchoredPosition = new Vector2(_detailPanelPosition.x + _detailPad, _detailPanelPosition.y + _detailPad - rise);
+        }
+
+        private void RebuildDetailText(int index, bool showDetails, int fontSize, float textWidth)
+        {
+            if (!_detailText.gameObject.activeSelf) _detailText.gameObject.SetActive(true);
+
+            _detailShownIndex = index;
+            _detailDetailsShown = showDetails;
+            _detailFontSize = fontSize;
+
+            _detailText.fontSize = fontSize;
+            _detailText.color = ScatterAxisTextColor;
+            _detailText.alignment = TextAlignmentOptions.TopLeft;
+
+            string body = BuildDetailText(index);
+            _detailText.text = body;
+            _detailText.rectTransform.sizeDelta = new Vector2(textWidth, fontSize * 8f);
+            _detailText.ForceMeshUpdate();
+
+            int fallbackLines = 1;
+            for (int i = 0; i < body.Length; i++) if (body[i] == '\n') fallbackLines++;
+
+            TMP_TextInfo info = _detailText.textInfo;
+            _detailLineCount = info != null && info.lineCount > 0 ? info.lineCount : fallbackLines;
+            if (info != null && info.lineInfo != null && info.lineInfo.Length > 0 && info.lineInfo[0].lineHeight > 0f)
+                _detailLineHeight = info.lineInfo[0].lineHeight;
+        }
+
+        private Color WithDetailAlpha(Color color)
+        {
+            color.a *= _detailAlpha;
+            return color;
         }
 
         private string BuildDetailText(int index)
@@ -241,7 +315,42 @@ namespace TimingShow.HUD.ScatterDrawerBase
                     Coop.Label(sample.PlayerId));
             }
 
+            if (ScatterShowHitDetails)
+            {
+                if (sample.HasFloorId)
+                {
+                    body += "\n" + i18n.T("Detail_Floor") + ": "
+                        + (sample.FloorIdEstimated ? "~" : "") + "#" + sample.FloorId.ToString(CultureInfo.InvariantCulture);
+                }
+
+                if (sample.HasAngle)
+                {
+                    body += "\n" + i18n.T("Detail_Angle") + ": "
+                        + sample.AngleDeg.ToString("0.###", CultureInfo.InvariantCulture) + "°";
+                }
+
+                if (sample.HasHitParams)
+                {
+                    body += "\n" + string.Format("BPM: {0} ({1}×{2}×{3})",
+                        FormatDetailNumber(sample.Bpm * sample.Speed * sample.Pitch, "0.#"),
+                        FormatDetailNumber(sample.Bpm, "0.##"),
+                        FormatDetailNumber(sample.Speed, "0.##"),
+                        FormatDetailNumber(sample.Pitch, "0.##"));
+                }
+
+                if (sample.HasOrbitDirection)
+                {
+                    body += "\n" + i18n.T("Detail_Orbit") + ": "
+                        + i18n.T(sample.OrbitClockwise ? "Detail_OrbitClockwise" : "Detail_OrbitCounterClockwise");
+                }
+            }
+
             return body;
+        }
+
+        private static string FormatDetailNumber(float value, string format)
+        {
+            return value.ToString(format, CultureInfo.InvariantCulture);
         }
 
         private static string FormatDetailTime(float timeMs)
