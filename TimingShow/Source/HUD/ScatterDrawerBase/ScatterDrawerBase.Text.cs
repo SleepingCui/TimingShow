@@ -91,7 +91,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
             if (_detailText != null)
             {
-                bool wantDetail = active && _detailVisible;
+                bool wantDetail = active && (_detailVisible || _detailAlpha > 0.001f);
                 if (_detailText.gameObject.activeSelf != wantDetail) _detailText.gameObject.SetActive(wantDetail);
             }
 

@@ -174,19 +174,27 @@ namespace TimingShow.HUD.LogGraphWindow
                 float titleBottom = Mathf.Max(y0 + border, titleTop - HeaderHeight);
 
                 Rect windowRect = new Rect(x0, y0, w, h);
-                LogRoundedRect.DrawFilled(vh, windowRect, corner, PanelColor, 8);
-                LogRoundedRect.DrawBorder(vh, windowRect, corner, border, BorderColor, 8);
+                LogRoundedRect.DrawShadow(vh, windowRect, corner, ShadowSpread * UiScale,
+                    new Vector2(0f, -ShadowOffset * UiScale), ShadowColor, 6);
+                LogRoundedRect.DrawFilled(vh, windowRect, corner, PanelTopColor, PanelBottomColor, 10, 1f);
 
                 if (titleTop > titleBottom && w > border * 2f)
                 {
                     float titleCorner = Mathf.Max(0f, corner - border);
                     Rect titleRect = new Rect(x0 + border, titleBottom, w - border * 2f, titleTop - titleBottom);
-                    LogRoundedRect.DrawFilled(vh, titleRect, titleCorner, titleCorner, 0f, 0f, TitleBarColor, 8);
+                    LogRoundedRect.DrawFilled(vh, titleRect, titleCorner, titleCorner, 0f, 0f,
+                        TitleBarTopColor, TitleBarBottomColor, 8, 1f);
 
                     float headerEdge = Mathf.Max(1f, border * 0.5f);
-                    Color headerEdgeColor = BorderColor;
-                    headerEdgeColor.a *= 0.45f;
-                    DrawQuad(vh, new Vector2(x0 + border, titleBottom), new Vector2(x1 - border, titleBottom + headerEdge), headerEdgeColor);
+                    DrawQuad(vh, new Vector2(x0 + border, titleBottom), new Vector2(x1 - border, titleBottom + headerEdge), HeaderEdgeColor);
+                }
+
+                LogRoundedRect.DrawBorder(vh, windowRect, corner, border, WindowBorderColor, WindowBorderColor, 10, 1f);
+                Rect highlightRect = new Rect(x0 + border, y0 + border, w - border * 2f, h - border * 2f);
+                if (highlightRect.width > 0f && highlightRect.height > 0f)
+                {
+                    LogRoundedRect.DrawBorder(vh, highlightRect, Mathf.Max(0f, corner - border), 1f,
+                        WindowHighlightColor, WindowHighlightColor, 10, 0f);
                 }
                 
                 
@@ -196,9 +204,10 @@ namespace TimingShow.HUD.LogGraphWindow
                 float closeMinY = closeMaxY - CloseButtonSize;
                 if (closeMinX > x0 && closeMinY > y0)
                 {
+                    Color closeColor = _hovered ? CloseHoverColor : CloseNormalColor;
                     LogRoundedRect.DrawFilled(vh,
                         new Rect(closeMinX, closeMinY, CloseButtonSize, CloseButtonSize),
-                        LogRoundedRect.ControlRadius * UiScale, _hovered ? CloseHoverColor : CloseNormalColor, 6);
+                        LogRoundedRect.ControlRadius * UiScale, closeColor, closeColor, 8, 1f);
 
                     float glyphThickness = Mathf.Max(1f, CloseGlyphThickness);
                     float glyphInset = CloseGlyphInset;
@@ -220,7 +229,7 @@ namespace TimingShow.HUD.LogGraphWindow
                     Color setColor = _settingsActive ? SettingsButtonActiveColor : (_settingsHovered ? SettingsButtonHoverColor : CloseNormalColor);
                     LogRoundedRect.DrawFilled(vh,
                         new Rect(setMinX, setMinY, SettingsButtonSize, SettingsButtonSize),
-                        LogRoundedRect.ControlRadius * UiScale, setColor, 6);
+                        LogRoundedRect.ControlRadius * UiScale, setColor, setColor, 8, 1f);
 
                     float barThickness = Mathf.Max(1f, CloseGlyphThickness);
                     float barLeft = setMinX + CloseGlyphInset * 0.75f;
@@ -240,14 +249,24 @@ namespace TimingShow.HUD.LogGraphWindow
                     Rect graph = GraphContainerRect(w, h);
                     if (graph.width > 2f && graph.height > 2f)
                     {
-                        LogRoundedRect.DrawFilled(vh, graph, LogRoundedRect.InnerPanelRadius * UiScale, GraphContainerColor, 6);
+                        float graphCorner = Mathf.Min(LogRoundedRect.InnerPanelRadius * UiScale,
+                            Mathf.Min(graph.width, graph.height) * 0.5f);
+                        LogRoundedRect.DrawFilled(vh, graph, graphCorner,
+                            GraphContainerTopColor, GraphContainerBottomColor, 8, 1f);
+                        LogRoundedRect.DrawBorder(vh, graph, graphCorner, 1f,
+                            GraphContainerBorderColor, GraphContainerBorderColor, 8, 0f);
                     }
                 }
                 
                 Rect sidebar = SidebarRect(w, h);
                 if (_settingsActive && sidebar.width > 0f && sidebar.height > 0f)
                 {
-                    LogRoundedRect.DrawFilled(vh, sidebar, LogRoundedRect.InnerPanelRadius * UiScale, StatsPanelColor, 6);
+                    float sidebarCorner = Mathf.Min(LogRoundedRect.InnerPanelRadius * UiScale,
+                        Mathf.Min(sidebar.width, sidebar.height) * 0.5f);
+                    LogRoundedRect.DrawFilled(vh, sidebar, sidebarCorner,
+                        StatsPanelTopColor, StatsPanelBottomColor, 8, 1f);
+                    LogRoundedRect.DrawBorder(vh, sidebar, sidebarCorner, 1f,
+                        StatsPanelBorderColor, StatsPanelBorderColor, 8, 0f);
 
                     float dividerThickness = Mathf.Max(1f, border * 0.5f);
                     float dividerX = sidebar.xMin - StatsPanelGap * 0.5f;

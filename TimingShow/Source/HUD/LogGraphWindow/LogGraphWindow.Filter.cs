@@ -24,6 +24,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private TMP_Text _rangeUnitText;
         private LogPillButton _rangeResetButton;
         private TMP_Text _rangeStatusText;
+        private LogRangeField _pendingFocusField;
 
         private bool RangeFilterVisible
         {
@@ -48,9 +49,9 @@ namespace TimingShow.HUD.LogGraphWindow
             barGo.AddComponent<LogRangeBar>();
 
             _rangeLabel = CreateRangeText("Label", i18n.T("LogGraph_RangeFilter"), font, TextAlignmentOptions.MidlineLeft);
-            _rangeMinField = CreateRangeField("MinField", font);
+            _rangeMinField = CreateRangeField("MinField", font, "LogGraph_RangeMinHint");
             _rangeSeparator = CreateRangeText("Separator", "~", font, TextAlignmentOptions.Center);
-            _rangeMaxField = CreateRangeField("MaxField", font);
+            _rangeMaxField = CreateRangeField("MaxField", font, "LogGraph_RangeMaxHint");
             _rangeUnitText = CreateRangeText("Unit", "", font, TextAlignmentOptions.MidlineLeft);
             _rangeResetButton = CreateRangeButton(font);
             _rangeStatusText = CreateRangeText("Status", "", font, TextAlignmentOptions.MidlineRight);
@@ -77,13 +78,13 @@ namespace TimingShow.HUD.LogGraphWindow
             return text;
         }
 
-        private LogRangeField CreateRangeField(string name, TMP_FontAsset font)
+        private LogRangeField CreateRangeField(string name, TMP_FontAsset font, string hintKey)
         {
             GameObject go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(_rangeBar, false);
 
             LogRangeField field = go.AddComponent<LogRangeField>();
-            field.Initialize(font, RangeFontSizeBase * UiScale, OnRangeFieldChanged);
+            field.Initialize(font, RangeFontSizeBase * UiScale, i18n.T(hintKey), OnRangeFieldChanged, OnRangeFieldSubmit);
             return field;
         }
 
@@ -209,6 +210,13 @@ namespace TimingShow.HUD.LogGraphWindow
         {
             if (_rangeBar == null || !_rangeBar.gameObject.activeInHierarchy) return;
 
+            if (_pendingFocusField != null)
+            {
+                LogRangeField target = _pendingFocusField;
+                _pendingFocusField = null;
+                if (target.gameObject.activeInHierarchy) target.FocusSelectAll();
+            }
+
             if (_rangeMinField != null) _rangeMinField.Tick();
             if (_rangeMaxField != null) _rangeMaxField.Tick();
             UpdateRangeFilterStatus();
@@ -217,6 +225,15 @@ namespace TimingShow.HUD.LogGraphWindow
         private void OnRangeFieldChanged(string value)
         {
             ApplyRangeFilter();
+        }
+
+        private void OnRangeFieldSubmit(LogRangeField field)
+        {
+            if (field == null) return;
+
+            LogRangeField other = field == _rangeMinField ? _rangeMaxField : _rangeMinField;
+            if (other == null || !other.gameObject.activeInHierarchy) return;
+            _pendingFocusField = other;
         }
 
         private void ApplyRangeFilter()
@@ -263,12 +280,15 @@ namespace TimingShow.HUD.LogGraphWindow
 
         private void EndRangeEditing()
         {
+            _pendingFocusField = null;
             if (_rangeMinField != null) _rangeMinField.EndEdit();
             if (_rangeMaxField != null) _rangeMaxField.EndEdit();
         }
 
         private void EndRangeEditingOnClick(Vector2 screenPosition)
         {
+            _pendingFocusField = null;
+
             if (_rangeMinField != null && _rangeMinField.IsEditing &&
                 !IsPointerInsideField(_rangeMinField, screenPosition))
             {

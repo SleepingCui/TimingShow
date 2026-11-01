@@ -69,6 +69,8 @@ namespace TimingShow.HUD.LogGraphWindow
         private const float BaseAxisLabelGap = 6f;
         private const float BaseAxisLabelMargin = 3f;
         private const float TextLineRatio = 1.35f;
+        private const float ShadowSpread = 22f;
+        private const float ShadowOffset = 5f;
 
         private const float OpenAnimDuration = 0.18f;
         private const float OpenAnimStartScale = 0.94f;
@@ -265,23 +267,32 @@ namespace TimingShow.HUD.LogGraphWindow
             return _resolvedPlotRect;
         }
         
-        private static readonly Color PanelColor = new Color(0.05f, 0.06f, 0.09f, 0.96f);
-        private static readonly Color BorderColor = new Color(1f, 1f, 1f, 0.25f);
-        private static readonly Color TitleBarColor = new Color(1f, 1f, 1f, 0.045f);
-        private static readonly Color CloseNormalColor = new Color(1f, 1f, 1f, 0.12f);
+        private static readonly Color PanelTopColor = new Color(0.094f, 0.106f, 0.145f, 0.97f);
+        private static readonly Color PanelBottomColor = new Color(0.043f, 0.051f, 0.075f, 0.975f);
+        private static readonly Color WindowBorderColor = new Color(0f, 0f, 0f, 0.55f);
+        private static readonly Color WindowHighlightColor = new Color(1f, 1f, 1f, 0.10f);
+        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.55f);
+        private static readonly Color TitleBarTopColor = new Color(1f, 1f, 1f, 0.075f);
+        private static readonly Color TitleBarBottomColor = new Color(1f, 1f, 1f, 0.015f);
+        private static readonly Color HeaderEdgeColor = new Color(1f, 1f, 1f, 0.07f);
+        private static readonly Color CloseNormalColor = new Color(1f, 1f, 1f, 0.10f);
         private static readonly Color CloseHoverColor = new Color(1f, 0.35f, 0.35f, 0.9f);
         private static readonly Color GripColor = new Color(1f, 1f, 1f, 0.20f);
-        private static readonly Color SettingsButtonHoverColor = new Color(1f, 1f, 1f, 0.28f);
+        private static readonly Color SettingsButtonHoverColor = new Color(1f, 1f, 1f, 0.26f);
         private static readonly Color TitlePrimaryColor = new Color(1f, 1f, 1f, 0.90f);
         private static readonly Color TitleSecondaryColor = new Color(1f, 1f, 1f, 0.42f);
         private static readonly Color TitleMetaColor = new Color(1f, 1f, 1f, 0.55f);
         private static readonly Color SettingsButtonActiveColor = new Color(0.30f, 0.76f, 1f, 0.55f);
-        private static readonly Color StatsPanelColor = new Color(1f, 1f, 1f, 0.03f);
-        private static readonly Color StatsDividerColor = new Color(1f, 1f, 1f, 0.09f);
+        private static readonly Color StatsPanelTopColor = new Color(1f, 1f, 1f, 0.055f);
+        private static readonly Color StatsPanelBottomColor = new Color(1f, 1f, 1f, 0.02f);
+        private static readonly Color StatsPanelBorderColor = new Color(1f, 1f, 1f, 0.05f);
+        private static readonly Color StatsDividerColor = new Color(1f, 1f, 1f, 0.075f);
         private static readonly Color StatsLabelColor = new Color(0.60f, 0.64f, 0.70f, 1f);
         private static readonly Color StatsValueColor = new Color(0.96f, 0.98f, 1f, 1f);
         private static readonly Color StatsTitleColor = new Color(0.88f, 0.91f, 0.95f, 1f);
-        private static readonly Color GraphContainerColor = new Color(1f, 1f, 1f, 0.02f);
+        private static readonly Color GraphContainerTopColor = new Color(0f, 0f, 0f, 0.22f);
+        private static readonly Color GraphContainerBottomColor = new Color(0f, 0f, 0f, 0.08f);
+        private static readonly Color GraphContainerBorderColor = new Color(1f, 1f, 1f, 0.045f);
 
         private static LogGraphWindow _instance;
         private static GameObject _root;

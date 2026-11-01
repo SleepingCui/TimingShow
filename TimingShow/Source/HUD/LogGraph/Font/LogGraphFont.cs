@@ -123,11 +123,12 @@ namespace TimingShow.HUD
                 "LogGraph_FontHint", "LogGraph_UiScale", "LogGraph_CornerScale", "Toggle_IgnoreOutliers",
                 "Toggle_UseHitAxis", "Toggle_UseJudgeColor",
                 "Toggle_DistinguishPlayers", "Toggle_ShowZeroLine", "Toggle_ShowAvgLine", "Toggle_ShowGrid",
-                "Toggle_ShowJudgeBands", "Toggle_ShowXpBand", "Toggle_CustomFont", "Label_PointSize",
+                "Toggle_ShowJudgeBands", "Toggle_ShowXpBand", "Toggle_ShowHitDetails", "Toggle_CustomFont", "Label_PointSize",
                 "Label_MaxRenderPoints", "Label_BandThresholdBpm",
                 "Toggle_ShowBorder", "Label_GridColor", "Label_PointColor", "Label_ZeroLineColor", "Label_AvgLineColor",
                 "Label_AxisTextColor", "Label_BandPerfectColor", "Label_BandElPerfectColor",
-                "Label_BandEarlyLateColor", "Label_BandXpColor", "Btn_ResetColor", "LogGraph_RangeFilter"
+                "Label_BandEarlyLateColor", "Label_BandXpColor", "Btn_ResetColor", "LogGraph_RangeFilter",
+                "LogGraph_RangeMinHint", "LogGraph_RangeMaxHint"
             };
 
             System.Text.StringBuilder characters = new System.Text.StringBuilder("0123456789.-+%: ");

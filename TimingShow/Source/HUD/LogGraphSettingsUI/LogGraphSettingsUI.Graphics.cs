@@ -51,8 +51,18 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 
                 Rect panelRect = new Rect(x0, y0, w, h);
                 float panelCorner = Mathf.Min(LogRoundedRect.PanelRadius * scale, Mathf.Min(w, h) * 0.5f);
-                LogRoundedRect.DrawFilled(vh, panelRect, panelCorner, PanelColor, 8);
-                LogRoundedRect.DrawBorder(vh, panelRect, panelCorner, border, BorderColor, 8);
+                LogRoundedRect.DrawShadow(vh, panelRect, panelCorner, SheetShadowSpread * scale,
+                    new Vector2(0f, -SheetShadowOffset * scale), SheetShadowColor, 6);
+                LogRoundedRect.DrawFilled(vh, panelRect, panelCorner, PanelTopColor, PanelBottomColor, 10, 1f);
+                LogRoundedRect.DrawBorder(vh, panelRect, panelCorner, border,
+                    SheetBorderColor, SheetBorderColor, 10, 1f);
+
+                Rect highlightRect = new Rect(x0 + border, y0 + border, w - border * 2f, h - border * 2f);
+                if (highlightRect.width > 0f && highlightRect.height > 0f)
+                {
+                    LogRoundedRect.DrawBorder(vh, highlightRect, Mathf.Max(0f, panelCorner - border), 1f,
+                        SheetHighlightColor, SheetHighlightColor, 10, 0f);
+                }
 
                 List<Row> rows = _owner._rows;
                 for (int i = 0; i < rows.Count; i++)
@@ -62,7 +72,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                     if (ReferenceEquals(row, _owner._hoverRow) && row.Kind != RowKind.Title)
                     {
                         LogRoundedRect.DrawFilled(vh, row.Rect,
-                            Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.3f), RowHoverColor, 6);
+                            Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.3f),
+                            RowHoverColor, RowHoverColor, 8, 1f);
                     }
 
                     switch (row.Kind)
@@ -70,7 +81,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                         case RowKind.Tab:
                             LogRoundedRect.DrawFilled(vh, row.Rect,
                                 Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.3f),
-                                _owner._tab == row.TabIndex ? TabActiveColor : TabColor, 6);
+                                _owner._tab == row.TabIndex ? TabActiveColor : TabColor,
+                                _owner._tab == row.TabIndex ? TabActiveColor : TabColor, 8, 1f);
                             break;
 
                         case RowKind.Button:
