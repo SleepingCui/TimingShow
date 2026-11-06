@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace TimingShow
 {
@@ -29,6 +30,36 @@ namespace TimingShow
             {
                 ModContext.Logger.Error($"Failed to load lang.json: {e.Message}");
             }
+
+            ApplyAutoLanguage();
+        }
+
+        public static void ApplyAutoLanguage()
+        {
+            Settings settings = ModContext.Settings;
+            if (settings == null || !settings.AutoLanguage) return;
+
+            settings.Language = DetectSystemLanguage();
+        }
+
+        private static string DetectSystemLanguage()
+        {
+            switch (Application.systemLanguage)
+            {
+            case SystemLanguage.Chinese:
+            case SystemLanguage.ChineseSimplified:
+            case SystemLanguage.ChineseTraditional:
+                return AvailableLanguage("简体中文");
+            case SystemLanguage.Korean:
+                return AvailableLanguage("한국어");
+            default:
+                return AvailableLanguage("English");
+            }
+        }
+
+        private static string AvailableLanguage(string language)
+        {
+            return _langData.ContainsKey(language) ? language : "English";
         }
 
         public static string T(string key)

@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityFileDialog;
 using static TimingShow.Options.OptionsWidgets;
 using TimingShow.Bridge;
+using TimingShow.Update;
 
 namespace TimingShow.Options
 {
@@ -16,12 +17,20 @@ namespace TimingShow.Options
         private static string _analyzerTimeoutText;
         private static string _scatterSampleCountText;
         private static string _scatterMaxPointsText;
+        private static bool _capturingPanelKey;
+        private static int _panelKeySuppressFrame = -1;
 
         internal static bool HotkeySuppressed
         {
             get { return TimingShow.HUD.LogGraphSettingsUI.LogGraphSettingsUI.SuppressReportHotkey; }
         }
 
+        internal static bool HitPanelHotkeySuppressed
+        {
+            get { return _capturingPanelKey || _panelKeySuppressFrame == Time.frameCount; }
+        }
+
+        private static bool _showOtherSettings;
         private static bool _showAdvancedSettings;
         private static bool _showDebugSettings;
 
@@ -38,18 +47,19 @@ namespace TimingShow.Options
         private static bool _foldoutXACCGraph;
         private static bool _foldoutTimingScatter;
         private static bool _foldoutEditorHits;
-        private static string _editorHitsStatus;
 
         public static void OnGUI()
         {
             if (!ModContext.IsConfigOpen)
             {
                 OptionLogList.OnConfigOpened();
+                _capturingPanelKey = false;
             }
 
             ModContext.LastConfigGuiFrame = Time.frameCount;
             ModContext.UIDirty = true;
 
+            UpdateBanner.Draw();
             DrawLanguageSettings();
             DrawTitleSettings();
             DrawPlanetSettings();
@@ -64,6 +74,7 @@ namespace TimingShow.Options
             DrawLoggingSettings();
             DrawSessionControls();
             OptionLogList.Draw();
+            DrawOtherSettings();
             DrawAdvancedSettings();
         }
 
@@ -74,7 +85,10 @@ namespace TimingShow.Options
             foreach (string langCode in i18n.AvailableLanguages)
             {
                 if (ActiveButton(langCode, ModContext.Settings.Language == langCode, 100))
+                {
                     ModContext.Settings.Language = langCode;
+                    ModContext.Settings.AutoLanguage = false;
+                }
             }
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
@@ -384,57 +398,44 @@ namespace TimingShow.Options
             ToggleFold(i18n.T("Toggle_EditorHits"), ref ModContext.Settings.EditorHits_Enabled, ref _foldoutEditorHits);
             if (!ModContext.Settings.EditorHits_Enabled || !_foldoutEditorHits) return;
 
-            SliderFloat("Label_PointSize", ref ModContext.Settings.EditorHits_MarkerSize, 1f, 100f);
-            SliderFloat("Label_AngleScale", ref ModContext.Settings.EditorHits_AngleScale, 0f, 3f);
-            Toggle(ref ModContext.Settings.EditorHits_ShowTooltip, "Toggle_EditorHitsTooltip");
-            SliderFloat("HitPanel_Opacity", ref ModContext.Settings.EditorHits_MarkerOpacity, 0.1f, 1f);
-            ChoiceRow("HitPanel_Color", ref ModContext.Settings.EditorHits_ColorMode,
-                new[] { "HitPanel_ColorJudge", "HitPanel_ColorOffset", "HitPanel_ColorPlayer" });
-            ChoiceRow("HitPanel_Shape", ref ModContext.Settings.EditorHits_MarkerShape,
-                new[] { "HitPanel_ShapeRing", "HitPanel_ShapeDot", "HitPanel_ShapeCross" });
-            Toggle(ref ModContext.Settings.EditorHits_DimUnmatched, "HitPanel_DimOthers");
-            Toggle(ref ModContext.Settings.EditorHits_PanelVisible, "HitPanel_ShowPanel");
-            SliderFloat("HitPanel_PanelScale", ref ModContext.Settings.EditorHits_PanelScale, 0.75f, 2.5f);
             SliderFloat("HitPanel_PanelWidth", ref ModContext.Settings.EditorHits_PanelWidth, 240f, 460f);
+            DrawHitPanelKeyRow();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Space(OptionsWidgets.ContentIndent);
-            if (GUILayout.Button(i18n.T("Btn_ClearHitMarkers"), GUILayout.Width(120)))
             {
-                LevelEditor.EditorHitSnapshot.Clear();
-                _editorHitsStatus = null;
+                GUILayout.Space(ContentIndent);
+                string toggleKey = ModContext.Settings.EditorHits_PanelVisible ? "Btn_HideHitPanel" : "Btn_ShowHitPanel";
+                if (GUILayout.Button(i18n.T(toggleKey), GUILayout.Width(200)))
+                    ModContext.Settings.EditorHits_PanelVisible = !ModContext.Settings.EditorHits_PanelVisible;
             }
+            GUILayout.EndHorizontal();
+        }
 
-            if (GUILayout.Button(i18n.T("Btn_ImportHitLog"), GUILayout.Width(190)))
+        private static void DrawHitPanelKeyRow()
+        {
+            if (ModContext.Settings == null) return;
+
+            GUILayout.BeginHorizontal();
             {
-                string selected = FileBrowser.PickFile(
-                    OptionLogList.GetLogDirectory(),
-                    "Log",
-                    new[] { "json", "tlog", "gz" },
-                    i18n.T("Btn_ImportHitLog"));
-
-                if (!string.IsNullOrWhiteSpace(selected))
-                {
-                    int count;
-                    string errorKey;
-                    if (LevelEditor.EditorHitSnapshot.TryLoadFromLog(selected, out count, out errorKey))
-                    {
-                        _editorHitsStatus = string.Format(
-                            System.Globalization.CultureInfo.InvariantCulture,
-                            i18n.T("EditorHits_ImportOk"), count);
-                    }
-                    else
-                    {
-                        _editorHitsStatus = i18n.T(string.IsNullOrEmpty(errorKey)
-                            ? "EditorHits_ImportReadFailed"
-                            : errorKey);
-                    }
-                }
+                GUILayout.Space(ContentIndent);
+                GUILayout.Label(i18n.T("Label_HitPanelKey"), GUILayout.Width(140));
+                KeyCode key = ModContext.Settings.EditorHits_PanelKey;
+                string keyText = _capturingPanelKey
+                    ? i18n.T("Btn_PressKey")
+                    : (key == KeyCode.None ? i18n.T("Status_Disabled") : key.ToString());
+                if (GUILayout.Button(keyText, GUILayout.Width(140))) _capturingPanelKey = !_capturingPanelKey;
             }
             GUILayout.EndHorizontal();
 
-            if (!string.IsNullOrEmpty(_editorHitsStatus))
-                IndentedLabel(_editorHitsStatus);
+            if (!_capturingPanelKey) return;
+
+            Event keyEvent = Event.current;
+            if (keyEvent == null || keyEvent.type != EventType.KeyDown || keyEvent.keyCode == KeyCode.None) return;
+
+            if (keyEvent.keyCode != KeyCode.Escape) ModContext.Settings.EditorHits_PanelKey = keyEvent.keyCode;
+            _capturingPanelKey = false;
+            _panelKeySuppressFrame = Time.frameCount;
+            keyEvent.Use();
         }
 
         private static void DrawLoggingSettings()
@@ -522,6 +523,46 @@ namespace TimingShow.Options
             {
                 Players.ResetAll();
             }
+        }
+
+        private static void DrawOtherSettings()
+        {
+            string foldoutArrow = _showOtherSettings ? "▲" : "▼";
+            if (GUILayout.Button($"{i18n.T("Btn_Other")} {foldoutArrow}", GUILayout.Width(150)))
+                _showOtherSettings = !_showOtherSettings;
+
+            if (!_showOtherSettings) return;
+
+            GUILayout.BeginVertical();
+            {
+                GUILayout.Space(5);
+
+                bool autoLanguage = ModContext.Settings.AutoLanguage;
+                Toggle(ref ModContext.Settings.AutoLanguage, "Toggle_AutoLanguage");
+                if (!autoLanguage && ModContext.Settings.AutoLanguage) i18n.ApplyAutoLanguage();
+
+                bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
+                bool canToggleWindow = windowOpen || TimingShow.SessionReport.LastSessionReport.HasReport;
+                bool prevGuiEnabled = GUI.enabled;
+                GUI.enabled = canToggleWindow;
+
+                GUILayout.BeginHorizontal();
+                {
+                    GUILayout.Space(ContentIndent);
+                    string buttonKey = windowOpen ? "Btn_CloseLogWindow" : "Btn_OpenLogWindow";
+                    if (GUILayout.Button(i18n.T(buttonKey), GUILayout.Width(200)))
+                    {
+                        if (windowOpen) TimingShow.SessionReport.LastSessionReport.CloseWindow();
+                        else TimingShow.SessionReport.LastSessionReport.OpenWindow();
+                    }
+                }
+                GUILayout.EndHorizontal();
+
+                GUI.enabled = prevGuiEnabled;
+
+                UpdateSettingsUI.Draw();
+            }
+            GUILayout.EndVertical();
         }
 
         private static void DrawAdvancedSettings()
