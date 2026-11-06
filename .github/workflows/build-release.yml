@@ -1,4 +1,4 @@
-﻿name: Build Release
+name: Build Release
 
 on:
   workflow_dispatch:
@@ -116,6 +116,10 @@ jobs:
           $entry.Version = $env:TAG
           $entry.DownloadUrl = "https://github.com/$env:REPOSITORY/releases/download/$env:TAG/TimingShow.zip"
           $entry.Changes = ""
+
+          $zip = Get-Item "TimingShow.zip"
+          $entry.Sha256 = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash
+          $entry.Size = [int64]$zip.Length
 
           $json | ConvertTo-Json -Depth 100 | Set-Content -Path $repoPath -Encoding utf8NoBOM
 

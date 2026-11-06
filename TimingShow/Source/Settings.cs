@@ -37,7 +37,11 @@ namespace TimingShow
         public int Perc3 = 1;
         public int Perc4 = 1;
         public string Language = "English";
-        
+        public bool AutoLanguage;
+
+        public bool UpdateCheckEnabled = true;
+        public bool UpdateAutoUpdate;
+            
         public bool Coop_TimingHUD = true;
         public bool Coop_AvgHUD = true;
         public bool Coop_URHUD = true;
@@ -226,6 +230,7 @@ namespace TimingShow
         public int EditorHits_MarkerShape;
         public bool EditorHits_DimUnmatched = true;
         public bool EditorHits_PanelVisible = true;
+        public KeyCode EditorHits_PanelKey = KeyCode.F6;
         public float EditorHits_PanelScale = 1f;
         public float EditorHits_PanelWidth = 280f;
         public float EditorHits_PanelX = -1f;
