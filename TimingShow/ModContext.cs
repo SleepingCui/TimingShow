@@ -145,7 +145,15 @@ namespace TimingShow
         public static void Enable()
         {
             IsEnabled = true;
-            HarmonyInstance?.PatchAll();
+            try
+            {
+                HarmonyInstance?.PatchAll();
+            }
+            catch (System.Exception e)
+            {
+                Logger.Error($"PatchAll failed: {e.GetType().Name}: {e.Message}");
+            }
+            Patches.InputPatches.Install(HarmonyInstance);
             SessionReport.SessionReportHotkey.EnsureHost();
         }
 

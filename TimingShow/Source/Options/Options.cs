@@ -387,6 +387,15 @@ namespace TimingShow.Options
             SliderFloat("Label_PointSize", ref ModContext.Settings.EditorHits_MarkerSize, 1f, 100f);
             SliderFloat("Label_AngleScale", ref ModContext.Settings.EditorHits_AngleScale, 0f, 3f);
             Toggle(ref ModContext.Settings.EditorHits_ShowTooltip, "Toggle_EditorHitsTooltip");
+            SliderFloat("HitPanel_Opacity", ref ModContext.Settings.EditorHits_MarkerOpacity, 0.1f, 1f);
+            ChoiceRow("HitPanel_Color", ref ModContext.Settings.EditorHits_ColorMode,
+                new[] { "HitPanel_ColorJudge", "HitPanel_ColorOffset", "HitPanel_ColorPlayer" });
+            ChoiceRow("HitPanel_Shape", ref ModContext.Settings.EditorHits_MarkerShape,
+                new[] { "HitPanel_ShapeRing", "HitPanel_ShapeDot", "HitPanel_ShapeCross" });
+            Toggle(ref ModContext.Settings.EditorHits_DimUnmatched, "HitPanel_DimOthers");
+            Toggle(ref ModContext.Settings.EditorHits_PanelVisible, "HitPanel_ShowPanel");
+            SliderFloat("HitPanel_PanelScale", ref ModContext.Settings.EditorHits_PanelScale, 0.75f, 2.5f);
+            SliderFloat("HitPanel_PanelWidth", ref ModContext.Settings.EditorHits_PanelWidth, 240f, 460f);
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(OptionsWidgets.ContentIndent);

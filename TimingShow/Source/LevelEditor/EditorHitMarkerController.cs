@@ -11,7 +11,7 @@ using TimingShow.HUD;
 
 namespace TimingShow.LevelEditor
 {
-    public sealed class EditorHitMarkerController : MonoBehaviour
+    public sealed partial class EditorHitMarkerController : MonoBehaviour
     {
         private const float MarkerRadiusPixels = 7f;
         private const float MarkerMinRadiusPixels = 2f;
@@ -49,8 +49,10 @@ namespace TimingShow.LevelEditor
             EditorHitMarkerController host = _host;
             _host = null;
 
-            if (host != null && host.gameObject != null)
-                UnityEngine.Object.Destroy(host.gameObject);
+            if (host == null) return;
+
+            host.DisposePanel();
+            if (host.gameObject != null) UnityEngine.Object.Destroy(host.gameObject);
         }
 
         private enum Phase
@@ -115,6 +117,13 @@ namespace TimingShow.LevelEditor
 
         private void UpdateCore()
         {
+            if (_clearRequested)
+            {
+                _clearRequested = false;
+                EditorHitSnapshot.Clear();
+                return;
+            }
+
             Settings settings = ModContext.Settings;
             if (settings == null || !settings.EditorHits_Enabled)
             {
@@ -141,6 +150,8 @@ namespace TimingShow.LevelEditor
             else if (_canvasObject != null && !_canvasObject.activeSelf)
                 _canvasObject.SetActive(true);
 
+            TickPanel();
+
             if (_phase == Phase.Preparing)
             {
                 StepPrepare(editor);
@@ -163,8 +174,9 @@ namespace TimingShow.LevelEditor
                 _phase = Phase.Ready;
                 _progressHideAt = Time.unscaledTime + 0.2f;
             }
-            else if (Time.unscaledTime - _lastRebuildTime >= RebuildIntervalSeconds)
+            else if (_forceRebuild || Time.unscaledTime - _lastRebuildTime >= RebuildIntervalSeconds)
             {
+                _forceRebuild = false;
                 RebuildMarkers(editor);
             }
 
@@ -203,6 +215,7 @@ namespace TimingShow.LevelEditor
             _lastLevelCheckTime = Time.unscaledTime;
             _valid = new bool[snapshot.Samples.Length];
             _hoverSampleIndex = -1;
+            BeginCounts();
 
             EnsureCanvas();
             if (_canvasObject != null) _canvasObject.SetActive(true);
@@ -229,6 +242,7 @@ namespace TimingShow.LevelEditor
                 }
 
                 _valid[_prepareIndex] = valid;
+                TrackPrepared(sample, valid);
             }
 
             ShowProgress(_prepareIndex, total);
@@ -247,6 +261,8 @@ namespace TimingShow.LevelEditor
             _visible.Clear();
 
             if (_snapshot == null || _mesh == null) return;
+
+            int shown = 0;
 
             Camera camera = editor.camera;
             List<scrFloor> floors;
@@ -279,6 +295,10 @@ namespace TimingShow.LevelEditor
                 if (_valid == null || i >= _valid.Length || !_valid[i]) continue;
 
                 TimingScatterSample sample = _snapshot.Samples[i];
+                bool pinned = i == _pinnedIndex;
+                bool passes = PassesView(i);
+                if (passes) shown++;
+                if (!passes && !pinned) continue;
                 if (sample.FloorId < 0 || sample.FloorId >= floors.Count) continue;
 
                 scrFloor floor = floors[sample.FloorId];
@@ -293,7 +313,18 @@ namespace TimingShow.LevelEditor
                 if (screen.x < viewport.xMin - cullMargin || screen.x > viewport.xMax + cullMargin) continue;
                 if (screen.y < viewport.yMin - cullMargin || screen.y > viewport.yMax + cullMargin) continue;
 
-                AppendDashedCircle(world, right, up, radius, outlineHalfWidth, MarkerColor(sample));
+                Color color = MarkerColor(sample, settings);
+                if (_hasSearchQuery && !_onlyMatches && _searchMask != null && !PassesSearch(i) && (settings == null || settings.EditorHits_DimUnmatched))
+                    color.a *= 0.22f;
+
+                AppendMarker(world, right, up, radius, outlineHalfWidth, color);
+
+                if (pinned)
+                {
+                    Color highlight = HitOverlaySkin.Accent;
+                    highlight.a = 1f;
+                    AppendHighlight(world, right, up, radius * 1.55f, Mathf.Max(outlineHalfWidth * 1.4f, radius * 0.06f), highlight);
+                }
 
                 VisibleHit hit = new VisibleHit();
                 hit.SampleIndex = i;
@@ -301,6 +332,7 @@ namespace TimingShow.LevelEditor
                 _visible.Add(hit);
             }
 
+            _filteredCount = shown;
             ApplyMesh();
         }
         
@@ -339,11 +371,6 @@ namespace TimingShow.LevelEditor
             center.x += (actualX - baseX) * radius;
             center.y += (actualY - baseY) * radius;
             return center;
-        }
-
-        private static Color MarkerColor(TimingScatterSample sample)
-        {
-            return JColors.GetColor(sample.Judge, sample.IsXPerfect, true);
         }
 
         private void AppendDashedCircle(Vector3 center, Vector3 right, Vector3 up, float radius, float halfWidth, Color color)
@@ -474,6 +501,12 @@ namespace TimingShow.LevelEditor
             }
 
             Vector2 mouse = Input.mousePosition;
+            if (PanelContainsMouse(mouse))
+            {
+                HideTooltip();
+                return;
+            }
+
             Rect viewport = camera.pixelRect;
             if (mouse.x < viewport.xMin || mouse.x > viewport.xMax ||
                 mouse.y < viewport.yMin || mouse.y > viewport.yMax)
@@ -598,7 +631,11 @@ namespace TimingShow.LevelEditor
         private void SetUiVisible(bool visible)
         {
             if (_canvasObject != null && _canvasObject.activeSelf != visible) _canvasObject.SetActive(visible);
-            if (!visible) HideTooltip();
+            if (!visible)
+            {
+                HideTooltip();
+                DisposePanel();
+            }
         }
 
         private void EnsureCanvas()
@@ -799,6 +836,8 @@ namespace TimingShow.LevelEditor
 
         private void Teardown()
         {
+            DisposePanel();
+
             if (_phase == Phase.Idle && _snapshot == null) return;
 
             _snapshot = null;
@@ -835,6 +874,7 @@ namespace TimingShow.LevelEditor
 
         private void OnDestroy()
         {
+            DisposePanel();
             if (_mesh != null) UnityEngine.Object.Destroy(_mesh);
             if (_material != null) UnityEngine.Object.Destroy(_material);
             if (_host == this) _host = null;
