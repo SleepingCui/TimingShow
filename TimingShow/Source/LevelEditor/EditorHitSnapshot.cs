@@ -193,6 +193,11 @@ namespace TimingShow.LevelEditor
             }
         }
 
+        internal static void ClearPending()
+        {
+            _pending = null;
+        }
+
         internal static void Clear()
         {
             _pending = null;

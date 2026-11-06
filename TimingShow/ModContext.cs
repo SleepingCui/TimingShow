@@ -155,6 +155,7 @@ namespace TimingShow
             }
             Patches.InputPatches.Install(HarmonyInstance);
             SessionReport.SessionReportHotkey.EnsureHost();
+            LevelEditor.EditorHitMarkerController.EnsureHost();
         }
 
         public static void Disable()

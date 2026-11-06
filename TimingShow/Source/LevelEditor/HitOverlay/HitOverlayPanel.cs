@@ -130,7 +130,7 @@ namespace TimingShow.LevelEditor
 
             _settings = settings;
 
-            if (Input.GetKeyDown(KeyCode.F6)) settings.EditorHits_PanelVisible = !settings.EditorHits_PanelVisible;
+            if (PanelKeyPressed(settings)) settings.EditorHits_PanelVisible = !settings.EditorHits_PanelVisible;
 
             if (!settings.EditorHits_PanelVisible)
             {
@@ -379,13 +379,27 @@ namespace TimingShow.LevelEditor
             Header();
             if (!_collapsed)
             {
-                FiltersSection();
-                DisplaySection();
-                SearchSection();
+                if (_owner != null && _owner.Snapshot != null)
+                {
+                    FiltersSection();
+                    DisplaySection();
+                    SearchSection();
+                }
+                else
+                {
+                    EmptySection();
+                }
+
                 Footer();
             }
 
             _y += HitOverlaySkin.Padding;
+        }
+
+        private void EmptySection()
+        {
+            Label(R(HitOverlaySkin.Padding, _y + 8f, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight), i18n.T("HitPanel_Empty"), HitOverlaySkin.TextSecondary, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1f);
+            _y += HitOverlaySkin.RowHeight + 8f;
         }
 
         private void Header()
@@ -595,24 +609,57 @@ namespace TimingShow.LevelEditor
             _y += HitOverlaySkin.RowHeight - 2f;
         }
 
+        private static bool PanelKeyPressed(Settings settings)
+        {
+            KeyCode key = settings.EditorHits_PanelKey;
+            if (key == KeyCode.None) return false;
+            if (TimingShow.Options.Options.HitPanelHotkeySuppressed) return false;
+            return Input.GetKeyDown(key);
+        }
+
         private void Footer()
         {
             Fill(R(0f, _y, _width, 1f), HitOverlaySkin.Separator);
             _y += 4f;
 
-            Rect clear = R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.ChipHeight);
-            bool hover = Hovered(clear);
-            Fill(clear, hover ? HitOverlaySkin.DangerHover : HitOverlaySkin.ChipBackground);
-            Outline(clear, hover ? HitOverlaySkin.DangerHover : HitOverlaySkin.ChipBorder);
-            Label(clear, i18n.T("HitPanel_ClearDisplay"), HitOverlaySkin.TextPrimary, TextAlignmentOptions.Center, HitOverlaySkin.FontSize - 1f);
-            if (Pressed(clear) && _owner != null) _owner.RequestClear();
+            bool hasSnapshot = _owner != null && _owner.Snapshot != null;
+            float buttonWidth = (_width - HitOverlaySkin.Padding * 2f - HitOverlaySkin.ChipGap) * 0.5f;
+            Rect import = R(HitOverlaySkin.Padding, _y, buttonWidth, HitOverlaySkin.ChipHeight);
+            Rect clear = R(HitOverlaySkin.Padding + buttonWidth + HitOverlaySkin.ChipGap, _y, buttonWidth, HitOverlaySkin.ChipHeight);
+
+            if (Button(import, i18n.T("Btn_ImportHitLog"), false, true) && _owner != null) _owner.RequestImport();
+            if (Button(clear, i18n.T("HitPanel_ClearDisplay"), true, hasSnapshot) && _owner != null) _owner.RequestClear();
             _y += HitOverlaySkin.ChipHeight + 4f;
 
-            string hint = _owner != null && _owner.IsPreparing
-                ? i18n.T("HitPanel_Preparing")
-                : i18n.T("HitPanel_Hint");
+            if (_owner != null && !string.IsNullOrEmpty(_owner.ImportStatus))
+            {
+                Label(R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight), _owner.ImportStatus, _owner.ImportStatusOk ? HitOverlaySkin.TextSecondary : HitOverlaySkin.TextDanger, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1.5f);
+                _y += HitOverlaySkin.RowHeight;
+            }
+
+            string hint;
+            if (_owner != null && _owner.IsPreparing)
+            {
+                hint = i18n.T("HitPanel_Preparing");
+            }
+            else
+            {
+                KeyCode key = _settings != null ? _settings.EditorHits_PanelKey : KeyCode.None;
+                string keyName = key == KeyCode.None ? i18n.T("Status_Disabled") : key.ToString();
+                hint = string.Format(CultureInfo.InvariantCulture, i18n.T("HitPanel_Hint"), keyName);
+            }
             Label(R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.FooterHeight), hint, HitOverlaySkin.TextDisabled, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1.5f);
             _y += HitOverlaySkin.FooterHeight;
+        }
+
+        private bool Button(Rect rect, string label, bool danger, bool enabled)
+        {
+            bool hover = enabled && Hovered(rect);
+            Color background = hover ? (danger ? HitOverlaySkin.DangerHover : HitOverlaySkin.RowHover) : HitOverlaySkin.ChipBackground;
+            Fill(rect, background);
+            Outline(rect, hover ? background : HitOverlaySkin.ChipBorder);
+            Label(rect, label, enabled ? HitOverlaySkin.TextPrimary : HitOverlaySkin.TextDisabled, TextAlignmentOptions.Center, HitOverlaySkin.FontSize - 1f);
+            return enabled && Pressed(rect);
         }
 
         private bool SectionHeader(string key, ref bool open)
