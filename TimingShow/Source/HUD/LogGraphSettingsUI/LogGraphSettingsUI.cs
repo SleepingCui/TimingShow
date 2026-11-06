@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using TimingShow.HUD.LogGraphWindow;
 
 namespace TimingShow.HUD.LogGraphSettingsUI
 {
@@ -40,7 +41,11 @@ namespace TimingShow.HUD.LogGraphSettingsUI
         private SettingsPanelGraphic _graphic;
         private readonly List<Row> _rows = new List<Row>();
         private readonly List<TextMeshProUGUI> _texts = new List<TextMeshProUGUI>();
+        private readonly List<LogRangeField> _fields = new List<LogRangeField>();
         private TextMeshProUGUI _titleText;
+
+        internal static bool CapturingReportKey;
+        private static int _suppressHotkeyFrame = -1;
 
         private bool _open;
         private int _tab;
@@ -72,6 +77,11 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 return settings != null ? Mathf.Clamp(settings.LogGraph_UIScale, 0.75f, 3f) : 1.25f;
             }
         }
+        internal static bool SuppressReportHotkey
+        {
+            get { return CapturingReportKey || _suppressHotkeyFrame == Time.frameCount; }
+        }
+
         public bool IsOpen => _open;
 
         public static LogGraphSettingsUI Create(RectTransform parent, ILogGraphSettingsHost host, TMP_FontAsset font)
@@ -118,17 +128,20 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 
             if (open)
             {
-                _lastWidth = float.NaN;  
-                _draft = Draft.FromSettings(S);  
+                _lastWidth = float.NaN;
+                SetReportKeyCapture(false);
+                _draft = Draft.FromSettings(S);
                 _draftDirty = false;
                 RebuildRows();
             }
             else
             {
+                EndEditingFields();
+                SetReportKeyCapture(false);
                 _activeRow = null;
                 _activeBar = -1;
                 _hoverRow = null;
-                _draftDirty = false;  
+                _draftDirty = false;
             }
         }
 
@@ -189,7 +202,11 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             bool inside = RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 Rect, mouse, null, out local) && new Rect(0f, 0f, _panelWidth, _panelHeight).Contains(local);
 
-            if (Input.GetMouseButtonDown(0))
+            bool mouseDown = Input.GetMouseButtonDown(0);
+            TickFields(mouse, mouseDown);
+            TickReportKeyCapture();
+
+            if (mouseDown)
             {
                 _activeRow = inside ? FindRow(local, out _activeBar) : null;
                 if (_activeRow != null) HandlePress(_activeRow, local);
@@ -254,7 +271,11 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                     }
                     return;
                 case RowKind.Button:
-                    ApplyDraft();
+                    if (row.IsEnabled != null && !row.IsEnabled()) return;
+
+                    EndEditingFields();
+                    if (row.OnPress != null) row.OnPress();
+                    else ApplyDraft();
                     return;
                 case RowKind.Toggle:
                     bool value = !(row.GetToggle != null && row.GetToggle());
@@ -327,6 +348,36 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 
             MarkDirty();
             _draftDirty = true;   
+        }
+
+        private void TickFields(Vector2 mouse, bool mouseDown)
+        {
+            for (int i = 0; i < _fields.Count; i++)
+            {
+                LogRangeField field = _fields[i];
+                if (field == null) continue;
+
+                if (mouseDown && field.IsEditing
+                    && !RectTransformUtility.RectangleContainsScreenPoint(field.rectTransform, mouse, null))
+                {
+                    field.EndEdit();
+                }
+
+                field.Tick();
+            }
+        }
+
+        private void EndEditingFields()
+        {
+            for (int i = 0; i < _fields.Count; i++)
+            {
+                if (_fields[i] != null && _fields[i].IsEditing) _fields[i].EndEdit();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            CapturingReportKey = false;
         }
 
     }

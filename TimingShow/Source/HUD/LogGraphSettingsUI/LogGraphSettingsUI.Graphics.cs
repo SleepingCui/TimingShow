@@ -180,8 +180,15 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             
             private static void DrawButton(VertexHelper vh, Row row, float scale, bool dirty)
             {
+                bool enabled = row.IsEnabled == null || row.IsEnabled();
                 Color fill = dirty ? new Color(0.20f, 0.52f, 0.88f, 0.95f) : new Color(1f, 1f, 1f, 0.10f);
                 Color edge = dirty ? new Color(0.55f, 0.82f, 1f, 0.95f) : BorderColor;
+
+                if (!enabled)
+                {
+                    fill.a *= 0.35f;
+                    edge.a *= 0.4f;
+                }
 
                 float corner = Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.35f);
                 LogRoundedRect.DrawFilled(vh, row.Rect, corner, fill, 6);

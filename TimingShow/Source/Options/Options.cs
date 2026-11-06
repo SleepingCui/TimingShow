@@ -16,17 +16,14 @@ namespace TimingShow.Options
         private static string _analyzerTimeoutText;
         private static string _scatterSampleCountText;
         private static string _scatterMaxPointsText;
-        private static string _logGraphMaxPointsText;
-        private static bool _capturingReportKey;
-        
+
         internal static bool HotkeySuppressed
         {
-            get { return _capturingReportKey && ModContext.IsConfigOpen; }
+            get { return TimingShow.HUD.LogGraphSettingsUI.LogGraphSettingsUI.SuppressReportHotkey; }
         }
 
         private static bool _showAdvancedSettings;
         private static bool _showDebugSettings;
-        private static bool _showLogGraphSettings;
 
         private static bool _foldoutTitleSettings;
         private static bool _foldoutPlanetSettings;
@@ -48,7 +45,6 @@ namespace TimingShow.Options
             if (!ModContext.IsConfigOpen)
             {
                 OptionLogList.OnConfigOpened();
-                _capturingReportKey = false;
             }
 
             ModContext.LastConfigGuiFrame = Time.frameCount;
@@ -68,7 +64,6 @@ namespace TimingShow.Options
             DrawLoggingSettings();
             DrawSessionControls();
             OptionLogList.Draw();
-            DrawLogGraphSettings();
             DrawAdvancedSettings();
         }
 
@@ -433,44 +428,6 @@ namespace TimingShow.Options
                 IndentedLabel(_editorHitsStatus);
         }
 
-        private static void DrawLogGraphSettings()
-        {
-            string foldoutArrow = _showLogGraphSettings ? "▲" : "▼";
-            if (GUILayout.Button($"{i18n.T("Toggle_LogGraph")} {foldoutArrow}", GUILayout.Width(150)))
-                _showLogGraphSettings = !_showLogGraphSettings;
-
-            if (!_showLogGraphSettings) return;
-
-            GUILayout.BeginVertical();
-            {
-                GUILayout.Space(5);
-                SliderFloat("LogGraph_UiScale", ref ModContext.Settings.LogGraph_UIScale, 0.75f, 3.0f);
-                Toggle(ref ModContext.Settings.LogGraph_IgnoreOutliers, "Toggle_IgnoreOutliers");
-                Toggle(ref ModContext.Settings.LogGraph_UseHitAxis, "Toggle_UseHitAxis");
-                Toggle(ref ModContext.Settings.LogGraph_UseJudgeColor, "Toggle_UseJudgeColor");
-                Toggle(ref ModContext.Settings.LogGraph_DistinguishPlayers, "Toggle_DistinguishPlayers");
-                Toggle(ref ModContext.Settings.LogGraph_ShowZeroLine, "Toggle_ShowZeroLine");
-                Toggle(ref ModContext.Settings.LogGraph_ShowAvgLine, "Toggle_ShowAvgLine");
-                Toggle(ref ModContext.Settings.LogGraph_ShowHitDetails, "Toggle_ShowHitDetails");
-                IntField("Label_MaxRenderPoints", ref _logGraphMaxPointsText, ref ModContext.Settings.LogGraph_MaxRenderPoints, 20, 8000, 800);
-                SliderFloat("Label_PointSize", ref ModContext.Settings.LogGraph_PointSize, 1.0f, 12.0f);
-
-                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.LogGraph_BgColor);
-                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.LogGraph_GridColor);
-                ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.LogGraph_PointColor);
-                ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.LogGraph_ZeroLineColor);
-                ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.LogGraph_AvgLineColor);
-                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.LogGraph_AxisTextColor);
-
-                DrawHUDFontSettings(ref ModContext.Settings.LogGraph_UseCustomFont, ref ModContext.Settings.LogGraph_FontPath);
-
-                GUILayout.Space(8);
-                DrawReportKeyRow();
-                DrawLastReportButtonRow();
-            }
-            GUILayout.EndVertical();
-        }
-
         private static void DrawLoggingSettings()
         {
             GUILayout.BeginVertical();
@@ -556,46 +513,6 @@ namespace TimingShow.Options
             {
                 Players.ResetAll();
             }
-        }
-
-        private static void DrawReportKeyRow()
-        {
-            if (ModContext.Settings == null) return;
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(i18n.T("Label_ReportKey"), GUILayout.Width(140));
-
-            string keyText = _capturingReportKey
-                ? i18n.T("Btn_PressKey")
-                : (ModContext.Settings.ReportKey == KeyCode.None ? i18n.T("Status_Disabled") : ModContext.Settings.ReportKey.ToString());
-            if (GUILayout.Button(keyText, GUILayout.Width(140)))
-                _capturingReportKey = !_capturingReportKey;
-            GUILayout.EndHorizontal();
-
-            if (_capturingReportKey)
-            {
-                Event keyEvent = Event.current;
-                if (keyEvent != null && keyEvent.type == EventType.KeyDown && keyEvent.keyCode != KeyCode.None)
-                {
-                    if (keyEvent.keyCode != KeyCode.Escape)
-                        ModContext.Settings.ReportKey = keyEvent.keyCode;
-
-                    _capturingReportKey = false;
-                    keyEvent.Use();
-                }
-            }
-        }
-
-        private static void DrawLastReportButtonRow()
-        {
-            if (ModContext.Settings == null) return;
-
-            bool hasReport = SessionReport.LastSessionReport.HasReport;
-            bool previousEnabled = GUI.enabled;
-            GUI.enabled = previousEnabled && hasReport;
-            if (GUILayout.Button(i18n.T("Btn_ViewLastReport"), GUILayout.Width(150)))
-                SessionReport.LastSessionReport.OpenWindow();
-            GUI.enabled = previousEnabled;
         }
 
         private static void DrawAdvancedSettings()

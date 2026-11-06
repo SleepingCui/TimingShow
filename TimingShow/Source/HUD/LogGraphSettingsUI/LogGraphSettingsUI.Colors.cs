@@ -25,7 +25,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
         {
             "LogGraph_ColorChannelR",
             "LogGraph_ColorChannelG",
-            "LogGraph_ColorChannelB"
+            "LogGraph_ColorChannelB",
+            "LogGraph_ColorChannelA"
         };
 
         private Color GetColorSlot(int index)
@@ -65,15 +66,26 @@ namespace TimingShow.HUD.LogGraphSettingsUI
         private float GetColorChannel(int slot, int channel)
         {
             Color color = GetColorSlot(slot);
-            return channel == 0 ? color.r : channel == 1 ? color.g : color.b;
+            switch (channel)
+            {
+                case 0: return color.r;
+                case 1: return color.g;
+                case 2: return color.b;
+                default: return color.a;
+            }
         }
 
         private void SetColorChannel(int slot, int channel, float value)
         {
             Color color = GetColorSlot(slot);
-            color.r = channel == 0 ? value : color.r;
-            color.g = channel == 1 ? value : color.g;
-            color.b = channel == 2 ? value : color.b;
+            switch (channel)
+            {
+                case 0: color.r = value; break;
+                case 1: color.g = value; break;
+                case 2: color.b = value; break;
+                default: color.a = value; break;
+            }
+
             SetColorSlot(slot, color);
         }
 

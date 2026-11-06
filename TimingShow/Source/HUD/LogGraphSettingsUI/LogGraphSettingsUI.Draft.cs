@@ -23,6 +23,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             public bool ShowHitDetails;
             public float BandThresholdBpm = 310f;
             public bool UseCustomFont;
+            public string FontPath = "";
+            public KeyCode ReportKey = KeyCode.F10;
             public Color BgColor = Color.black;
             public Color GridColor = Color.white;
             public Color PointColor = Color.white;
@@ -55,6 +57,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 d.ShowHitDetails = s.LogGraph_ShowHitDetails;
                 d.BandThresholdBpm = s.LogGraph_BandThresholdBpm;
                 d.UseCustomFont = s.LogGraph_UseCustomFont;
+                d.FontPath = s.LogGraph_FontPath ?? "";
+                d.ReportKey = s.ReportKey;
                 d.BgColor = s.LogGraph_BgColor;
                 d.GridColor = s.LogGraph_GridColor;
                 d.PointColor = s.LogGraph_PointColor;
@@ -88,6 +92,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 s.LogGraph_ShowHitDetails = ShowHitDetails;
                 s.LogGraph_BandThresholdBpm = BandThresholdBpm;
                 s.LogGraph_UseCustomFont = UseCustomFont;
+                s.LogGraph_FontPath = FontPath ?? "";
+                s.ReportKey = ReportKey;
                 s.LogGraph_BgColor = BgColor;
                 s.LogGraph_GridColor = GridColor;
                 s.LogGraph_PointColor = PointColor;

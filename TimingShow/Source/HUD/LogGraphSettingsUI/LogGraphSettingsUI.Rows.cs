@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using TimingShow.HUD.LogGraphWindow;
 
 namespace TimingShow.HUD.LogGraphSettingsUI
 {
@@ -16,7 +17,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             ColorPick,
             ColorPreview,
             Text,
-            Button
+            Button,
+            TextField
         }
         
         private sealed class Row
@@ -41,7 +43,18 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             public bool ByteDisplay;
             public TextMeshProUGUI Label;
             public TextMeshProUGUI Value;
+            public string LabelText;
+            public Action OnPress;
+            public Func<bool> IsEnabled;
+            public LogRangeField Field;
         }
+
+        private static readonly string[] TabKeys =
+        {
+            "LogGraph_TabBasic",
+            "LogGraph_TabColors",
+            "LogGraph_TabMisc"
+        };
         
         private void RebuildRows()
         {
@@ -69,25 +82,20 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             PlaceText(_titleText, titleRect, w, h, false);
 
             top -= titleHeight + gap;
-            
+
             float tabHeight = BaseTabHeight * scale;
-            float tabWidth = contentWidth * 0.5f;
-            Row tabBasic = new Row
+            float tabWidth = Mathf.Max(1f, (contentWidth - gap * 2f) / TabKeys.Length);
+            for (int i = 0; i < TabKeys.Length; i++)
             {
-                Kind = RowKind.Tab,
-                LabelKey = "LogGraph_TabBasic",
-                TabIndex = 0,
-                Rect = new Rect(left, top - tabHeight, tabWidth - gap * 0.5f, tabHeight)
-            };
-            Row tabColors = new Row
-            {
-                Kind = RowKind.Tab,
-                LabelKey = "LogGraph_TabColors",
-                TabIndex = 1,
-                Rect = new Rect(left + tabWidth + gap * 0.5f, top - tabHeight, tabWidth - gap * 0.5f, tabHeight)
-            };
-            AddTab(tabBasic, fontSize);
-            AddTab(tabColors, fontSize);
+                AddTab(new Row
+                {
+                    Kind = RowKind.Tab,
+                    LabelKey = TabKeys[i],
+                    TabIndex = i,
+                    Rect = new Rect(left + i * (tabWidth + gap), top - tabHeight, tabWidth, tabHeight)
+                }, fontSize);
+            }
+
             top -= tabHeight + gap * 1.5f;
             
             float buttonHeight = BaseTabHeight * scale;
@@ -106,7 +114,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 BuildColorPreview(left, contentWidth, scale, gap, fontSize, ref top);
             }
 
-            List<Row> content = _tab == 0 ? BuildBasicRows() : BuildColorRows();
+            List<Row> content = _tab == 0 ? BuildBasicRows() : (_tab == 1 ? BuildColorRows() : BuildMiscRows());
             if (content.Count == 0) return;
             
             float available = Mathf.Max(1f, top - pad);
@@ -182,11 +190,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             rows.Add(Slider("Label_BandThresholdBpm", 100f, 600f, false, "F0",
                 () => _draft.BandThresholdBpm,
                 v => _draft.BandThresholdBpm = v));
-            rows.Add(Toggle("Toggle_CustomFont",
-                () => _draft.UseCustomFont,
-                v => _draft.UseCustomFont = v));
 
-            rows.Add(Text("LogGraph_FontHint"));
             return rows;
         }
 
@@ -194,7 +198,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
         {
             List<Row> rows = new List<Row>(3);
 
-            for (int channel = 0; channel < 3; channel++)
+            for (int channel = 0; channel < ColorChannelKeys.Length; channel++)
             {
                 int c = channel;
                 rows.Add(new Row
@@ -330,11 +334,25 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 
         private void AddRowText(Row row, float fontSize, float w, float h)
         {
+            if (row.Kind == RowKind.Button)
+            {
+                AddButton(row, fontSize);
+                return;
+            }
+
             if (row.Kind == RowKind.Text)
             {
-                row.Label = CreateText("RowText" + _rows.Count, i18n.T(row.LabelKey),
+                row.Label = CreateText("RowText" + _rows.Count,
+                    row.LabelText ?? (row.LabelKey != null ? i18n.T(row.LabelKey) : ""),
                     TextAlignmentOptions.MidlineLeft, Mathf.Max(8f, fontSize * 0.9f), TextColor);
+                row.Label.overflowMode = TextOverflowModes.Ellipsis;
                 PlaceText(row.Label, row.Rect, w, h, false);
+                return;
+            }
+
+            if (row.Kind == RowKind.TextField)
+            {
+                row.Field = CreateField(row, fontSize);
                 return;
             }
 
@@ -368,7 +386,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 
         private void AddButton(Row row, float fontSize)
         {
-            row.Label = CreateText("Button" + row.LabelKey, i18n.T(row.LabelKey),
+            row.Label = CreateText("Button" + row.LabelKey,
+                row.LabelText ?? (row.LabelKey != null ? i18n.T(row.LabelKey) : ""),
                 TextAlignmentOptions.Center, fontSize, TextColor);
             PlaceText(row.Label, row.Rect, _panelWidth, _panelHeight, false);
             _rows.Add(row);
@@ -417,6 +436,27 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             return text;
         }
 
+        private LogRangeField CreateField(Row row, float fontSize)
+        {
+            GameObject go = new GameObject("RowField" + _rows.Count, typeof(RectTransform));
+            go.transform.SetParent(transform, false);
+            go.transform.localScale = Vector3.one;
+            go.transform.localRotation = Quaternion.identity;
+
+            RectTransform rt = (RectTransform)go.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.zero;
+            rt.pivot = Vector2.zero;
+            rt.anchoredPosition = new Vector2(row.Rect.xMin, row.Rect.yMin);
+            rt.sizeDelta = new Vector2(Mathf.Max(1f, row.Rect.width), Mathf.Max(1f, row.Rect.height));
+
+            LogRangeField field = go.AddComponent<LogRangeField>();
+            field.InitializeText(_font, fontSize, i18n.T("LogGraph_FontFieldHint"), OnFontPathChanged, OnFontPathCommitted);
+            field.SetValueSilent(_draft.FontPath ?? "");
+            _fields.Add(field);
+            return field;
+        }
+
         private void ClearTexts()
         {
             for (int i = 0; i < _texts.Count; i++)
@@ -424,6 +464,12 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 if (_texts[i] != null) Destroy(_texts[i].gameObject);
             }
 
+            for (int i = 0; i < _fields.Count; i++)
+            {
+                if (_fields[i] != null) Destroy(_fields[i].gameObject);
+            }
+
+            _fields.Clear();
             _texts.Clear();
             _titleText = null;
             _colorPreviewRow = null;

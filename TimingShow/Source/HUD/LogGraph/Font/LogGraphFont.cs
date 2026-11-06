@@ -120,7 +120,9 @@ namespace TimingShow.HUD
             string[] keys =
             {
                 "LogGraph_SettingsTitle", "LogGraph_TabBasic", "LogGraph_TabColors", "LogGraph_Apply",
-                "LogGraph_FontHint", "LogGraph_UiScale", "LogGraph_CornerScale", "Toggle_IgnoreOutliers",
+                "LogGraph_TabMisc", "LogGraph_ColorChannelA", "LogGraph_FontFieldHint", "LogGraph_ReportKeyHint",
+                "Label_FontPath", "Label_ReportKey", "Btn_ResetReportKey", "Btn_SelectFont", "Btn_ViewLastReport", "Btn_PressKey", "Status_Disabled",
+                "LogGraph_UiScale", "LogGraph_CornerScale", "Toggle_IgnoreOutliers",
                 "Toggle_UseHitAxis", "Toggle_UseJudgeColor",
                 "Toggle_DistinguishPlayers", "Toggle_ShowZeroLine", "Toggle_ShowAvgLine", "Toggle_ShowGrid",
                 "Toggle_ShowJudgeBands", "Toggle_ShowXpBand", "Toggle_ShowHitDetails", "Toggle_CustomFont", "Label_PointSize",

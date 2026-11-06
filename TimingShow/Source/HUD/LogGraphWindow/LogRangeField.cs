@@ -11,6 +11,7 @@ namespace TimingShow.HUD.LogGraphWindow
         IPointerClickHandler, IDragHandler, IPointerEnterHandler, IPointerExitHandler
     {
         private const int MaxLength = 9;
+        private const int MaxTextLength = 260;
         private const float TextInset = 4f;
         private const float CaretWidth = 1.5f;
         private const float CaretBlinkSeconds = 0.53f;
@@ -48,6 +49,8 @@ namespace TimingShow.HUD.LogGraphWindow
         private System.Action<LogRangeField> _onCommit;
         private string _value = "";
         private string _valueAtFocus = "";
+        private int _maxLength = MaxLength;
+        private bool _textMode;
         private bool _editing;
         private bool _hover;
         private bool _caretVisible;
@@ -84,6 +87,20 @@ namespace TimingShow.HUD.LogGraphWindow
         internal void Initialize(TMP_FontAsset font, float fontSize, string hint, System.Action<string> onChanged,
             System.Action<LogRangeField> onCommit)
         {
+            InitializeCore(font, fontSize, hint, MaxLength, false, onChanged, onCommit);
+        }
+
+        internal void InitializeText(TMP_FontAsset font, float fontSize, string hint, System.Action<string> onChanged,
+            System.Action<LogRangeField> onCommit)
+        {
+            InitializeCore(font, fontSize, hint, MaxTextLength, true, onChanged, onCommit);
+        }
+
+        private void InitializeCore(TMP_FontAsset font, float fontSize, string hint, int maxLength, bool textMode,
+            System.Action<string> onChanged, System.Action<LogRangeField> onCommit)
+        {
+            _maxLength = Mathf.Max(1, maxLength);
+            _textMode = textMode;
             _onChanged = onChanged;
             _onCommit = onCommit;
 
@@ -502,8 +519,15 @@ namespace TimingShow.HUD.LogGraphWindow
             string buffer = GUIUtility.systemCopyBuffer;
             if (string.IsNullOrEmpty(buffer)) return false;
 
-            int room = MaxLength - (_value.Length - (SelectionEnd() - SelectionStart()));
+            int room = _maxLength - (_value.Length - (SelectionEnd() - SelectionStart()));
             if (room <= 0) return false;
+
+            if (_textMode)
+            {
+                string trimmed = buffer.Length > room ? buffer.Substring(0, room) : buffer;
+                trimmed = trimmed.Replace('\r', ' ').Replace('\n', ' ').Trim();
+                return trimmed.Length > 0 && ReplaceSelection(trimmed);
+            }
 
             StringBuilder filtered = new StringBuilder(buffer.Length);
             for (int i = 0; i < buffer.Length && filtered.Length < room; i++)
@@ -588,9 +612,10 @@ namespace TimingShow.HUD.LogGraphWindow
             return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
         }
 
-        private static bool IsAcceptable(string text)
+        private bool IsAcceptable(string text)
         {
-            if (text.Length > MaxLength) return false;
+            if (text.Length > _maxLength) return false;
+            if (_textMode) return true;
 
             int dots = 0;
             int minuses = 0;
