@@ -21,8 +21,6 @@ namespace TimingShow.Update
 
             if (!supported)
                 IndentedLabel("<color=#888888>" + i18n.T("Updater_Unsupported") + "</color>");
-            else if (settings.UpdateCheckEnabled != Updater.CheckEnabled || settings.UpdateAutoUpdate != Updater.AutoUpdateEnabled)
-                IndentedLabel("<color=#888888>" + i18n.T("Updater_RestartRequired") + "</color>");
         }
     }
 }
