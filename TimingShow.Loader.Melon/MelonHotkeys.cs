@@ -1,4 +1,3 @@
-using System;
 using MelonLoader;
 using UnityEngine;
 
@@ -10,13 +9,18 @@ namespace TimingShow.Melon
         private const string ConfigKeyIdentifier = "ConfigKey";
         private const KeyCode FallbackKey = KeyCode.F9;
 
-        private static MelonPreferences_Entry<string> _configKey;
+        private static MelonPreferences_Entry<KeyCode> _configKey;
 
         public static void Initialize(Settings settings)
         {
             var category = MelonPreferences.CreateCategory(CategoryName, "TimingShow");
             string label = i18n.T("Label_ConfigKey").TrimEnd(' ', ':', '：');
-            _configKey = category.CreateEntry(ConfigKeyIdentifier, settings.ConfigKey.ToString(), label, i18n.T("Melon_ConfigKey_Desc"));
+            _configKey = category.CreateEntry(ConfigKeyIdentifier, settings.ConfigKey, label, i18n.T("Melon_ConfigKey_Desc"));
+            _configKey.OnEntryValueChanged.Subscribe((oldKey, newKey) =>
+            {
+                if (newKey != KeyCode.None)
+                    settings.ConfigKey = newKey;
+            });
             Apply(settings);
             MelonPreferences.Save();
         }
@@ -25,23 +29,22 @@ namespace TimingShow.Melon
         {
             if (settings == null || _configKey == null) return;
 
-            string raw = _configKey.Value;
-            if (!string.IsNullOrWhiteSpace(raw) && Enum.TryParse(raw.Trim(), true, out KeyCode key) && key != KeyCode.None)
+            KeyCode key = _configKey.Value;
+            if (key != KeyCode.None)
             {
                 settings.ConfigKey = key;
                 return;
             }
 
-            ModContext.Logger?.Error("[TimingShow] Invalid ConfigKey \"" + raw + "\" in MelonPreferences, falling back to " + FallbackKey + ".");
             settings.ConfigKey = FallbackKey;
-            _configKey.Value = FallbackKey.ToString();
+            _configKey.Value = FallbackKey;
         }
 
         public static void SetConfigKey(KeyCode key)
         {
             if (_configKey == null) return;
 
-            _configKey.Value = key.ToString();
+            _configKey.Value = key;
             MelonPreferences.Save();
         }
     }

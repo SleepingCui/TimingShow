@@ -35,6 +35,8 @@ namespace TimingShow.Melon
 
         public override void OnUpdate()
         {
+            if (_isRebinding) return;
+
             var key = ModContext.Settings.ConfigKey;
             if (key == KeyCode.None) key = KeyCode.F9;
 
@@ -63,24 +65,14 @@ namespace TimingShow.Melon
                         GUILayout.Label(i18n.T("Label_ConfigKey"), GUILayout.Width(100));
                         if (_isRebinding)
                         {
-                            var evt = Event.current;
-                            if (evt != null && evt.isKey && evt.type == EventType.KeyDown)
-                            {
-                                if (evt.keyCode == KeyCode.Escape)
-                                    _isRebinding = false;
-                                else
-                                {
-                                    ModContext.Settings.ConfigKey = evt.keyCode;
-                                    MelonHotkeys.SetConfigKey(evt.keyCode);
-                                    _isRebinding = false;
-                                }
-                                evt.Use();
-                            }
                             GUILayout.Button(i18n.T("Btn_PressKey"), GUILayout.Width(140));
+                            CaptureConfigKey();
                         }
                         else
                         {
-                            if (GUILayout.Button(ModContext.Settings.ConfigKey.ToString(), GUILayout.Width(140)))
+                            KeyCode key = ModContext.Settings.ConfigKey;
+                            string keyText = key == KeyCode.None ? i18n.T("Status_Disabled") : key.ToString();
+                            if (GUILayout.Button(keyText, GUILayout.Width(140)))
                                 _isRebinding = true;
                         }
                     }
@@ -100,6 +92,21 @@ namespace TimingShow.Melon
                 GUILayout.Width(WindowWidth),
                 GUILayout.Height(WindowHeight)
             );
+        }
+
+        private void CaptureConfigKey()
+        {
+            Event evt = Event.current;
+            if (evt == null || !evt.isKey || evt.type != EventType.KeyDown || evt.keyCode == KeyCode.None) return;
+
+            if (evt.keyCode != KeyCode.Escape)
+            {
+                ModContext.Settings.ConfigKey = evt.keyCode;
+                MelonHotkeys.SetConfigKey(evt.keyCode);
+            }
+
+            _isRebinding = false;
+            evt.Use();
         }
 
         public override void OnApplicationQuit()
