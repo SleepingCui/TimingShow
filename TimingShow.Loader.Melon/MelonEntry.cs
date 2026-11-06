@@ -25,6 +25,7 @@ namespace TimingShow.Melon
             ModContext.Settings = Settings.Load(modPath);
 
             i18n.LoadLanguages(modPath);
+            MelonHotkeys.Initialize(ModContext.Settings);
             ModContext.InitializeJudgeCompat();
             XPerfectBridge.TryInit();
             var harmony = new HarmonyLib.Harmony("TimingShow.Loader.Melon");
@@ -70,6 +71,7 @@ namespace TimingShow.Melon
                                 else
                                 {
                                     ModContext.Settings.ConfigKey = evt.keyCode;
+                                    MelonHotkeys.SetConfigKey(evt.keyCode);
                                     _isRebinding = false;
                                 }
                                 evt.Use();
