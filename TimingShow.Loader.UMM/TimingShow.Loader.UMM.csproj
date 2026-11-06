@@ -57,6 +57,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Boot.cs" />
+    <Compile Include="CoreStart.cs" />
+    <Compile Include="PendingUpdate.cs" />
     <Compile Include="UMMEntry.cs" />
     <Compile Include="UmmLogger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -111,17 +111,24 @@ namespace TimingShow.LevelEditor
             catch (Exception e)
             {
                 ModContext.Logger?.Error("Editor hit markers: " + e.Message);
-                EditorHitSnapshot.Clear();
+                EditorHitSnapshot.ClearPending();
+                Teardown();
             }
         }
 
         private void UpdateCore()
         {
+            if (_importRequested)
+            {
+                _importRequested = false;
+                ImportFromLog();
+            }
+
             if (_clearRequested)
             {
                 _clearRequested = false;
-                EditorHitSnapshot.Clear();
-                return;
+                _importStatus = null;
+                EditorHitSnapshot.ClearPending();
             }
 
             Settings settings = ModContext.Settings;
@@ -131,17 +138,18 @@ namespace TimingShow.LevelEditor
                 return;
             }
 
-            EditorHitSnapshotData snapshot = EditorHitSnapshot.Pending;
-            if (snapshot == null)
+            scnEditor editor = scnEditor.instance;
+            if (!IsEditorReady(editor))
             {
                 Teardown();
                 return;
             }
 
-            scnEditor editor = scnEditor.instance;
-            if (!IsEditorReady(editor))
+            EditorHitSnapshotData snapshot = EditorHitSnapshot.Pending;
+            if (snapshot == null)
             {
-                SetUiVisible(false);
+                Teardown(true);
+                TickPanel();
                 return;
             }
 
@@ -163,7 +171,7 @@ namespace TimingShow.LevelEditor
                 _lastLevelCheckTime = Time.unscaledTime;
                 if (!_snapshot.MatchesEditor(editor))
                 {
-                    EditorHitSnapshot.Clear();
+                    EditorHitSnapshot.ClearPending();
                     return;
                 }
             }
@@ -628,16 +636,6 @@ namespace TimingShow.LevelEditor
             if (_tooltipRoot != null && _tooltipRoot.activeSelf) _tooltipRoot.SetActive(false);
         }
 
-        private void SetUiVisible(bool visible)
-        {
-            if (_canvasObject != null && _canvasObject.activeSelf != visible) _canvasObject.SetActive(visible);
-            if (!visible)
-            {
-                HideTooltip();
-                DisposePanel();
-            }
-        }
-
         private void EnsureCanvas()
         {
             if (_canvasObject != null) return;
@@ -836,7 +834,12 @@ namespace TimingShow.LevelEditor
 
         private void Teardown()
         {
-            DisposePanel();
+            Teardown(false);
+        }
+
+        private void Teardown(bool keepPanel)
+        {
+            if (!keepPanel) DisposePanel();
 
             if (_phase == Phase.Idle && _snapshot == null) return;
 

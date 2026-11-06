@@ -29,6 +29,7 @@ namespace TimingShow.LevelEditor
         internal static readonly Color TextPrimary = Rgb(0xD8D8D8);
         internal static readonly Color TextSecondary = Rgb(0x9A9A9A);
         internal static readonly Color TextDisabled = Rgb(0x6A6A6A);
+        internal static readonly Color TextDanger = Rgb(0xD06A6A);
         internal static readonly Color ChipBackground = Rgb(0x333333);
         internal static readonly Color ChipBorder = Rgb(0x4A4A4A);
         internal static readonly Color FieldBackground = Rgb(0x1B1B1B);

@@ -1,5 +1,8 @@
 using System;
+using System.Globalization;
 using TimingShow.HUD;
+using TimingShow.Options;
+using UnityFileDialog;
 using UnityEngine;
 
 namespace TimingShow.LevelEditor
@@ -18,6 +21,9 @@ namespace TimingShow.LevelEditor
         private int[] _judgeCounts = new int[17];
         private bool _forceRebuild;
         private bool _clearRequested;
+        private bool _importRequested;
+        private string _importStatus;
+        private bool _importStatusOk;
 
         internal EditorHitSnapshotData Snapshot
         {
@@ -59,6 +65,16 @@ namespace TimingShow.LevelEditor
             get { return _judgeCounts; }
         }
 
+        internal string ImportStatus
+        {
+            get { return _importStatus; }
+        }
+
+        internal bool ImportStatusOk
+        {
+            get { return _importStatusOk; }
+        }
+
         internal void RequestRebuild()
         {
             _forceRebuild = true;
@@ -67,6 +83,38 @@ namespace TimingShow.LevelEditor
         internal void RequestClear()
         {
             _clearRequested = true;
+        }
+
+        internal void RequestImport()
+        {
+            _importRequested = true;
+        }
+
+        private void ImportFromLog()
+        {
+            string selected = FileBrowser.PickFile(
+                OptionLogList.GetLogDirectory(),
+                "Log",
+                new[] { "json", "tlog", "gz" },
+                i18n.T("Btn_ImportHitLog"));
+
+            if (string.IsNullOrWhiteSpace(selected))
+                return;
+
+            int sampleCount;
+            string errorKey;
+            if (EditorHitSnapshot.TryLoadFromLog(selected, out sampleCount, out errorKey))
+            {
+                _importStatus = string.Format(CultureInfo.InvariantCulture, i18n.T("EditorHits_ImportOk"), sampleCount);
+                _importStatusOk = true;
+            }
+            else
+            {
+                _importStatus = i18n.T(string.IsNullOrEmpty(errorKey) ? "EditorHits_ImportReadFailed" : errorKey);
+                _importStatusOk = false;
+            }
+
+            _forceRebuild = true;
         }
 
         internal void ApplyPanelState(HitOverlayFilter filter, bool[] searchMask, bool onlyMatches, int pinnedIndex, int queryFlag)

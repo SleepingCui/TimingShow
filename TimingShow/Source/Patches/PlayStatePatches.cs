@@ -81,7 +81,7 @@ namespace TimingShow.Patches
             if (scene.name == GameplaySceneName)
                 return;
 
-            LevelEditor.EditorHitSnapshot.Clear();
+            LevelEditor.EditorHitSnapshot.ClearPending();
             EndSession();
         }
 
@@ -104,7 +104,7 @@ namespace TimingShow.Patches
                 ModContext.ClearXAccHistory();
                 ModContext.XAccVersion++;
                 ModContext.ClearTimingScatterSamples();
-                LevelEditor.EditorHitSnapshot.Clear();
+                LevelEditor.EditorHitSnapshot.ClearPending();
                 ModContext.UIDirty = true;
                 
                 SessionReport.LastSessionReport.CloseOnLevelStart();
@@ -206,7 +206,7 @@ namespace TimingShow.Patches
         {
             public static void Prefix()
             {
-                LevelEditor.EditorHitSnapshot.Clear();
+                LevelEditor.EditorHitSnapshot.ClearPending();
                 EndSession();
             }
         }
