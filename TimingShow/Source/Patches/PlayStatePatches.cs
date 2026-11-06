@@ -49,10 +49,15 @@ namespace TimingShow.Patches
         
         private const string GameplaySceneName = "scnGame";
         
-        public static void EndSession()
+        public static void CaptureSessionEndReport()
         {
             if (ModContext.IsPlaying && !ModContext.IsLevelFinished)
                 SessionReport.LastSessionReport.Capture("session end");
+        }
+
+        public static void EndSession(bool captureReport = true)
+        {
+            if (captureReport) CaptureSessionEndReport();
             SessionTimer.Stop();
             _isGamePaused = false;
             ModContext.IsPlaying = false;
@@ -183,7 +188,15 @@ namespace TimingShow.Patches
             {
                 // Snapshot before EndSession() resets players and clears the samples.
                 LevelEditor.EditorHitSnapshot.CaptureFromSession();
-                EndSession();
+                CaptureSessionEndReport();
+            }
+
+            public static void Postfix()
+            {
+                // Another mod's prefix can cancel this method (YCH's escape guard does),
+                // and every prefix still runs when that happens. Ending the session only
+                // in the postfix keeps a blocked escape from looking like a real exit.
+                EndSession(false);
             }
         }
 
