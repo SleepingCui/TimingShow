@@ -221,6 +221,15 @@ namespace TimingShow
         public float EditorHits_MarkerSize = 35f;
         public float EditorHits_AngleScale = 1f;
         public bool EditorHits_ShowTooltip = true;
+        public float EditorHits_MarkerOpacity = 1f;
+        public int EditorHits_ColorMode;
+        public int EditorHits_MarkerShape;
+        public bool EditorHits_DimUnmatched = true;
+        public bool EditorHits_PanelVisible = true;
+        public float EditorHits_PanelScale = 1f;
+        public float EditorHits_PanelWidth = 280f;
+        public float EditorHits_PanelX = -1f;
+        public float EditorHits_PanelY = -1f;
 
         public bool Title_EnableXPerfect;
         public bool Planet_EnableXPerfect;
@@ -403,6 +412,11 @@ namespace TimingShow
 
             EditorHits_MarkerSize = Mathf.Clamp(EditorHits_MarkerSize, 1f, 100f);
             EditorHits_AngleScale = Mathf.Clamp(EditorHits_AngleScale, 0f, 3f);
+            EditorHits_MarkerOpacity = Mathf.Clamp(EditorHits_MarkerOpacity, 0.1f, 1f);
+            EditorHits_ColorMode = Mathf.Clamp(EditorHits_ColorMode, 0, 2);
+            EditorHits_MarkerShape = Mathf.Clamp(EditorHits_MarkerShape, 0, 2);
+            EditorHits_PanelScale = Mathf.Clamp(EditorHits_PanelScale, 0.75f, 2.5f);
+            EditorHits_PanelWidth = Mathf.Clamp(EditorHits_PanelWidth, 240f, 460f);
 
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
             LogGraph_PointSize = Mathf.Clamp(LogGraph_PointSize, 1f, 12f);

@@ -40,6 +40,18 @@ namespace TimingShow.Options
             return GUILayout.Button(label, style, GUILayout.Width(width));
         }
 
+        public static void ChoiceRow(string labelKey, ref int value, string[] optionKeys, float labelWidth = 120f)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(ContentIndent);
+            GUILayout.Label(i18n.T(labelKey), GUILayout.Width(labelWidth));
+            for (int i = 0; i < optionKeys.Length; i++)
+            {
+                if (ActiveButton(i18n.T(optionKeys[i]), value == i, 76f)) value = i;
+            }
+            GUILayout.EndHorizontal();
+        }
+
         private static GUIStyle _expandStyle;
 
         private const string ArrowExpanded = "◢";
