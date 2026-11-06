@@ -164,6 +164,7 @@
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.Graphics.cs" />
     <Compile Include="Source\LevelEditor\EditorHitSnapshot.cs" />
     <Compile Include="Source\LevelEditor\EditorHitMarkerController.cs" />
+    <Compile Include="Source\LevelEditor\HitOverlay\InputGate.cs" />
     <Compile Include="Source\Logging\ColorConverter.cs" />
     <Compile Include="Source\Logging\TimingLogger.cs" />
     <Compile Include="Source\Logging\TimingLoggerBinary.cs" />
@@ -175,6 +176,7 @@
     <Compile Include="Source\Options\OptionLogList.cs" />
     <Compile Include="Source\Options\Options.cs" />
     <Compile Include="Source\Options\OptionsWidgets.cs" />
+    <Compile Include="Source\Patches\InputPatches.cs" />
     <Compile Include="Source\Patches\PlayStatePatches.cs" />
     <Compile Include="Source\Patches\TimingCalcPatches.cs" />
     <Compile Include="Source\Patches\UIPatches.cs" />
