@@ -39,7 +39,7 @@ namespace TimingShow
         public string Language = "English";
         public bool AutoLanguage;
 
-        public bool UpdateCheckEnabled = true;
+        public bool UpdateCheckEnabled;
         public bool UpdateAutoUpdate;
             
         public bool Coop_TimingHUD = true;
@@ -221,7 +221,9 @@ namespace TimingShow
         public bool LogGraph_UseCustomFont;
         public string LogGraph_FontPath = "";
 
-        public bool EditorHits_Enabled = true;
+        public bool SessionReport_Enabled;
+
+        public bool EditorHits_Enabled;
         public float EditorHits_MarkerSize = 35f;
         public float EditorHits_AngleScale = 1f;
         public bool EditorHits_ShowTooltip = true;

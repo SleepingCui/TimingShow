@@ -541,6 +541,8 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.AutoLanguage, "Toggle_AutoLanguage");
                 if (!autoLanguage && ModContext.Settings.AutoLanguage) i18n.ApplyAutoLanguage();
 
+                Toggle(ref ModContext.Settings.SessionReport_Enabled, "Toggle_SessionReport");
+
                 bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
                 bool canToggleWindow = windowOpen || TimingShow.SessionReport.LastSessionReport.HasReport;
                 bool prevGuiEnabled = GUI.enabled;

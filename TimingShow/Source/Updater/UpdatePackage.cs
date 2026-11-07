@@ -11,19 +11,39 @@ namespace TimingShow.Update
 {
     internal static class UpdatePackage
     {
-        public const string UpdateDirectoryName = "Update";
-        public const string StagingDirectoryName = "staging";
-        public const string PendingFileName = "pending.txt";
-        public const string ManifestFileName = "manifest.txt";
-        public const string DownloadDirectoryName = "download";
-        public const string BackupDirectoryPrefix = "backup-";
-
         private const string CoreAssemblyName = "TimingShow.dll";
-        private const string LoaderAssemblyName = "TimingShow.Loader.UMM.dll";
+        private const string UmmLoaderAssemblyName = "TimingShow.Loader.UMM.dll";
+        private const string MelonLoaderAssemblyName = "TimingShow.Loader.Melon.dll";
+        private const string BootstrapAssemblyName = "TimingShow.UpdateBootstrap.dll";
+        private const string InfoFileName = "Info.json";
+        private const string LanguageFileName = "lang.json";
+        private const string MelonPackageDirectory = "Mods/";
 
-        private static readonly string[] RequiredFiles = { CoreAssemblyName, LoaderAssemblyName, "Info.json", "lang.json" };
+        private static readonly string[] UmmRequiredFiles = { CoreAssemblyName, UmmLoaderAssemblyName, InfoFileName, LanguageFileName };
+        private static readonly string[] MelonRequiredFiles = { CoreAssemblyName, MelonLoaderAssemblyName, LanguageFileName };
 
-        public static void Extract(string packagePath, string stagingDirectory)
+        private static readonly string[] UmmExcludedFiles = { MelonLoaderAssemblyName, BootstrapAssemblyName };
+        private static readonly string[] MelonExcludedFiles = { UmmLoaderAssemblyName, BootstrapAssemblyName, InfoFileName };
+
+        public static string[] GetRequiredFiles(UpdateTarget target)
+        {
+            return target == UpdateTarget.Melon ? MelonRequiredFiles : UmmRequiredFiles;
+        }
+
+        public static bool IsApplicableFile(string relative, UpdateTarget target)
+        {
+            if (string.IsNullOrEmpty(relative)) return false;
+
+            string name = Path.GetFileName(relative.Replace('/', Path.DirectorySeparatorChar));
+            string[] excluded = target == UpdateTarget.Melon ? MelonExcludedFiles : UmmExcludedFiles;
+            foreach (string candidate in excluded)
+            {
+                if (string.Equals(name, candidate, StringComparison.OrdinalIgnoreCase)) return false;
+            }
+            return true;
+        }
+
+        public static void Extract(string packagePath, string stagingDirectory, UpdateTarget target)
         {
             string root = Path.GetFullPath(stagingDirectory);
             string prefix = root + Path.DirectorySeparatorChar;
@@ -38,14 +58,21 @@ namespace TimingShow.Update
                     string relative = entry.FullName.Replace('\\', '/');
                     if (relative.Length == 0 || relative.EndsWith("/", StringComparison.Ordinal)) continue;
 
-                    string target = Path.GetFullPath(Path.Combine(root, relative));
-                    if (!target.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    if (target == UpdateTarget.Melon)
+                    {
+                        if (!relative.StartsWith(MelonPackageDirectory, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        relative = relative.Substring(MelonPackageDirectory.Length);
+                    }
+
+                    string destination = Path.GetFullPath(Path.Combine(root, relative));
+                    if (!destination.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidDataException("Package entry escapes the staging directory: " + relative);
 
-                    string parent = Path.GetDirectoryName(target);
+                    string parent = Path.GetDirectoryName(destination);
                     if (!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
                     using (Stream input = entry.Open())
-                    using (FileStream output = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None))
+                    using (FileStream output = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         input.CopyTo(output);
                     }
@@ -53,17 +80,26 @@ namespace TimingShow.Update
             }
         }
 
-        public static void Verify(string stagingDirectory, string modPath, UpdateRelease release)
+        public static void Verify(string stagingDirectory, string modPath, UpdateRelease release, UpdateTarget target)
         {
-            foreach (string required in RequiredFiles)
+            foreach (string required in GetRequiredFiles(target))
             {
                 string path = Path.Combine(stagingDirectory, required);
                 if (!File.Exists(path) || new FileInfo(path).Length == 0)
                     throw new InvalidDataException("Update package is missing " + required + ".");
             }
 
-            JObject packaged = JObject.Parse(File.ReadAllText(Path.Combine(stagingDirectory, "Info.json"), Encoding.UTF8));
-            JObject installed = JObject.Parse(File.ReadAllText(Path.Combine(modPath, "Info.json"), Encoding.UTF8));
+            AssertAssembly(Path.Combine(stagingDirectory, CoreAssemblyName), null);
+            JObject.Parse(File.ReadAllText(Path.Combine(stagingDirectory, LanguageFileName), Encoding.UTF8));
+
+            if (target == UpdateTarget.Melon)
+            {
+                AssertAssembly(Path.Combine(stagingDirectory, MelonLoaderAssemblyName), null);
+                return;
+            }
+
+            JObject packaged = JObject.Parse(File.ReadAllText(Path.Combine(stagingDirectory, InfoFileName), Encoding.UTF8));
+            JObject installed = JObject.Parse(File.ReadAllText(Path.Combine(modPath, InfoFileName), Encoding.UTF8));
 
             if (!VersionsMatch((string)packaged["Version"], release.Version))
                 throw new InvalidDataException("Package version " + (string)packaged["Version"] + " does not match release " + release.Version + ".");
@@ -74,86 +110,37 @@ namespace TimingShow.Update
             if ((string)packaged["AssemblyName"] != (string)installed["AssemblyName"])
                 throw new InvalidDataException("Package loader assembly does not match the installed mod.");
 
-            AssertAssembly(Path.Combine(stagingDirectory, CoreAssemblyName), null);
-            AssertAssembly(Path.Combine(stagingDirectory, LoaderAssemblyName), (string)packaged["AssemblyName"]);
-
-            JObject.Parse(File.ReadAllText(Path.Combine(stagingDirectory, "lang.json"), Encoding.UTF8));
+            AssertAssembly(Path.Combine(stagingDirectory, UmmLoaderAssemblyName), (string)packaged["AssemblyName"]);
         }
 
-        public static void WriteManifest(string stagingDirectory)
+        public static void WriteManifest(string stagingDirectory, UpdateTarget target)
         {
             string root = Path.GetFullPath(stagingDirectory);
             StringBuilder builder = new StringBuilder();
             foreach (string file in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
             {
                 string relative = file.Substring(root.Length).TrimStart('\\', '/').Replace('\\', '/');
-                if (string.Equals(relative, ManifestFileName, StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(relative, PendingUpdateApplier.ManifestFileName, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!IsApplicableFile(relative, target)) continue;
                 builder.Append(HashFile(file)).Append('\t').Append(relative).Append('\n');
             }
-            File.WriteAllText(Path.Combine(root, ManifestFileName), builder.ToString(), new UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(root, PendingUpdateApplier.ManifestFileName), builder.ToString(), new UTF8Encoding(false));
         }
 
-        public static void WritePending(string modPath, string version, string fromVersion)
+        public static void WritePending(string updateRoot, string modPath, string version, string fromVersion, UpdateTarget target)
         {
-            string updateDirectory = Path.Combine(modPath, UpdateDirectoryName);
-            Directory.CreateDirectory(updateDirectory);
-            string pendingPath = Path.Combine(updateDirectory, PendingFileName);
+            Directory.CreateDirectory(updateRoot);
+            string pendingPath = Path.Combine(updateRoot, PendingUpdateApplier.PendingFileName);
             string tempPath = pendingPath + ".tmp";
-            File.WriteAllText(tempPath, "version=" + version + "\nfrom=" + fromVersion + "\n", new UTF8Encoding(false));
+            string text = "version=" + version + "\nfrom=" + fromVersion + "\ntarget=" + (target == UpdateTarget.Melon ? "Melon" : "Umm") + "\npath=" + Path.GetFullPath(modPath) + "\n";
+            File.WriteAllText(tempPath, text, new UTF8Encoding(false));
             if (File.Exists(pendingPath)) File.Delete(pendingPath);
             File.Move(tempPath, pendingPath);
         }
 
-        public static void ApplyStaged(string modPath, string stagingDirectory, string fromVersion)
+        public static bool ApplyStaged(string updateRoot, string modPath)
         {
-            string staging = Path.GetFullPath(stagingDirectory);
-            string stagingPrefix = staging + Path.DirectorySeparatorChar;
-            string updateDirectory = Path.Combine(modPath, UpdateDirectoryName);
-            string pendingPath = Path.Combine(updateDirectory, PendingFileName);
-            string backupDirectory = Path.Combine(updateDirectory, BackupDirectoryPrefix + SanitizeVersion(fromVersion));
-
-            List<string> entries = new List<string>();
-            foreach (string line in File.ReadAllLines(Path.Combine(staging, ManifestFileName)))
-            {
-                int tab = line.IndexOf('\t');
-                if (tab <= 0) continue;
-
-                string expectedHash = line.Substring(0, tab).Trim();
-                string relative = line.Substring(tab + 1).Trim().Replace('\\', '/');
-                if (relative.Length == 0) continue;
-
-                string source = Path.GetFullPath(Path.Combine(staging, relative));
-                if (!source.StartsWith(stagingPrefix, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidDataException("Update entry escapes the staging directory: " + relative);
-                if (!File.Exists(source) || !string.Equals(HashFile(source), expectedHash, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidDataException("Update file is corrupted: " + relative);
-
-                entries.Add(relative);
-            }
-
-            List<string> replaced = new List<string>();
-            try
-            {
-                foreach (string relative in entries)
-                {
-                    string target = Path.Combine(modPath, relative);
-                    BackupFile(target, backupDirectory, relative);
-                    ReplaceFile(Path.Combine(staging, relative), target);
-                    replaced.Add(relative);
-                }
-            }
-            catch
-            {
-                RestoreFiles(replaced, backupDirectory, modPath);
-                throw;
-            }
-
-            if (TryDeleteFile(pendingPath))
-            {
-                TryDeleteDirectory(staging);
-                TryDeleteDirectory(Path.Combine(updateDirectory, DownloadDirectoryName));
-            }
-            PruneBackups(updateDirectory, backupDirectory);
+            return PendingUpdateApplier.Apply(updateRoot, modPath, Log, Error);
         }
 
         public static string HashFile(string path)
@@ -203,70 +190,14 @@ namespace TimingShow.Update
             }
         }
 
-        private static void ReplaceFile(string source, string target)
+        private static void Log(string message)
         {
-            string directory = Path.GetDirectoryName(target);
-            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-
-            string incoming = target + ".incoming";
-            File.Copy(source, incoming, true);
-            if (File.Exists(target))
-            {
-                File.Replace(incoming, target, null);
-            }
-            else
-            {
-                File.Move(incoming, target);
-            }
+            ModContext.Logger?.Log(message);
         }
 
-        private static void BackupFile(string target, string backupDirectory, string relative)
+        private static void Error(string message)
         {
-            if (!File.Exists(target)) return;
-
-            string backup = Path.Combine(backupDirectory, relative);
-            string directory = Path.GetDirectoryName(backup);
-            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-            if (!File.Exists(backup)) File.Copy(target, backup, true);
-        }
-
-        private static void RestoreFiles(List<string> relativePaths, string backupDirectory, string modPath)
-        {
-            foreach (string relative in relativePaths)
-            {
-                string backup = Path.Combine(backupDirectory, relative);
-                string target = Path.Combine(modPath, relative);
-                try
-                {
-                    if (File.Exists(backup))
-                    {
-                        File.Copy(backup, target, true);
-                    }
-                    else if (File.Exists(target))
-                    {
-                        File.Delete(target);
-                    }
-                }
-                catch (Exception e)
-                {
-                    ModContext.Logger?.Error("Failed to restore " + relative + ": " + e.Message);
-                }
-            }
-        }
-
-        private static void PruneBackups(string updateDirectory, string keep)
-        {
-            try
-            {
-                foreach (string directory in Directory.GetDirectories(updateDirectory, BackupDirectoryPrefix + "*"))
-                {
-                    if (string.Equals(directory, keep, StringComparison.OrdinalIgnoreCase)) continue;
-                    Directory.Delete(directory, true);
-                }
-            }
-            catch (Exception)
-            {
-            }
+            ModContext.Logger?.Error(message);
         }
 
         private static bool VersionsMatch(string left, string right)

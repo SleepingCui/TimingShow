@@ -62,6 +62,9 @@
     <Compile Include="PendingUpdate.cs" />
     <Compile Include="UMMEntry.cs" />
     <Compile Include="UmmLogger.cs" />
+    <Compile Include="..\TimingShow.Loader.Shared\PendingUpdateApplier.cs">
+      <Link>PendingUpdateApplier.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
