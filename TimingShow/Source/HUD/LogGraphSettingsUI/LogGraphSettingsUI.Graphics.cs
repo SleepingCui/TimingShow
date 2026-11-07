@@ -86,7 +86,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                             break;
 
                         case RowKind.Button:
-                            DrawButton(vh, row, scale, _owner._draftDirty);
+                            DrawButton(vh, row, scale, _owner._draftDirty && row.HighlightDirty);
                             break;
 
                         case RowKind.Slider:

@@ -284,6 +284,7 @@ namespace TimingShow.HUD.LogGraphWindow
             _chartMenuOpen = true;
             _chartMenu.SetItems(_chartMenuItems, (int)_view);
             PositionSelectorAndMenus(_windowRect != null ? _windowRect.sizeDelta : Vector2.zero);
+            _chartMenu.transform.SetAsLastSibling();
             _chartMenu.gameObject.SetActive(true);
             _chartButton.SetActiveState(true);
         }
@@ -302,6 +303,7 @@ namespace TimingShow.HUD.LogGraphWindow
             _playerMenuOpen = true;
             _playerMenu.SetItems(_playerMenuItems, count, _drawer != null ? _drawer.SelectedPlayerId : -1);
             PositionSelectorAndMenus(_windowRect != null ? _windowRect.sizeDelta : Vector2.zero);
+            _playerMenu.transform.SetAsLastSibling();
             _playerMenu.gameObject.SetActive(true);
             _playerButton.SetActiveState(true);
         }

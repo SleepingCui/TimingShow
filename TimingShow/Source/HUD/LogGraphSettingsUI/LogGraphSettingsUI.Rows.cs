@@ -46,6 +46,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             public string LabelText;
             public Action OnPress;
             public Func<bool> IsEnabled;
+            public bool HighlightDirty;
             public LogRangeField Field;
         }
 
@@ -103,6 +104,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             {
                 Kind = RowKind.Button,
                 LabelKey = "LogGraph_Apply",
+                HighlightDirty = true,
                 Rect = new Rect(left, top - buttonHeight, contentWidth, buttonHeight)
             };
             AddButton(applyRow, fontSize);
