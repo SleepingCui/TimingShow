@@ -17,6 +17,15 @@ namespace TimingShow.Update
 
             GUI.enabled = supported && settings.UpdateCheckEnabled;
             Toggle(ref settings.UpdateAutoUpdate, "Updater_Auto");
+
+            GUILayout.BeginHorizontal();
+            {
+                GUILayout.Space(ContentIndent);
+                if (GUILayout.Button(i18n.T("Btn_CheckUpdateNow"), GUILayout.Width(200)))
+                    Updater.CheckNow();
+            }
+            GUILayout.EndHorizontal();
+
             GUI.enabled = previous;
 
             if (!supported)

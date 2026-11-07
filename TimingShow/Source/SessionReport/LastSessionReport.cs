@@ -48,7 +48,7 @@ namespace TimingShow.SessionReport
         {
             try
             {
-                if (ModContext.Settings == null) return;
+                if (ModContext.Settings == null || !ModContext.Settings.SessionReport_Enabled) return;
 
                 List<TimingScatterSample> live = ModContext.TimingScatterSamples;
                 if (live == null || live.Count == 0) return;

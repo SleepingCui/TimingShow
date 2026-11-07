@@ -98,7 +98,7 @@ namespace TimingShow.Update
             }
 
             Settings settings = ModContext.Settings;
-            CheckEnabled = settings == null || settings.UpdateCheckEnabled;
+            CheckEnabled = settings != null && settings.UpdateCheckEnabled;
             AutoUpdateEnabled = settings != null && settings.UpdateAutoUpdate;
 
             UpdateClient.Trace = Trace;
