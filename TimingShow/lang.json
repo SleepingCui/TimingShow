@@ -585,6 +585,7 @@
     "Btn_CloseLogWindow": "Close log window",
     "Btn_Debug": "Debug Options",
     "Desc_DebugWarning": "If you don't understand what they do, please do not change them",
+    "Toggle_DiagUpdateTrace": "Update Request Trace",
     "Toggle_HookMode": "Enable XPerfect Hook Mode",
     "Desc_HookMode": "When enabled, prioritizes getting judgment data from the XPerfect mod; otherwise uses the mod's internal XPerfect algorithm.",
     "Label_CurrentStatus": "Current Status: ",

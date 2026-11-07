@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
@@ -100,8 +101,19 @@ namespace TimingShow.Update
             CheckEnabled = settings == null || settings.UpdateCheckEnabled;
             AutoUpdateEnabled = settings != null && settings.UpdateAutoUpdate;
 
+            UpdateClient.Trace = Trace;
+            Trace("Initialized: version " + _currentVersion + ", repository " + _repositoryUrl + ", mod path " + modPath + ", check " + CheckEnabled + ", auto update " + AutoUpdateEnabled + ".");
+
             UpdateHost.EnsureHost();
-            if (CheckEnabled) BeginCheck();
+            if (CheckEnabled) BeginCheck(AutoUpdateEnabled);
+        }
+
+        public static void CheckNow()
+        {
+            if (!Supported) return;
+            UpdateState state = State;
+            if (state == UpdateState.Checking || state == UpdateState.Downloading || state == UpdateState.Verifying || state == UpdateState.Ready) return;
+            BeginCheck(false);
         }
 
         public static void Tick()
@@ -134,7 +146,7 @@ namespace TimingShow.Update
             if (!hasRelease)
             {
                 if (state != UpdateState.Checking && state != UpdateState.Downloading && state != UpdateState.Verifying)
-                    BeginCheck();
+                    BeginCheck(AutoUpdateEnabled);
                 return;
             }
 
@@ -153,7 +165,7 @@ namespace TimingShow.Update
             SetState(UpdateState.Idle);
         }
 
-        private static void BeginCheck()
+        private static void BeginCheck(bool autoUpdate)
         {
             Thread worker;
             lock (Sync)
@@ -166,17 +178,20 @@ namespace TimingShow.Update
                 _progress = 0f;
                 _state = UpdateState.Checking;
                 _dirty = true;
-                worker = _worker = new Thread(CheckWorker) { IsBackground = true, Name = "TimingShow.UpdateCheck" };
+                worker = _worker = new Thread(() => CheckWorker(autoUpdate)) { IsBackground = true, Name = "TimingShow.UpdateCheck" };
             }
             worker.Start();
         }
 
-        private static void CheckWorker()
+        private static void CheckWorker(bool autoUpdate)
         {
+            Trace("Checking " + _repositoryUrl + " for releases newer than " + _currentVersion + ".");
+            Stopwatch elapsed = Stopwatch.StartNew();
             try
             {
                 string json = UpdateClient.FetchRepository(_repositoryUrl);
                 UpdateRelease release = UpdateClient.FindRelease(json, RepositoryId, _currentVersion);
+                Trace("Check completed in " + elapsed.ElapsedMilliseconds + " ms.");
                 if (release == null)
                 {
                     Log("Mod is up to date (" + _currentVersion + ").");
@@ -192,7 +207,7 @@ namespace TimingShow.Update
                 Log("Update available: " + release.Version + " (current " + _currentVersion + ").");
                 SetState(UpdateState.Available);
 
-                if (AutoUpdateEnabled) BeginDownload();
+                if (autoUpdate) BeginDownload();
             }
             catch (Exception e)
             {
@@ -243,12 +258,15 @@ namespace TimingShow.Update
                 Directory.CreateDirectory(downloadDirectory);
                 zipPath = Path.Combine(downloadDirectory, "TimingShow-" + UpdatePackage.SanitizeVersion(release.Version) + ".zip");
 
+                Trace("Staging " + release.Version + " in " + stagingDirectory + " (current " + current + ").");
                 UpdateClient.Download(release, zipPath, SetProgress, IsCancellationRequested);
                 if (IsCancellationRequested()) throw new OperationCanceledException();
 
                 SetState(UpdateState.Verifying);
                 UpdatePackage.Extract(zipPath, stagingDirectory);
+                Trace("Package extracted.");
                 UpdatePackage.Verify(stagingDirectory, modPath, release);
+                Trace("Package verified.");
                 UpdatePackage.WriteManifest(stagingDirectory);
                 UpdatePackage.WritePending(modPath, release.Version, current.ToString());
 
@@ -290,18 +308,14 @@ namespace TimingShow.Update
                 if (state != UpdateState.Downloading) _progress = 0f;
                 _dirty = true;
             }
+            Trace("State: " + state + ".");
         }
 
         private static void Fail(Exception e)
         {
             Log("Update failed: " + e.Message);
-            lock (Sync)
-            {
-                _errorMessage = e.Message;
-                _state = UpdateState.Failed;
-                _progress = 0f;
-                _dirty = true;
-            }
+            lock (Sync) _errorMessage = e.Message;
+            SetState(UpdateState.Failed);
         }
 
         private static void Log(string message)
@@ -311,10 +325,19 @@ namespace TimingShow.Update
             if (logger != null) logger.Log(message);
         }
 
-        private static Version ParseVersion(string text)
+        private static bool TraceEnabled
         {
-            Version parsed;
-            return UpdateClient.TryParseVersion(text, out parsed) ? parsed : new Version(0, 0, 0);
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.Diag_UpdateTrace;
+            }
+        }
+
+        private static void Trace(string message)
+        {
+            if (!TraceEnabled) return;
+            Log("[Update] " + message);
         }
 
         private static void TryDeleteFile(string path)
@@ -337,6 +360,12 @@ namespace TimingShow.Update
             catch (Exception)
             {
             }
+        }
+
+        private static Version ParseVersion(string text)
+        {
+            Version parsed;
+            return UpdateClient.TryParseVersion(text, out parsed) ? parsed : new Version(0, 0, 0);
         }
     }
 }

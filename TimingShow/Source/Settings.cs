@@ -268,6 +268,7 @@ namespace TimingShow
         public bool Diag_PerfLogEnabled;
         public bool Diag_InputTrace;
         public bool Diag_TrackMeshBounds;
+        public bool Diag_UpdateTrace;
         public float Diag_BoundsIntervalSec = 1f;
         public float Diag_BoundsTolerancePx = 0.5f;
         public int Diag_BoundsLogLimit = 40;

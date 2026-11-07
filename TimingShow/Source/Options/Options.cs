@@ -668,6 +668,13 @@ namespace TimingShow.Options
             Toggle(ref ModContext.Settings.Diag_InputTrace, "Toggle_DiagInputTrace");
             Toggle(ref ModContext.Settings.Diag_TrackMeshBounds, "Toggle_DiagTrackMesh");
 
+            bool updateTrace = ModContext.Settings.Diag_UpdateTrace;
+            bool previousGuiEnabled = GUI.enabled;
+            GUI.enabled = Updater.Supported;
+            Toggle(ref ModContext.Settings.Diag_UpdateTrace, "Toggle_DiagUpdateTrace");
+            GUI.enabled = previousGuiEnabled;
+            if (!updateTrace && ModContext.Settings.Diag_UpdateTrace) Updater.CheckNow();
+
             SliderFloat("Label_DiagBoundsInterval", ref ModContext.Settings.Diag_BoundsIntervalSec, 0.1f, 5f);
             SliderFloat("Label_DiagBoundsTolerance", ref ModContext.Settings.Diag_BoundsTolerancePx, 0f, 4f);
             SliderInt("Label_DiagBoundsLogLimit", ref ModContext.Settings.Diag_BoundsLogLimit, 1, 200);

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Security.Cryptography;
@@ -11,8 +12,11 @@ namespace TimingShow.Update
     {
         private const int RequestTimeoutMs = 20000;
         private const int DownloadTimeoutMs = 60000;
+        private const string UserAgent = "TimingShow-Updater";
 
         private static readonly string[] TrustedHosts = { "github.com", "githubusercontent.com" };
+
+        internal static Action<string> Trace;
 
         static UpdateClient()
         {
@@ -27,16 +31,27 @@ namespace TimingShow.Update
 
         public static string FetchRepository(string url)
         {
+            Stopwatch elapsed = Stopwatch.StartNew();
             HttpWebRequest request = CreateRequest(AppendCacheBuster(url), RequestTimeoutMs);
             request.Accept = "application/json";
-            using (WebResponse response = request.GetResponse())
+            try
             {
-                ValidateResponse(response);
-                using (Stream stream = response.GetResponseStream())
-                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                using (WebResponse response = request.GetResponse())
                 {
-                    return reader.ReadToEnd();
+                    ValidateResponse(response);
+                    using (Stream stream = response.GetResponseStream())
+                    using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                    {
+                        string json = reader.ReadToEnd();
+                        TraceLine("Repository response: " + DescribeResponse(response) + ", " + json.Length + " chars, content-length " + response.ContentLength + ", " + elapsed.ElapsedMilliseconds + " ms.");
+                        return json;
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                TraceLine("Repository request failed after " + elapsed.ElapsedMilliseconds + " ms: " + e.Message);
+                throw;
             }
         }
 
@@ -46,12 +61,27 @@ namespace TimingShow.Update
             if (manifest == null || manifest.Releases == null)
                 throw new InvalidDataException("Repository.json does not contain a Releases list.");
 
+            TraceLine("Manifest lists " + manifest.Releases.Length + " release entries; looking for " + id + " newer than " + currentVersion + ".");
             foreach (UpdateRelease release in manifest.Releases)
             {
-                if (release == null || !string.Equals(release.Id, id, StringComparison.OrdinalIgnoreCase)) continue;
+                if (release == null) continue;
+                if (!string.Equals(release.Id, id, StringComparison.OrdinalIgnoreCase))
+                {
+                    TraceLine("Skipped " + release.Id + " " + release.Version + ": different id.");
+                    continue;
+                }
 
                 Version candidate;
-                if (!TryParseVersion(release.Version, out candidate) || candidate <= currentVersion) continue;
+                if (!TryParseVersion(release.Version, out candidate))
+                {
+                    TraceLine("Skipped " + release.Id + " " + release.Version + ": version not parseable.");
+                    continue;
+                }
+                if (candidate <= currentVersion)
+                {
+                    TraceLine("Skipped " + release.Id + " " + release.Version + ": not newer than " + currentVersion + ".");
+                    continue;
+                }
 
                 if (string.IsNullOrEmpty(release.DownloadUrl))
                     throw new InvalidDataException("Release " + release.Version + " has no DownloadUrl.");
@@ -59,28 +89,64 @@ namespace TimingShow.Update
                     throw new InvalidDataException("Release " + release.Version + " has no Sha256 checksum.");
                 if (release.Size <= 0)
                     throw new InvalidDataException("Release " + release.Version + " has no Size.");
+                TraceLine("Selected " + release.Version + ": size " + release.Size + ", sha256 " + release.Sha256 + ".");
                 return release;
             }
+            TraceLine("No release newer than " + currentVersion + ".");
             return null;
         }
 
         public static void Download(UpdateRelease release, string destination, Action<float> onProgress, Func<bool> isCancelled)
         {
             Uri uri = ValidateUrl(release.DownloadUrl);
+            TraceLine("Downloading " + uri + " to " + destination + " (expected " + release.Size + " bytes).");
+            Stopwatch elapsed = Stopwatch.StartNew();
+            int milestone = -1;
+            Action<float> progress = null;
+            if (onProgress != null)
+            {
+                progress = value =>
+                {
+                    int next = Math.Min(4, (int)(value * 4f));
+                    if (next > milestone)
+                    {
+                        milestone = next;
+                        TraceLine("Download progress: " + Math.Round(value * 100f) + "%.");
+                    }
+                    onProgress(value);
+                };
+            }
+
             HttpWebRequest request = CreateRequest(uri, DownloadTimeoutMs);
             request.Accept = "application/octet-stream";
-            using (WebResponse response = request.GetResponse())
+            try
             {
-                ValidateResponse(response);
-                long expected = release.Size > 0 ? release.Size : response.ContentLength;
-                byte[] package = ReadAll(response, release.Size, expected, onProgress, isCancelled);
-                using (SHA256 sha = SHA256.Create())
+                using (WebResponse response = request.GetResponse())
                 {
-                    string actual = ToHex(sha.ComputeHash(package));
-                    if (!string.Equals(actual, release.Sha256.Trim(), StringComparison.OrdinalIgnoreCase))
-                        throw new InvalidDataException("SHA-256 mismatch: expected " + release.Sha256 + ", got " + actual + ".");
+                    ValidateResponse(response);
+                    TraceLine("Package response: " + DescribeResponse(response) + ", content-length " + response.ContentLength + ".");
+                    long expected = release.Size > 0 ? release.Size : response.ContentLength;
+                    byte[] package = ReadAll(response, release.Size, expected, progress, isCancelled);
+                    using (SHA256 sha = SHA256.Create())
+                    {
+                        string actual = ToHex(sha.ComputeHash(package));
+                        TraceLine("Received " + package.Length + " bytes in " + elapsed.ElapsedMilliseconds + " ms; SHA-256 " + actual + ".");
+                        if (!string.Equals(actual, release.Sha256.Trim(), StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidDataException("SHA-256 mismatch: expected " + release.Sha256 + ", got " + actual + ".");
+                        TraceLine("SHA-256 matches the repository entry.");
+                    }
+                    File.WriteAllBytes(destination, package);
                 }
-                File.WriteAllBytes(destination, package);
+            }
+            catch (OperationCanceledException)
+            {
+                TraceLine("Download cancelled after " + elapsed.ElapsedMilliseconds + " ms.");
+                throw;
+            }
+            catch (Exception e)
+            {
+                TraceLine("Download failed after " + elapsed.ElapsedMilliseconds + " ms: " + e.Message);
+                throw;
             }
         }
 
@@ -165,13 +231,28 @@ namespace TimingShow.Update
 
         private static HttpWebRequest CreateRequest(Uri uri, int timeoutMs)
         {
+            TraceLine("HTTP GET " + uri + " (timeout " + timeoutMs + " ms, user agent " + UserAgent + ").");
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
             request.Method = "GET";
             request.Timeout = timeoutMs;
             request.ReadWriteTimeout = timeoutMs;
-            request.UserAgent = "TimingShow-Updater";
+            request.UserAgent = UserAgent;
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             return request;
+        }
+
+        private static string DescribeResponse(WebResponse response)
+        {
+            HttpWebResponse http = response as HttpWebResponse;
+            string status = http == null ? "unknown status" : (int)http.StatusCode + " " + http.StatusDescription;
+            string finalUrl = response.ResponseUri == null ? "unknown url" : response.ResponseUri.ToString();
+            return status + " from " + finalUrl;
+        }
+
+        private static void TraceLine(string message)
+        {
+            Action<string> trace = Trace;
+            if (trace != null) trace(message);
         }
     }
 }
