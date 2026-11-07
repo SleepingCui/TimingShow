@@ -196,6 +196,9 @@
     <Compile Include="Source\Updater\UpdateRelease.cs" />
     <Compile Include="Source\Updater\UpdateSettingsUI.cs" />
     <Compile Include="Source\Updater\Updater.cs" />
+    <Compile Include="..\TimingShow.Loader.Shared\PendingUpdateApplier.cs">
+      <Link>Source\Updater\PendingUpdateApplier.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

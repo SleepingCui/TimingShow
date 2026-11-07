@@ -1,8 +1,10 @@
 using MelonLoader;
+using MelonLoader.Utils;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
 using TimingShow.Bridge;
+using TimingShow.Update;
 using OptionsPage = TimingShow.Options.Options;
 
 namespace TimingShow.Melon
@@ -11,6 +13,7 @@ namespace TimingShow.Melon
     {
         private const float WindowWidth = 900f;
         private const float WindowHeight = 600f;
+        private const string UpdateDirectoryName = "Update";
 
         private bool _showSettings;
         private bool _isRebinding;
@@ -31,6 +34,18 @@ namespace TimingShow.Melon
             var harmony = new HarmonyLib.Harmony("TimingShow.Loader.Melon");
             ModContext.HarmonyInstance = harmony;
             ModContext.Enable();
+
+            InitializeUpdater(modPath, Info.Version, logger);
+        }
+
+        private static void InitializeUpdater(string modPath, string version, IModLogger logger)
+        {
+            string updateRoot = Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow", UpdateDirectoryName);
+            string bootstrapPath = Path.Combine(MelonEnvironment.PluginsDirectory, "TimingShow.UpdateBootstrap.dll");
+            bool bootstrapInstalled = File.Exists(bootstrapPath);
+            if (!bootstrapInstalled) logger.Error("TimingShow.UpdateBootstrap.dll is missing from " + MelonEnvironment.PluginsDirectory + "; automatic updates are disabled.");
+
+            Updater.Initialize(modPath, updateRoot, Updater.DefaultRepositoryUrl, version, UpdateTarget.Melon, bootstrapInstalled, logger);
         }
 
         public override void OnUpdate()

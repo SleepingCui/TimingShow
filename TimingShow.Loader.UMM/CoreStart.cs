@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using HarmonyLib;
 using UnityModManagerNet;
 using TimingShow.Bridge;
@@ -25,7 +26,7 @@ namespace TimingShow.UMM
 
             _displayName = modEntry.Info.DisplayName;
             Updater.Changed += () => ApplyDisplayName(modEntry);
-            Updater.Initialize(modEntry.Path, modEntry.Info.Repository, modEntry.Info.Version.ToString(), logger);
+            Updater.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version.ToString(), UpdateTarget.Umm, true, logger);
 
             modEntry.OnToggle = (entry, value) =>
             {

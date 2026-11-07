@@ -2,4 +2,5 @@
   <Project Path="TimingShow/TimingShow.csproj" />
   <Project Path="TimingShow.Loader.Melon/TimingShow.Loader.Melon.csproj" />
   <Project Path="TimingShow.Loader.UMM/TimingShow.Loader.UMM.csproj" />
+  <Project Path="TimingShow.UpdateBootstrap/TimingShow.UpdateBootstrap.csproj" />
 </Solution>

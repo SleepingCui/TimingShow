@@ -17,14 +17,33 @@ namespace TimingShow.Update
         Failed
     }
 
+    public enum UpdateCheckResult
+    {
+        None,
+        UpToDate,
+        Available,
+        Failed
+    }
+
+    public enum UpdateTarget
+    {
+        Umm,
+        Melon
+    }
+
     public static class Updater
     {
         public const string DefaultRepositoryUrl = "https://raw.githubusercontent.com/SleepingCui/TimingShow/refs/heads/master/Repository.json";
         public const string RepositoryId = "TimingShow";
+        public const string MelonRepositoryId = "TimingShow.Melon";
+        public const string UnsupportedReasonKey = "Updater_Unsupported";
+        public const string BootstrapMissingReasonKey = "Updater_BootstrapMissing";
 
         private static readonly object Sync = new object();
 
         private static string _modPath;
+        private static string _updateRoot;
+        private static UpdateTarget _target;
         private static string _repositoryUrl = DefaultRepositoryUrl;
         private static Version _currentVersion = new Version(0, 0, 0);
         private static IModLogger _logger;
@@ -33,6 +52,8 @@ namespace TimingShow.Update
         private static string _errorMessage = string.Empty;
         private static float _progress;
         private static UpdateState _state = UpdateState.Idle;
+        private static UpdateCheckResult _checkResult = UpdateCheckResult.None;
+        private static string _checkError = string.Empty;
         private static Thread _worker;
         private static volatile bool _cancelRequested;
         private static volatile bool _dirty;
@@ -45,9 +66,21 @@ namespace TimingShow.Update
 
         public static bool Supported { get; private set; }
 
+        public static string UnavailableReasonKey { get; private set; } = UnsupportedReasonKey;
+
         public static UpdateState State
         {
             get { lock (Sync) return _state; }
+        }
+
+        public static UpdateCheckResult CheckResult
+        {
+            get { lock (Sync) return _checkResult; }
+        }
+
+        public static string CheckError
+        {
+            get { lock (Sync) return _checkError; }
         }
 
         public static string AvailableVersion
@@ -86,15 +119,18 @@ namespace TimingShow.Update
             }
         }
 
-        public static void Initialize(string modPath, string repositoryUrl, string currentVersion, IModLogger logger)
+        public static void Initialize(string modPath, string updateRoot, string repositoryUrl, string currentVersion, UpdateTarget target, bool autoApplyAvailable, IModLogger logger)
         {
             lock (Sync)
             {
-                Supported = true;
+                Supported = autoApplyAvailable;
+                UnavailableReasonKey = autoApplyAvailable ? UnsupportedReasonKey : BootstrapMissingReasonKey;
                 _modPath = modPath;
+                _updateRoot = string.IsNullOrEmpty(updateRoot) ? Path.Combine(modPath, PendingUpdateApplier.UpdateDirectoryName) : updateRoot;
                 _repositoryUrl = string.IsNullOrEmpty(repositoryUrl) ? DefaultRepositoryUrl : repositoryUrl;
                 _logger = logger;
                 _currentVersion = ParseVersion(currentVersion);
+                _target = target;
             }
 
             Settings settings = ModContext.Settings;
@@ -102,7 +138,13 @@ namespace TimingShow.Update
             AutoUpdateEnabled = settings != null && settings.UpdateAutoUpdate;
 
             UpdateClient.Trace = Trace;
-            Trace("Initialized: version " + _currentVersion + ", repository " + _repositoryUrl + ", mod path " + modPath + ", check " + CheckEnabled + ", auto update " + AutoUpdateEnabled + ".");
+            Trace("Initialized: version " + _currentVersion + ", target " + _target + ", repository " + _repositoryUrl + ", mod path " + modPath + ", update root " + _updateRoot + ", check " + CheckEnabled + ", auto update " + AutoUpdateEnabled + ", supported " + Supported + ".");
+
+            if (!Supported)
+            {
+                Trace("Automatic updates are unavailable: " + UnavailableReasonKey + ".");
+                return;
+            }
 
             UpdateHost.EnsureHost();
             if (CheckEnabled) BeginCheck(AutoUpdateEnabled);
@@ -165,6 +207,14 @@ namespace TimingShow.Update
             SetState(UpdateState.Idle);
         }
 
+        private static string ReleaseId
+        {
+            get
+            {
+                lock (Sync) return _target == UpdateTarget.Melon ? MelonRepositoryId : RepositoryId;
+            }
+        }
+
         private static void BeginCheck(bool autoUpdate)
         {
             Thread worker;
@@ -175,6 +225,8 @@ namespace TimingShow.Update
                 _release = null;
                 _availableVersion = string.Empty;
                 _errorMessage = string.Empty;
+                _checkResult = UpdateCheckResult.None;
+                _checkError = string.Empty;
                 _progress = 0f;
                 _state = UpdateState.Checking;
                 _dirty = true;
@@ -185,16 +237,18 @@ namespace TimingShow.Update
 
         private static void CheckWorker(bool autoUpdate)
         {
-            Trace("Checking " + _repositoryUrl + " for releases newer than " + _currentVersion + ".");
+            string releaseId = ReleaseId;
+            Trace("Checking " + _repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + ".");
             Stopwatch elapsed = Stopwatch.StartNew();
             try
             {
                 string json = UpdateClient.FetchRepository(_repositoryUrl);
-                UpdateRelease release = UpdateClient.FindRelease(json, RepositoryId, _currentVersion);
+                UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion);
                 Trace("Check completed in " + elapsed.ElapsedMilliseconds + " ms.");
                 if (release == null)
                 {
                     Log("Mod is up to date (" + _currentVersion + ").");
+                    SetCheckResult(UpdateCheckResult.UpToDate, string.Empty);
                     SetState(UpdateState.UpToDate);
                     return;
                 }
@@ -205,12 +259,14 @@ namespace TimingShow.Update
                     _availableVersion = release.Version;
                 }
                 Log("Update available: " + release.Version + " (current " + _currentVersion + ").");
+                SetCheckResult(UpdateCheckResult.Available, string.Empty);
                 SetState(UpdateState.Available);
 
                 if (autoUpdate) BeginDownload();
             }
             catch (Exception e)
             {
+                SetCheckResult(UpdateCheckResult.Failed, e.Message);
                 Fail(e);
             }
         }
@@ -236,11 +292,15 @@ namespace TimingShow.Update
         {
             UpdateRelease release;
             string modPath;
+            string updateRoot;
+            UpdateTarget target;
             Version current;
             lock (Sync)
             {
                 release = _release;
                 modPath = _modPath;
+                updateRoot = _updateRoot;
+                target = _target;
                 current = _currentVersion;
             }
             if (release == null || string.IsNullOrEmpty(modPath))
@@ -249,13 +309,12 @@ namespace TimingShow.Update
                 return;
             }
 
-            string updateDirectory = Path.Combine(modPath, UpdatePackage.UpdateDirectoryName);
-            string stagingDirectory = Path.Combine(updateDirectory, UpdatePackage.StagingDirectoryName);
-            string pendingPath = Path.Combine(updateDirectory, UpdatePackage.PendingFileName);
+            string stagingDirectory = Path.Combine(updateRoot, PendingUpdateApplier.StagingDirectoryName);
+            string pendingPath = Path.Combine(updateRoot, PendingUpdateApplier.PendingFileName);
             string zipPath = null;
             try
             {
-                string downloadDirectory = Path.Combine(updateDirectory, UpdatePackage.DownloadDirectoryName);
+                string downloadDirectory = Path.Combine(updateRoot, PendingUpdateApplier.DownloadDirectoryName);
                 Directory.CreateDirectory(downloadDirectory);
                 zipPath = Path.Combine(downloadDirectory, "TimingShow-" + UpdatePackage.SanitizeVersion(release.Version) + ".zip");
 
@@ -264,16 +323,29 @@ namespace TimingShow.Update
                 if (IsCancellationRequested()) throw new OperationCanceledException();
 
                 SetState(UpdateState.Verifying);
-                UpdatePackage.Extract(zipPath, stagingDirectory);
+                UpdatePackage.Extract(zipPath, stagingDirectory, target);
                 Trace("Package extracted.");
-                UpdatePackage.Verify(stagingDirectory, modPath, release);
+                UpdatePackage.Verify(stagingDirectory, modPath, release, target);
                 Trace("Package verified.");
-                UpdatePackage.WriteManifest(stagingDirectory);
-                UpdatePackage.WritePending(modPath, release.Version, current.ToString());
-                UpdatePackage.ApplyStaged(modPath, stagingDirectory, current.ToString());
-                Trace("Package applied.");
+                UpdatePackage.WriteManifest(stagingDirectory, target);
+                UpdatePackage.WritePending(updateRoot, modPath, release.Version, current.ToString(), target);
 
-                Log("Update " + release.Version + " installed; restart the game to finish updating.");
+                bool applied = UpdatePackage.ApplyStaged(updateRoot, modPath);
+                if (applied)
+                {
+                    Trace("Package applied.");
+                    Log("Update " + release.Version + " installed; restart the game to finish updating.");
+                }
+                else if (File.Exists(pendingPath))
+                {
+                    Trace("Immediate apply deferred.");
+                    Log("Update " + release.Version + " was downloaded but could not be installed while the game is running; restart the game to apply it.");
+                }
+                else
+                {
+                    throw new InvalidDataException("The downloaded package could not be applied.");
+                }
+
                 SetState(UpdateState.Ready);
             }
             catch (OperationCanceledException)
@@ -284,16 +356,7 @@ namespace TimingShow.Update
             }
             catch (Exception e)
             {
-                if (File.Exists(pendingPath) && (e is IOException || e is UnauthorizedAccessException))
-                {
-                    Trace("Immediate apply failed: " + e.Message);
-                    Log("Update " + release.Version + " was downloaded but could not be installed while the game is running; restart the game to apply it.");
-                    SetState(UpdateState.Ready);
-                }
-                else
-                {
-                    Fail(e);
-                }
+                Fail(e);
             }
             finally
             {
@@ -321,6 +384,15 @@ namespace TimingShow.Update
                 _dirty = true;
             }
             Trace("State: " + state + ".");
+        }
+
+        private static void SetCheckResult(UpdateCheckResult result, string error)
+        {
+            lock (Sync)
+            {
+                _checkResult = result;
+                _checkError = error ?? string.Empty;
+            }
         }
 
         private static void Fail(Exception e)
