@@ -880,6 +880,12 @@ namespace TimingShow.LevelEditor
 
             Fill(box, value ? HitOverlaySkin.Accent : HitOverlaySkin.FieldBackground);
             Outline(box, value ? HitOverlaySkin.Accent : HitOverlaySkin.Border);
+            if (value)
+            {
+                float inset = box.width * 0.2f;
+                Fill(new Rect(box.x + inset, box.y + inset,
+                    Mathf.Max(0f, box.width - inset * 2f), Mathf.Max(0f, box.height - inset * 2f)), Color.white);
+            }
             Label(new Rect(box.xMax + 6f * _scale, row.yMin, row.width - box.width - 6f * _scale, row.height), i18n.T(labelKey), HitOverlaySkin.TextSecondary, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1f);
 
             if (Pressed(row))
