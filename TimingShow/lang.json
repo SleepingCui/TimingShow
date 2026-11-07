@@ -194,7 +194,7 @@
     "Detail_OrbitCounterClockwise": "逆时针",
     "Judge_Unknown": "未知判定",
     "Judge_Midspin": "中旋",
-    "Judge_FailedFloor": "地面失败",
+    "Judge_FailedFloor": "失败砖块",
     "Label_GraphWidth": "图形宽度: ",
     "Label_GraphHeight": "图形高度: ",
     "Label_SampleCount": "窗口采样点数: ",
