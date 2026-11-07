@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $projectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $gameDir = "E:\Games\Steam\steamapps\common\A Dance of Fire and Ice"
@@ -28,11 +28,6 @@ try
     Write-Host "=== Building TimingShow.Loader.UMM ===" -ForegroundColor Cyan
     msbuild TimingShow.Loader.UMM\TimingShow.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
     if ($LASTEXITCODE -ne 0) { throw "TimingShow.Loader.UMM build failed" }
-
-    Write-Host "=== Building TimingShow.Loader.Melon ===" -ForegroundColor Cyan
-    msbuild TimingShow.Loader.Melon\TimingShow.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU"
-    if ($LASTEXITCODE -ne 0) { throw "TimingShow.Loader.Melon build failed" }
-
 
     Write-Host "=== Copying Mod ===" -ForegroundColor Cyan
 
@@ -86,17 +81,6 @@ try
         -Path ".\TimingShow.Loader.UMM\bin\Release\Info.json" `
         -Destination $modDir `
         -Force
-
-    Copy-Item `
-        -Path ".\TimingShow.Loader.Melon\bin\Release\TimingShow.Loader.Melon.dll" `
-        -Destination $modDir `
-        -Force
-
-    Copy-Item `
-        -Path ".\TimingShow.Loader.Melon\bin\Release\TimingShow.Loader.Melon.pdb" `
-        -Destination $modDir `
-        -Force `
-        -ErrorAction SilentlyContinue
 
     Copy-Item `
         -Path ".\TimingShow\bin\Release\lang.json" `

@@ -43,16 +43,19 @@ jobs:
         shell: cmd
         run: build.bat
 
-      - name: Verify package
+      - name: Verify packages
         shell: pwsh
         run: |
-          if (-not (Test-Path "TimingShow.zip")) {
-            Write-Error "TimingShow.zip was not generated."
-            exit 1
+          $packages = @("TimingShow.UMM.zip", "TimingShow.Melon.zip")
+          foreach ($package in $packages) {
+            if (-not (Test-Path $package)) {
+              Write-Error "$package was not generated."
+              exit 1
+            }
           }
 
-          Write-Host "Package generated successfully:"
-          Get-Item "TimingShow.zip" | Format-List Name, Length, FullName
+          Write-Host "Packages generated successfully:"
+          Get-Item $packages | Format-List Name, Length, FullName
 
       - name: Prepare release notes
         id: notes
@@ -90,7 +93,8 @@ jobs:
         shell: pwsh
         run: |
           gh release create "$env:TAG" `
-            "TimingShow.zip" `
+            "TimingShow.UMM.zip" `
+            "TimingShow.Melon.zip" `
             --draft `
             --title "$env:TAG" `
             --notes "$env:RELEASE_BODY"
@@ -107,19 +111,25 @@ jobs:
             throw "Repository.json not found."
           }
 
+          $packages = @(
+            @{ Id = "TimingShow"; Zip = "TimingShow.UMM.zip" },
+            @{ Id = "TimingShow.Melon"; Zip = "TimingShow.Melon.zip" }
+          )
+
           $json = Get-Content $repoPath -Raw | ConvertFrom-Json
-          $entry = $json.Releases | Where-Object { $_.Id -eq "TimingShow" } | Select-Object -First 1
-          if ($null -eq $entry) {
-            throw "TimingShow entry not found in Repository.json."
+          foreach ($package in $packages) {
+            $entry = $json.Releases | Where-Object { $_.Id -eq $package.Id } | Select-Object -First 1
+            if ($null -eq $entry) {
+              throw "$($package.Id) entry not found in Repository.json."
+            }
+
+            $zip = Get-Item $package.Zip
+            $entry.Version = $env:TAG
+            $entry.DownloadUrl = "https://github.com/$env:REPOSITORY/releases/download/$env:TAG/$($package.Zip)"
+            $entry.Changes = ""
+            $entry.Sha256 = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash
+            $entry.Size = [int64]$zip.Length
           }
-
-          $entry.Version = $env:TAG
-          $entry.DownloadUrl = "https://github.com/$env:REPOSITORY/releases/download/$env:TAG/TimingShow.zip"
-          $entry.Changes = ""
-
-          $zip = Get-Item "TimingShow.zip"
-          $entry.Sha256 = (Get-FileHash $zip.FullName -Algorithm SHA256).Hash
-          $entry.Size = [int64]$zip.Length
 
           $json | ConvertTo-Json -Depth 100 | Set-Content -Path $repoPath -Encoding utf8NoBOM
 

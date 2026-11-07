@@ -89,41 +89,73 @@ jobs:
         shell: pwsh
         run: msbuild TimingShow.Loader.Melon/TimingShow.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
-      - name: Prepare artifact files
+      - name: Build update bootstrap
+        shell: pwsh
+        run: msbuild TimingShow.UpdateBootstrap/TimingShow.UpdateBootstrap.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
+      - name: Prepare artifact packages
         id: package
         shell: pwsh
         run: |
-          $stage = Join-Path $env:RUNNER_TEMP "TimingShow-CI-${{ steps.version.outputs.version }}"
-          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          $version = "${{ steps.version.outputs.version }}"
+          $dist = Join-Path $env:RUNNER_TEMP "TimingShow-CI-$version"
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
 
-          $files = @(
-            "TimingShow/bin/Release/TimingShow.dll",
-            "TimingShow.Loader.UMM/bin/Release/TimingShow.Loader.UMM.dll",
-            "TimingShow.Loader.Melon/bin/Release/TimingShow.Loader.Melon.dll",
-            "TimingShow.Loader.UMM/bin/Release/Info.json",
-            "TimingShow/bin/Release/lang.json"
+          Add-Type -AssemblyName System.IO.Compression
+
+          $packages = @(
+            @{
+              Name = "TimingShow.UMM"
+              Files = @(
+                @{ Source = "TimingShow/bin/Release/TimingShow.dll"; Destination = "TimingShow.dll" },
+                @{ Source = "TimingShow.Loader.UMM/bin/Release/TimingShow.Loader.UMM.dll"; Destination = "TimingShow.Loader.UMM.dll" },
+                @{ Source = "TimingShow.Loader.UMM/bin/Release/Info.json"; Destination = "Info.json" },
+                @{ Source = "TimingShow/bin/Release/lang.json"; Destination = "lang.json" }
+              )
+            },
+            @{
+              Name = "TimingShow.Melon"
+              Files = @(
+                @{ Source = "TimingShow/bin/Release/TimingShow.dll"; Destination = "Mods/TimingShow.dll" },
+                @{ Source = "TimingShow.Loader.Melon/bin/Release/TimingShow.Loader.Melon.dll"; Destination = "Mods/TimingShow.Loader.Melon.dll" },
+                @{ Source = "TimingShow/bin/Release/lang.json"; Destination = "Mods/lang.json" },
+                @{ Source = "TimingShow.UpdateBootstrap/bin/Release/TimingShow.UpdateBootstrap.dll"; Destination = "Plugins/TimingShow.UpdateBootstrap.dll" }
+              )
+            }
           )
 
-          foreach ($file in $files) {
-            if (-not (Test-Path $file -PathType Leaf)) {
-              throw "Build output not found: $file"
+          foreach ($package in $packages) {
+            $archivePath = Join-Path $dist "$($package.Name).zip"
+            if (Test-Path $archivePath) {
+              Remove-Item -LiteralPath $archivePath -Force
             }
-            Copy-Item -LiteralPath $file -Destination $stage
+
+            $archive = [System.IO.Compression.ZipFile]::Open($archivePath, "Create")
+            try {
+              foreach ($file in $package.Files) {
+                if (-not (Test-Path $file.Source -PathType Leaf)) {
+                  throw "Build output not found: $($file.Source)"
+                }
+                [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Resolve-Path $file.Source).ProviderPath, $file.Destination)
+              }
+            }
+            finally {
+              $archive.Dispose()
+            }
           }
 
-          $packagedInfo = Get-Content (Join-Path $stage "Info.json") -Raw | ConvertFrom-Json
-          if ($packagedInfo.Version -ne "${{ steps.version.outputs.version }}") {
+          $packagedInfo = Get-Content "TimingShow.Loader.UMM/bin/Release/Info.json" -Raw | ConvertFrom-Json
+          if ($packagedInfo.Version -ne $version) {
             throw "Info.json version mismatch: $($packagedInfo.Version)"
           }
 
-          "stage=$stage" >> $env:GITHUB_OUTPUT
-          Write-Host "Prepared files in $stage"
-          Get-ChildItem $stage | Select-Object Name, Length
+          "stage=$dist" >> $env:GITHUB_OUTPUT
+          Get-ChildItem $dist | Select-Object Name, Length
 
       - name: Upload development build
         uses: actions/upload-artifact@v4
         with:
           name: TimingShow-${{ steps.version.outputs.version }}
-          path: ${{ steps.package.outputs.stage }}/*
+          path: ${{ steps.package.outputs.stage }}/*.zip
           if-no-files-found: error
           retention-days: 14

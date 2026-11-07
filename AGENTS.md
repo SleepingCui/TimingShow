@@ -39,10 +39,10 @@
 
 ## 构建与验证
 
-- 完整构建：在仓库根目录运行 `build.bat`。该流程使用 MSBuild 构建三个 Release 项目并打包 `TimingShow.zip`，需要 Visual Studio Build Tools/MSBuild 和单独提供的 `libs/` 依赖。
+- 完整构建：在仓库根目录运行 `build.bat`。该流程使用 MSBuild 构建四个 Release 项目并分别打包 `TimingShow.UMM.zip` 与 `TimingShow.Melon.zip`，需要 Visual Studio Build Tools/MSBuild 和单独提供的 `libs/` 依赖。
 - 单项目构建示例：`msbuild TimingShow/TimingShow.csproj /p:Configuration=Release /p:Platform="AnyCPU"`。加载器项目可替换为相应项目路径。
 - 几何检查：`dotnet run --project tools/GeometryTests/GeometryTests.csproj`。
-- `build2.ps1` 含有本机游戏路径，会复制文件并启动游戏。除非用户明确要求且流程不违反上文的游戏资产限制，否则不要运行或调整该脚本。
+- `build2.ps1` 含有本机游戏路径，只构建并部署 UMM 版本，随后启动游戏。除非用户明确要求且流程不违反上文的游戏资产限制，否则不要运行或调整该脚本。
 - 根据改动范围选择必要的构建或验证，并在交付时如实说明执行过的命令及结果。不要声称运行了未执行的验证。
 
 ## 文档与交付
