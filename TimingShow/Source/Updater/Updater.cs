@@ -251,10 +251,11 @@ namespace TimingShow.Update
 
             string updateDirectory = Path.Combine(modPath, UpdatePackage.UpdateDirectoryName);
             string stagingDirectory = Path.Combine(updateDirectory, UpdatePackage.StagingDirectoryName);
+            string pendingPath = Path.Combine(updateDirectory, UpdatePackage.PendingFileName);
             string zipPath = null;
             try
             {
-                string downloadDirectory = Path.Combine(updateDirectory, "download");
+                string downloadDirectory = Path.Combine(updateDirectory, UpdatePackage.DownloadDirectoryName);
                 Directory.CreateDirectory(downloadDirectory);
                 zipPath = Path.Combine(downloadDirectory, "TimingShow-" + UpdatePackage.SanitizeVersion(release.Version) + ".zip");
 
@@ -269,23 +270,34 @@ namespace TimingShow.Update
                 Trace("Package verified.");
                 UpdatePackage.WriteManifest(stagingDirectory);
                 UpdatePackage.WritePending(modPath, release.Version, current.ToString());
+                UpdatePackage.ApplyStaged(modPath, stagingDirectory, current.ToString());
+                Trace("Package applied.");
 
-                Log("Update " + release.Version + " verified and staged; it will be applied on the next launch.");
+                Log("Update " + release.Version + " installed; restart the game to finish updating.");
                 SetState(UpdateState.Ready);
             }
             catch (OperationCanceledException)
             {
                 Log("Update download cancelled.");
-                DeleteDirectory(stagingDirectory);
+                UpdatePackage.TryDeleteDirectory(stagingDirectory);
                 SetState(UpdateState.Available);
             }
             catch (Exception e)
             {
-                Fail(e);
+                if (File.Exists(pendingPath) && (e is IOException || e is UnauthorizedAccessException))
+                {
+                    Trace("Immediate apply failed: " + e.Message);
+                    Log("Update " + release.Version + " was downloaded but could not be installed while the game is running; restart the game to apply it.");
+                    SetState(UpdateState.Ready);
+                }
+                else
+                {
+                    Fail(e);
+                }
             }
             finally
             {
-                TryDeleteFile(zipPath);
+                UpdatePackage.TryDeleteFile(zipPath);
             }
         }
 
@@ -338,28 +350,6 @@ namespace TimingShow.Update
         {
             if (!TraceEnabled) return;
             Log("[Update] " + message);
-        }
-
-        private static void TryDeleteFile(string path)
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(path) && File.Exists(path)) File.Delete(path);
-            }
-            catch (Exception)
-            {
-            }
-        }
-
-        private static void DeleteDirectory(string path)
-        {
-            try
-            {
-                if (Directory.Exists(path)) Directory.Delete(path, true);
-            }
-            catch (Exception)
-            {
-            }
         }
 
         private static Version ParseVersion(string text)

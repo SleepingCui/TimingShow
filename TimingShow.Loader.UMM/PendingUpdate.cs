@@ -1,4 +1,4 @@
-    using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
@@ -26,17 +26,19 @@ namespace TimingShow.UMM
                 string pendingPath = Path.Combine(updateDirectory, PendingFileName);
                 if (!File.Exists(pendingPath)) return;
 
+                string version = ReadValue(pendingPath, "version") ?? "unknown";
+                string backupDirectory = Path.Combine(updateDirectory, "backup-" + Sanitize(ReadValue(pendingPath, "from")));
                 string stagingDirectory = Path.GetFullPath(Path.Combine(updateDirectory, StagingDirectoryName));
                 string manifestPath = Path.Combine(stagingDirectory, ManifestFileName);
                 if (!File.Exists(manifestPath))
                 {
-                    logger.Log("Pending update has no manifest and was discarded.");
+                    RestoreBackup(backupDirectory, modPath, logger);
                     File.Delete(pendingPath);
+                    DeleteDirectory(stagingDirectory);
+                    logger.Log("Pending update to " + version + " has no manifest; the previous files were restored.");
                     return;
                 }
 
-                string version = ReadValue(pendingPath, "version") ?? "unknown";
-                string backupDirectory = Path.Combine(updateDirectory, "backup-" + Sanitize(ReadValue(pendingPath, "from")));
                 string stagingPrefix = stagingDirectory + Path.DirectorySeparatorChar;
 
                 bool failed = false;
@@ -69,7 +71,10 @@ namespace TimingShow.UMM
 
                 if (failed)
                 {
-                    logger.Log("Pending update to " + version + " is incomplete; it will be retried on the next launch.");
+                    RestoreBackup(backupDirectory, modPath, logger);
+                    File.Delete(pendingPath);
+                    DeleteDirectory(stagingDirectory);
+                    logger.Log("Pending update to " + version + " is corrupted; the previous files were restored.");
                     return;
                 }
 
@@ -92,8 +97,8 @@ namespace TimingShow.UMM
                     }
                 }
 
-                Directory.Delete(stagingDirectory, true);
                 File.Delete(pendingPath);
+                DeleteDirectory(stagingDirectory);
                 DeleteDirectory(Path.Combine(updateDirectory, "download"));
                 PruneBackups(updateDirectory, backupDirectory);
                 logger.Log("Applied pending update " + version + " (" + entries.Count + " file(s)).");
@@ -137,6 +142,28 @@ namespace TimingShow.UMM
                     {
                         File.Delete(target);
                     }
+                }
+                catch (Exception e)
+                {
+                    logger.Error("Failed to restore " + relative + ": " + e.Message);
+                }
+            }
+        }
+
+        private static void RestoreBackup(string backupDirectory, string modPath, UnityModManager.ModEntry.ModLogger logger)
+        {
+            if (!Directory.Exists(backupDirectory)) return;
+
+            string prefix = Path.GetFullPath(backupDirectory) + Path.DirectorySeparatorChar;
+            foreach (string file in Directory.GetFiles(backupDirectory, "*", SearchOption.AllDirectories))
+            {
+                string relative = file.Substring(prefix.Length);
+                string target = Path.Combine(modPath, relative);
+                try
+                {
+                    string directory = Path.GetDirectoryName(target);
+                    if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+                    File.Copy(file, target, true);
                 }
                 catch (Exception e)
                 {
@@ -207,7 +234,7 @@ namespace TimingShow.UMM
 
         private static string Sanitize(string text)
         {
-            if (string.IsNullOrEmpty(text)) return "unknown";
+            if (string.IsNullOrEmpty(text)) return "update";
 
             StringBuilder builder = new StringBuilder(text.Length);
             foreach (char character in text)
@@ -215,7 +242,7 @@ namespace TimingShow.UMM
                 if (char.IsLetterOrDigit(character) || character == '.' || character == '-' || character == '_')
                     builder.Append(character);
             }
-            return builder.Length == 0 ? "unknown" : builder.ToString();
+            return builder.Length == 0 ? "update" : builder.ToString();
         }
     }
 }

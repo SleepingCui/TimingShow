@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
@@ -14,6 +15,8 @@ namespace TimingShow.Update
         public const string StagingDirectoryName = "staging";
         public const string PendingFileName = "pending.txt";
         public const string ManifestFileName = "manifest.txt";
+        public const string DownloadDirectoryName = "download";
+        public const string BackupDirectoryPrefix = "backup-";
 
         private const string CoreAssemblyName = "TimingShow.dll";
         private const string LoaderAssemblyName = "TimingShow.Loader.UMM.dll";
@@ -101,6 +104,58 @@ namespace TimingShow.Update
             File.Move(tempPath, pendingPath);
         }
 
+        public static void ApplyStaged(string modPath, string stagingDirectory, string fromVersion)
+        {
+            string staging = Path.GetFullPath(stagingDirectory);
+            string stagingPrefix = staging + Path.DirectorySeparatorChar;
+            string updateDirectory = Path.Combine(modPath, UpdateDirectoryName);
+            string pendingPath = Path.Combine(updateDirectory, PendingFileName);
+            string backupDirectory = Path.Combine(updateDirectory, BackupDirectoryPrefix + SanitizeVersion(fromVersion));
+
+            List<string> entries = new List<string>();
+            foreach (string line in File.ReadAllLines(Path.Combine(staging, ManifestFileName)))
+            {
+                int tab = line.IndexOf('\t');
+                if (tab <= 0) continue;
+
+                string expectedHash = line.Substring(0, tab).Trim();
+                string relative = line.Substring(tab + 1).Trim().Replace('\\', '/');
+                if (relative.Length == 0) continue;
+
+                string source = Path.GetFullPath(Path.Combine(staging, relative));
+                if (!source.StartsWith(stagingPrefix, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("Update entry escapes the staging directory: " + relative);
+                if (!File.Exists(source) || !string.Equals(HashFile(source), expectedHash, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("Update file is corrupted: " + relative);
+
+                entries.Add(relative);
+            }
+
+            List<string> replaced = new List<string>();
+            try
+            {
+                foreach (string relative in entries)
+                {
+                    string target = Path.Combine(modPath, relative);
+                    BackupFile(target, backupDirectory, relative);
+                    ReplaceFile(Path.Combine(staging, relative), target);
+                    replaced.Add(relative);
+                }
+            }
+            catch
+            {
+                RestoreFiles(replaced, backupDirectory, modPath);
+                throw;
+            }
+
+            if (TryDeleteFile(pendingPath))
+            {
+                TryDeleteDirectory(staging);
+                TryDeleteDirectory(Path.Combine(updateDirectory, DownloadDirectoryName));
+            }
+            PruneBackups(updateDirectory, backupDirectory);
+        }
+
         public static string HashFile(string path)
         {
             using (FileStream stream = File.OpenRead(path))
@@ -120,6 +175,98 @@ namespace TimingShow.Update
                     builder.Append(character);
             }
             return builder.Length == 0 ? "update" : builder.ToString();
+        }
+
+        public static bool TryDeleteFile(string path)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(path) && File.Exists(path)) File.Delete(path);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public static bool TryDeleteDirectory(string path)
+        {
+            try
+            {
+                if (Directory.Exists(path)) Directory.Delete(path, true);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private static void ReplaceFile(string source, string target)
+        {
+            string directory = Path.GetDirectoryName(target);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+
+            string incoming = target + ".incoming";
+            File.Copy(source, incoming, true);
+            if (File.Exists(target))
+            {
+                File.Replace(incoming, target, null);
+            }
+            else
+            {
+                File.Move(incoming, target);
+            }
+        }
+
+        private static void BackupFile(string target, string backupDirectory, string relative)
+        {
+            if (!File.Exists(target)) return;
+
+            string backup = Path.Combine(backupDirectory, relative);
+            string directory = Path.GetDirectoryName(backup);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            if (!File.Exists(backup)) File.Copy(target, backup, true);
+        }
+
+        private static void RestoreFiles(List<string> relativePaths, string backupDirectory, string modPath)
+        {
+            foreach (string relative in relativePaths)
+            {
+                string backup = Path.Combine(backupDirectory, relative);
+                string target = Path.Combine(modPath, relative);
+                try
+                {
+                    if (File.Exists(backup))
+                    {
+                        File.Copy(backup, target, true);
+                    }
+                    else if (File.Exists(target))
+                    {
+                        File.Delete(target);
+                    }
+                }
+                catch (Exception e)
+                {
+                    ModContext.Logger?.Error("Failed to restore " + relative + ": " + e.Message);
+                }
+            }
+        }
+
+        private static void PruneBackups(string updateDirectory, string keep)
+        {
+            try
+            {
+                foreach (string directory in Directory.GetDirectories(updateDirectory, BackupDirectoryPrefix + "*"))
+                {
+                    if (string.Equals(directory, keep, StringComparison.OrdinalIgnoreCase)) continue;
+                    Directory.Delete(directory, true);
+                }
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private static bool VersionsMatch(string left, string right)
