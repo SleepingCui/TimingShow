@@ -7,7 +7,7 @@ using TimingShow.Update;
 
 namespace TimingShow.UMM
 {
-    internal static class CoreStart
+    internal static class ModBootstrap
     {
         private static string _displayName = "TimingShow";
 
