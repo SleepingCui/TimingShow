@@ -25,8 +25,8 @@ namespace TimingShow.UMM
             ModContext.HarmonyInstance = harmony;
 
             _displayName = modEntry.Info.DisplayName;
-            Updater.Changed += () => ApplyDisplayName(modEntry);
-            Updater.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version.ToString(), UpdateTarget.Umm, true, logger);
+            UpdateBridge.Changed += () => ApplyDisplayName(modEntry);
+            UpdateBridge.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version.ToString(), UpdateTarget.Umm, true, logger);
 
             modEntry.OnToggle = (entry, value) =>
             {
@@ -48,7 +48,7 @@ namespace TimingShow.UMM
         {
             try
             {
-                string suffix = Updater.Suffix;
+                string suffix = UpdateBridge.Suffix;
                 string name = string.IsNullOrEmpty(suffix) ? _displayName : _displayName + " " + suffix;
                 if (modEntry.Info.DisplayName != name) modEntry.Info.DisplayName = name;
             }

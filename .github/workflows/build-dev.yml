@@ -81,6 +81,10 @@ jobs:
         shell: pwsh
         run: msbuild TimingShow/TimingShow.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
+      - name: Build updater
+        shell: pwsh
+        run: msbuild TimingShow.Updater/TimingShow.Updater.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
       - name: Build UMM loader
         shell: pwsh
         run: msbuild TimingShow.Loader.UMM/TimingShow.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
@@ -108,6 +112,7 @@ jobs:
               Name = "TimingShow.UMM"
               Files = @(
                 @{ Source = "TimingShow/bin/Release/TimingShow.dll"; Destination = "TimingShow.dll" },
+                @{ Source = "TimingShow.Updater/bin/Release/TimingShow.Updater.dll"; Destination = "TimingShow.Updater.dll" },
                 @{ Source = "TimingShow.Loader.UMM/bin/Release/TimingShow.Loader.UMM.dll"; Destination = "TimingShow.Loader.UMM.dll" },
                 @{ Source = "TimingShow.Loader.UMM/bin/Release/Info.json"; Destination = "Info.json" },
                 @{ Source = "TimingShow/bin/Release/lang.json"; Destination = "lang.json" }
@@ -117,6 +122,7 @@ jobs:
               Name = "TimingShow.Melon"
               Files = @(
                 @{ Source = "TimingShow/bin/Release/TimingShow.dll"; Destination = "Mods/TimingShow.dll" },
+                @{ Source = "TimingShow.Updater/bin/Release/TimingShow.Updater.dll"; Destination = "Mods/TimingShow.Updater.dll" },
                 @{ Source = "TimingShow.Loader.Melon/bin/Release/TimingShow.Loader.Melon.dll"; Destination = "Mods/TimingShow.Loader.Melon.dll" },
                 @{ Source = "TimingShow/bin/Release/lang.json"; Destination = "Mods/lang.json" },
                 @{ Source = "TimingShow.UpdateBootstrap/bin/Release/TimingShow.UpdateBootstrap.dll"; Destination = "Plugins/TimingShow.UpdateBootstrap.dll" }

@@ -2,10 +2,11 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using UnityEngine;
 
 namespace TimingShow.Update
 {
-    public enum UpdateState
+    internal enum UpdateState
     {
         Idle,
         Checking,
@@ -17,7 +18,7 @@ namespace TimingShow.Update
         Failed
     }
 
-    public enum UpdateCheckResult
+    internal enum UpdateCheckResult
     {
         None,
         UpToDate,
@@ -25,15 +26,8 @@ namespace TimingShow.Update
         Failed
     }
 
-    public enum UpdateTarget
+    internal static class Updater
     {
-        Umm,
-        Melon
-    }
-
-    public static class Updater
-    {
-        public const string DefaultRepositoryUrl = "https://raw.githubusercontent.com/SleepingCui/TimingShow/refs/heads/master/Repository.json";
         public const string RepositoryId = "TimingShow";
         public const string MelonRepositoryId = "TimingShow.Melon";
         public const string UnsupportedReasonKey = "Updater_Unsupported";
@@ -44,8 +38,10 @@ namespace TimingShow.Update
         private static string _modPath;
         private static string _updateRoot;
         private static UpdateTarget _target;
-        private static string _repositoryUrl = DefaultRepositoryUrl;
+        private static string _repositoryUrl = UpdateBridge.DefaultRepositoryUrl;
         private static Version _currentVersion = new Version(0, 0, 0);
+        private static GameVersion _gameVersion;
+        private static string _gameVersionText = string.Empty;
         private static IModLogger _logger;
         private static UpdateRelease _release;
         private static string _availableVersion = string.Empty;
@@ -127,9 +123,12 @@ namespace TimingShow.Update
                 UnavailableReasonKey = autoApplyAvailable ? UnsupportedReasonKey : BootstrapMissingReasonKey;
                 _modPath = modPath;
                 _updateRoot = string.IsNullOrEmpty(updateRoot) ? Path.Combine(modPath, PendingUpdateApplier.UpdateDirectoryName) : updateRoot;
-                _repositoryUrl = string.IsNullOrEmpty(repositoryUrl) ? DefaultRepositoryUrl : repositoryUrl;
+                _repositoryUrl = string.IsNullOrEmpty(repositoryUrl) ? UpdateBridge.DefaultRepositoryUrl : repositoryUrl;
                 _logger = logger;
                 _currentVersion = ParseVersion(currentVersion);
+                string gameVersion = Application.version;
+                _gameVersionText = string.IsNullOrEmpty(gameVersion) ? "unknown" : gameVersion.Trim();
+                GameVersion.TryParse(gameVersion, out _gameVersion);
                 _target = target;
             }
 
@@ -137,8 +136,10 @@ namespace TimingShow.Update
             CheckEnabled = settings != null && settings.UpdateCheckEnabled;
             AutoUpdateEnabled = settings != null && settings.UpdateAutoUpdate;
 
+            if (_gameVersion.IsEmpty) Log("Game version is unavailable; game version constraints in the repository are ignored.");
+
             UpdateClient.Trace = Trace;
-            Trace("Initialized: version " + _currentVersion + ", target " + _target + ", repository " + _repositoryUrl + ", mod path " + modPath + ", update root " + _updateRoot + ", check " + CheckEnabled + ", auto update " + AutoUpdateEnabled + ", supported " + Supported + ".");
+            Trace("Initialized: version " + _currentVersion + ", game " + _gameVersionText + ", target " + _target + ", repository " + _repositoryUrl + ", mod path " + modPath + ", update root " + _updateRoot + ", check " + CheckEnabled + ", auto update " + AutoUpdateEnabled + ", supported " + Supported + ".");
 
             if (!Supported)
             {
@@ -238,16 +239,20 @@ namespace TimingShow.Update
         private static void CheckWorker(bool autoUpdate)
         {
             string releaseId = ReleaseId;
-            Trace("Checking " + _repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + ".");
+            Trace("Checking " + _repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + " for game " + _gameVersionText + ".");
             Stopwatch elapsed = Stopwatch.StartNew();
             try
             {
                 string json = UpdateClient.FetchRepository(_repositoryUrl);
-                UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion);
+                string skippedForGame;
+                UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion, _gameVersion, out skippedForGame);
                 Trace("Check completed in " + elapsed.ElapsedMilliseconds + " ms.");
                 if (release == null)
                 {
-                    Log("Mod is up to date (" + _currentVersion + ").");
+                    if (string.IsNullOrEmpty(skippedForGame))
+                        Log("Mod is up to date (" + _currentVersion + ", game " + _gameVersionText + ").");
+                    else
+                        Log("No update for game " + _gameVersionText + ": " + skippedForGame + ".");
                     SetCheckResult(UpdateCheckResult.UpToDate, string.Empty);
                     SetState(UpdateState.UpToDate);
                     return;
@@ -258,7 +263,7 @@ namespace TimingShow.Update
                     _release = release;
                     _availableVersion = release.Version;
                 }
-                Log("Update available: " + release.Version + " (current " + _currentVersion + ").");
+                Log("Update available: " + release.Version + " (current " + _currentVersion + ", game " + _gameVersionText + ").");
                 SetCheckResult(UpdateCheckResult.Available, string.Empty);
                 SetState(UpdateState.Available);
 

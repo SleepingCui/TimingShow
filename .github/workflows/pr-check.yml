@@ -40,6 +40,10 @@ jobs:
         shell: pwsh
         run: msbuild TimingShow/TimingShow.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
+      - name: Build updater
+        shell: pwsh
+        run: msbuild TimingShow.Updater/TimingShow.Updater.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+
       - name: Run geometry tests
         shell: pwsh
         run: dotnet run --project tools/GeometryTests/GeometryTests.csproj --configuration Release

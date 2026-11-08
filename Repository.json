@@ -3,6 +3,7 @@
     {
       "Id": "TimingShow",
       "Version": "1.9.3",
+      "GameVersion": "*",
       "DownloadUrl": "https://github.com/SleepingCui/TimingShow/releases/download/1.9.3/TimingShow.zip",
       "Changes": "",
       "Sha256": "66843C75DEBE93B0F17499F3E20F983C57609C9E79C7EE14B221A9F3F09ADD3C",
@@ -11,6 +12,7 @@
     {
       "Id": "TimingShow.Melon",
       "Version": "1.9.3",
+      "GameVersion": "*",
       "DownloadUrl": "https://github.com/SleepingCui/TimingShow/releases/download/1.9.3/TimingShow.zip",
       "Changes": "",
       "Sha256": "66843C75DEBE93B0F17499F3E20F983C57609C9E79C7EE14B221A9F3F09ADD3C",

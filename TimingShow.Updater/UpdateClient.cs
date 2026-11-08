@@ -55,13 +55,14 @@ namespace TimingShow.Update
             }
         }
 
-        public static UpdateRelease FindRelease(string json, string id, Version currentVersion)
+        public static UpdateRelease FindRelease(string json, string id, Version currentVersion, GameVersion gameVersion, out string skippedForGame)
         {
+            skippedForGame = null;
             UpdateManifest manifest = JsonConvert.DeserializeObject<UpdateManifest>(json);
             if (manifest == null || manifest.Releases == null)
                 throw new InvalidDataException("Repository.json does not contain a Releases list.");
 
-            TraceLine("Manifest lists " + manifest.Releases.Length + " release entries; looking for " + id + " newer than " + currentVersion + ".");
+            TraceLine("Manifest lists " + manifest.Releases.Length + " release entries; looking for " + id + " newer than " + currentVersion + " for game " + gameVersion + ".");
             foreach (UpdateRelease release in manifest.Releases)
             {
                 if (release == null) continue;
@@ -80,6 +81,16 @@ namespace TimingShow.Update
                 if (candidate <= currentVersion)
                 {
                     TraceLine("Skipped " + release.Id + " " + release.Version + ": not newer than " + currentVersion + ".");
+                    continue;
+                }
+
+                GameVersionConstraint constraint;
+                if (!GameVersionConstraint.TryParse(release.GameVersion, out constraint))
+                    throw new InvalidDataException("Release " + release.Version + " has an invalid GameVersion: " + release.GameVersion + ".");
+                if (!gameVersion.IsEmpty && !constraint.IsSatisfiedBy(gameVersion))
+                {
+                    TraceLine("Skipped " + release.Id + " " + release.Version + ": requires game " + constraint + ", current " + gameVersion + ".");
+                    if (skippedForGame == null) skippedForGame = release.Version + " requires game " + constraint;
                     continue;
                 }
 

@@ -60,7 +60,7 @@ namespace TimingShow.Options
             ModContext.LastConfigGuiFrame = Time.frameCount;
             ModContext.UIDirty = true;
 
-            UpdateBanner.Draw();
+            UpdateBridge.DrawBanner();
             DrawLanguageSettings();
             DrawTitleSettings();
             DrawPlanetSettings();
@@ -563,7 +563,7 @@ namespace TimingShow.Options
 
                 GUI.enabled = prevGuiEnabled;
 
-                UpdateSettingsUI.Draw();
+                UpdateBridge.DrawSettings();
             }
             GUILayout.EndVertical();
         }
@@ -686,12 +686,15 @@ namespace TimingShow.Options
             Toggle(ref ModContext.Settings.Diag_InputTrace, "Toggle_DiagInputTrace");
             Toggle(ref ModContext.Settings.Diag_TrackMeshBounds, "Toggle_DiagTrackMesh");
 
-            bool updateTrace = ModContext.Settings.Diag_UpdateTrace;
-            bool previousGuiEnabled = GUI.enabled;
-            GUI.enabled = Updater.Supported;
-            Toggle(ref ModContext.Settings.Diag_UpdateTrace, "Toggle_DiagUpdateTrace");
-            GUI.enabled = previousGuiEnabled;
-            if (!updateTrace && ModContext.Settings.Diag_UpdateTrace) Updater.CheckNow();
+            if (UpdateBridge.IsAvailable)
+            {
+                bool updateTrace = ModContext.Settings.Diag_UpdateTrace;
+                bool previousGuiEnabled = GUI.enabled;
+                GUI.enabled = UpdateBridge.Supported;
+                Toggle(ref ModContext.Settings.Diag_UpdateTrace, "Toggle_DiagUpdateTrace");
+                GUI.enabled = previousGuiEnabled;
+                if (!updateTrace && ModContext.Settings.Diag_UpdateTrace) UpdateBridge.CheckNow();
+            }
 
             SliderFloat("Label_DiagBoundsInterval", ref ModContext.Settings.Diag_BoundsIntervalSec, 0.1f, 5f);
             SliderFloat("Label_DiagBoundsTolerance", ref ModContext.Settings.Diag_BoundsTolerancePx, 0f, 4f);

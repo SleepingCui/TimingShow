@@ -35,6 +35,10 @@ try
         msbuild TimingShow.Loader.UMM\TimingShow.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
         if ($LASTEXITCODE -ne 0) { throw "TimingShow.Loader.UMM build failed" }
 
+        Write-Host "=== Building TimingShow.Updater ===" -ForegroundColor Cyan
+        msbuild TimingShow.Updater\TimingShow.Updater.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+        if ($LASTEXITCODE -ne 0) { throw "TimingShow.Updater build failed" }
+
         Write-Host "=== Copying Mod ===" -ForegroundColor Cyan
 
         New-Item `
@@ -79,6 +83,17 @@ try
 
         Copy-Item `
             -Path ".\TimingShow.Loader.UMM\bin\Release\TimingShow.Loader.UMM.pdb" `
+            -Destination $modDir `
+            -Force `
+            -ErrorAction SilentlyContinue
+
+        Copy-Item `
+            -Path ".\TimingShow.Updater\bin\Release\TimingShow.Updater.dll" `
+            -Destination $modDir `
+            -Force
+
+        Copy-Item `
+            -Path ".\TimingShow.Updater\bin\Release\TimingShow.Updater.pdb" `
             -Destination $modDir `
             -Force `
             -ErrorAction SilentlyContinue

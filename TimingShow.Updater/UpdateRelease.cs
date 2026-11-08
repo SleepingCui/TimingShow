@@ -10,6 +10,9 @@ namespace TimingShow.Update
         [JsonProperty("Version")]
         public string Version { get; set; }
 
+        [JsonProperty("GameVersion")]
+        public string GameVersion { get; set; }
+
         [JsonProperty("DownloadUrl")]
         public string DownloadUrl { get; set; }
 
