@@ -35,9 +35,12 @@ namespace TimingShow.Patches
             new HookTarget { Name = "GetAxisRaw", Arguments = new[] { typeof(string) }, Prefix = "GetAxisRaw", Probe = "Horizontal" },
         };
 
+        private static readonly List<MethodInfo> Installed = new List<MethodInfo>();
+
         internal static void Install(Harmony harmony)
         {
             if (harmony == null) return;
+            Uninstall(harmony);
             int installed = 0;
             List<string> native = new List<string>();
             List<string> failed = new List<string>();
@@ -64,6 +67,7 @@ namespace TimingShow.Patches
                         failed.Add(target.Name + ":broken");
                         continue;
                     }
+                    Installed.Add(original);
                     installed++;
                 }
                 catch (Exception e)
@@ -75,6 +79,28 @@ namespace TimingShow.Patches
             if (native.Count > 0) summary += ", no body: " + string.Join(", ", native.ToArray());
             if (failed.Count > 0) summary += ", failed: " + string.Join(", ", failed.ToArray());
             if (ModContext.Logger != null) ModContext.Logger.Log(summary);
+        }
+
+        internal static void Uninstall(Harmony harmony)
+        {
+            int uninstalled = 0;
+            if (harmony != null)
+            {
+                foreach (MethodInfo original in Installed)
+                {
+                    try
+                    {
+                        harmony.Unpatch(original, HarmonyPatchType.All, harmony.Id);
+                        uninstalled++;
+                    }
+                    catch (Exception e)
+                    {
+                        if (ModContext.Logger != null) ModContext.Logger.Error("Failed to unpatch " + original.Name + ": " + e.GetType().Name);
+                    }
+                }
+            }
+            Installed.Clear();
+            if (uninstalled > 0 && ModContext.Logger != null) ModContext.Logger.Log("Input hooks unloaded: " + uninstalled);
         }
 
         private static bool HasBody(MethodInfo method)

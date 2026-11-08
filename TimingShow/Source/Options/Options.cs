@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityFileDialog;
 using static TimingShow.Options.OptionsWidgets;
 using TimingShow.Bridge;
+using TimingShow.Patches;
 using TimingShow.Update;
 
 namespace TimingShow.Options
@@ -617,6 +618,21 @@ namespace TimingShow.Options
                 ModContext.Settings.UseHookMode = newHookMode;
                 if (newHookMode) XPerfectBridge.TryInit(force: true);
                 else XPerfectBridge.UnloadHook();
+                }
+
+                GUILayout.Space(5);
+
+                bool disableInputHooks = ToggleWithDescription(
+                ModContext.Settings.DisableInputHooks,
+                "Toggle_DisableInputHooks",
+                "Desc_DisableInputHooks"
+                );
+
+                if (disableInputHooks != ModContext.Settings.DisableInputHooks)
+                {
+                ModContext.Settings.DisableInputHooks = disableInputHooks;
+                if (disableInputHooks) InputPatches.Uninstall(ModContext.HarmonyInstance);
+                else InputPatches.Install(ModContext.HarmonyInstance);
                 }
 
                 GUILayout.Space(5);

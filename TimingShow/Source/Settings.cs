@@ -251,6 +251,7 @@ namespace TimingShow
         public int LogBufferSizeKB = 64;
 
         public bool UseHookMode;
+        public bool DisableInputHooks;
         public bool UseJsonWriter;
         public bool AutoReloadInEditor;
 

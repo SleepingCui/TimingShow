@@ -153,7 +153,8 @@ namespace TimingShow
             {
                 Logger.Error($"PatchAll failed: {e.GetType().Name}: {e.Message}");
             }
-            Patches.InputPatches.Install(HarmonyInstance);
+            if (Settings == null || !Settings.DisableInputHooks)
+                Patches.InputPatches.Install(HarmonyInstance);
             SessionReport.SessionReportHotkey.EnsureHost();
             LevelEditor.EditorHitMarkerController.EnsureHost();
         }
@@ -161,6 +162,7 @@ namespace TimingShow
         public static void Disable()
         {
             IsEnabled = false;
+            Patches.InputPatches.Uninstall(HarmonyInstance);
             HarmonyInstance?.UnpatchAll(HarmonyInstance.Id);
             Players.ResetAll();
             ClearTimingScatterSamples();
