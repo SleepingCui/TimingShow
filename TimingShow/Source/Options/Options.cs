@@ -478,6 +478,7 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
                 Toggle(ref ModContext.Settings.UseJsonWriter, "Toggle_UseJsonWriter");
+                Toggle(ref ModContext.Settings.LogFullClearOnly, "Toggle_LogFullClearOnly");
 
                 // logdir
                 GUILayout.BeginHorizontal();

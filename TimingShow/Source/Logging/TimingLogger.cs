@@ -21,6 +21,8 @@ namespace TimingShow.Logging
         private static bool _isCurrentSessionBinary;
         private static bool _isCurrentSessionAngle;
         private static bool _writeErrorLogged;
+        private static bool _sessionCompleted;
+        private static bool _sessionCleanStart;
         private static readonly Stopwatch FlushClock = new Stopwatch();
 
         public static bool IsBinarySession
@@ -77,6 +79,31 @@ namespace TimingShow.Logging
             if (string.IsNullOrWhiteSpace(filePath)) return false;
             if (_isCurrentSessionBinary) return TimingLoggerBinary.IsFileBeingWritten(filePath);
             return _writer != null && string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static void BeginLevelStart()
+        {
+            _sessionCompleted = false;
+            _sessionCleanStart = false;
+        }
+
+        public static void MarkLevelCompleted(bool startedFromCheckpoint, bool practiceMode)
+        {
+            _sessionCompleted = true;
+            _sessionCleanStart = !startedFromCheckpoint && !practiceMode;
+        }
+
+        internal static bool ShouldDiscardSession()
+        {
+            if (ModContext.Settings == null || !ModContext.Settings.LogFullClearOnly) return false;
+            return !_sessionCompleted || !_sessionCleanStart;
+        }
+
+        internal static string GetDiscardReason()
+        {
+            if (_hitCount == 0) return "empty";
+            if (!_sessionCompleted) return "incomplete";
+            return _sessionCleanStart ? "discarded" : "started from checkpoint or practice mode";
         }
 
         public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
@@ -233,13 +260,13 @@ namespace TimingShow.Logging
 
             try
             {
-                if (_hitCount == 0)
+                if (_hitCount == 0 || ShouldDiscardSession())
                 {
                     _writer.Dispose();
                     _writer = null;
                     if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
                         File.Delete(_currentFilePath);
-                    ModLog.UnityLog($"Discarded empty session: {_currentFilePath}");
+                    ModLog.UnityLog($"Discarded session ({GetDiscardReason()}): {_currentFilePath}");
                     _currentFilePath = null;
                     return;
                 }

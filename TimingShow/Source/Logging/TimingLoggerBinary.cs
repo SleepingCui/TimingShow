@@ -253,12 +253,12 @@ namespace TimingShow.Logging
 
             try
             {
-                if (_hitCount == 0)
+                if (_hitCount == 0 || TimingLogger.ShouldDiscardSession())
                 {
                     DisposeWriter();
                     if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
                         File.Delete(_currentFilePath);
-                    ModLog.UnityLog($"Discarded empty session: {_currentFilePath} (binary)");
+                    ModLog.UnityLog($"Discarded session ({TimingLogger.GetDiscardReason()}): {_currentFilePath} (binary)");
                     _currentFilePath = null;
                     return;
                 }

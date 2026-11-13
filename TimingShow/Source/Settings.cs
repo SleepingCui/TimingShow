@@ -264,6 +264,7 @@ namespace TimingShow
 
         public bool EnableLogging;
         public bool LogAutoplay;
+        public bool LogFullClearOnly;
         public bool Logger_ShowAngle;
         public string LogDirectory = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
         public int PercLog = 4;

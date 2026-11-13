@@ -97,6 +97,7 @@ namespace TimingShow.Patches
                 _isGamePaused = false;
                 ModContext.IsPlaying = true;
                 ModContext.IsLevelFinished = false;
+                TimingLogger.BeginLevelStart();
 
                 Players.ResetAll();
                 ModLog.UnityLog($"coop players = {Players.Count}");
@@ -251,6 +252,8 @@ namespace TimingShow.Patches
                 ModContext.XAccVersion++;
                 ModContext.TimingScatterVersion++;
                 ModContext.UIDirty = true;
+                scrController completedController = scrController.instance;
+                TimingLogger.MarkLevelCompleted(completedController != null && completedController.startedFromCheckpoint, GCS.practiceMode);
                 SessionReport.LastSessionReport.Capture("complete");
                 PerfStatsRecorder.EndSession("complete");
             }

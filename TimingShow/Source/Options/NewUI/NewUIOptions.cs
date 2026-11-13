@@ -504,6 +504,7 @@ namespace TimingShow.Options
                     s.Logger_ShowAngle = NewUIWidgets.Toggle("Toggle_ShowAngle", s.Logger_ShowAngle);
                     s.LogAutoplay = NewUIWidgets.Toggle("Toggle_LogAutoplay", s.LogAutoplay);
                     s.UseJsonWriter = NewUIWidgets.Toggle("Toggle_UseJsonWriter", s.UseJsonWriter);
+                    s.LogFullClearOnly = NewUIWidgets.Toggle("Toggle_LogFullClearOnly", s.LogFullClearOnly);
 
                     Rect dirRow = NewUIWidgets.Row(28f);
                     GUI.Label(new Rect(dirRow.x + 8f, dirRow.y, 140f, dirRow.height), i18n.T("Label_LogDir"), NewUISkin.LabelStyle);
