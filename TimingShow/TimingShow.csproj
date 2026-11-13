@@ -204,7 +204,7 @@
     <EmbeddedResource Include="embedded\OFL.txt.dfl" LogicalName="TimingShow.Assets.OFL.txt" />
   </ItemGroup>
   <Target Name="PackEmbeddedAssets" BeforeTargets="PrepareResources"
-          Inputs="$(MSBuildProjectDirectory)\assets\SourceHanSansSC-Regular.otf;$(MSBuildProjectDirectory)\assets\GmarketSansMedium.otf;$(MSBuildProjectDirectory)\assets\OFL.txt"
+          Inputs="$(MSBuildProjectDirectory)\Assets\SourceHanSansSC-Regular.otf;$(MSBuildProjectDirectory)\Assets\GmarketSansMedium.otf;$(MSBuildProjectDirectory)\Assets\OFL.txt"
           Outputs="$(MSBuildProjectDirectory)\embedded\SourceHanSansSC-Regular.otf.dfl;$(MSBuildProjectDirectory)\embedded\GmarketSansMedium.otf.dfl;$(MSBuildProjectDirectory)\embedded\OFL.txt.dfl">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\tools\Pack-EmbeddedAssets.ps1&quot;" />
   </Target>
@@ -212,9 +212,9 @@
     <None Include="lang.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="assets\SourceHanSansSC-Regular.otf" />
-    <None Include="assets\GmarketSansMedium.otf" />
-    <None Include="assets\OFL.txt" />
+    <None Include="Assets\SourceHanSansSC-Regular.otf" />
+    <None Include="Assets\GmarketSansMedium.otf" />
+    <None Include="Assets\OFL.txt" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

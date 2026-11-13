@@ -114,11 +114,11 @@ try
         $assetsDir = Join-Path $modDir "assets"
         New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
         Copy-Item `
-            -Path ".\TimingShow\assets\SourceHanSansSC-Regular.otf" `
+            -Path ".\TimingShow\Assets\SourceHanSansSC-Regular.otf" `
             -Destination $assetsDir `
             -Force
         Copy-Item `
-            -Path ".\TimingShow\assets\OFL.txt" `
+            -Path ".\TimingShow\Assets\OFL.txt" `
             -Destination $assetsDir `
             -Force
 

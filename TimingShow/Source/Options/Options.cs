@@ -567,31 +567,27 @@ namespace TimingShow.Options
                 ModContext.Settings.NewSettingsUI = ToggleWithDescription(
                     ModContext.Settings.NewSettingsUI,
                     "Toggle_NewSettingsUI",
-                    "Desc_NewSettingsUI"
+                    "Desc_NewSettingsUI",
+                    indent: 0f
                 );
 
                 bool autoLanguage = ModContext.Settings.AutoLanguage;
-                Toggle(ref ModContext.Settings.AutoLanguage, "Toggle_AutoLanguage");
+                Toggle(ref ModContext.Settings.AutoLanguage, "Toggle_AutoLanguage", 0f);
                 if (!autoLanguage && ModContext.Settings.AutoLanguage) i18n.ApplyAutoLanguage();
 
-                Toggle(ref ModContext.Settings.SessionReport_Enabled, "Toggle_SessionReport");
+                Toggle(ref ModContext.Settings.SessionReport_Enabled, "Toggle_SessionReport", 0f);
 
                 bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
                 bool canToggleWindow = windowOpen || TimingShow.SessionReport.LastSessionReport.HasReport;
                 bool prevGuiEnabled = GUI.enabled;
                 GUI.enabled = canToggleWindow;
 
-                GUILayout.BeginHorizontal();
+                string buttonKey = windowOpen ? "Btn_CloseLogWindow" : "Btn_OpenLogWindow";
+                if (GUILayout.Button(i18n.T(buttonKey), GUILayout.Width(200)))
                 {
-                    GUILayout.Space(ContentIndent);
-                    string buttonKey = windowOpen ? "Btn_CloseLogWindow" : "Btn_OpenLogWindow";
-                    if (GUILayout.Button(i18n.T(buttonKey), GUILayout.Width(200)))
-                    {
-                        if (windowOpen) TimingShow.SessionReport.LastSessionReport.CloseWindow();
-                        else TimingShow.SessionReport.LastSessionReport.OpenWindow();
-                    }
+                    if (windowOpen) TimingShow.SessionReport.LastSessionReport.CloseWindow();
+                    else TimingShow.SessionReport.LastSessionReport.OpenWindow();
                 }
-                GUILayout.EndHorizontal();
 
                 GUI.enabled = prevGuiEnabled;
 
@@ -640,6 +636,7 @@ namespace TimingShow.Options
                 ModContext.Settings.UseHookMode,
                 "Toggle_HookMode",
                 "Desc_HookMode",
+                indent: 0f,
                 extraLabelHtml: statusDisplayText
                 );
 
@@ -657,7 +654,8 @@ namespace TimingShow.Options
                 bool disableInputHooks = ToggleWithDescription(
                 ModContext.Settings.DisableInputHooks,
                 "Toggle_DisableInputHooks",
-                "Desc_DisableInputHooks"
+                "Desc_DisableInputHooks",
+                indent: 0f
                 );
 
                 if (disableInputHooks != ModContext.Settings.DisableInputHooks)
@@ -673,7 +671,8 @@ namespace TimingShow.Options
                 ModContext.Settings.AutoReloadInEditor = ToggleWithDescription(
                 ModContext.Settings.AutoReloadInEditor,
                 "Toggle_AutoReloadInEditor",
-                "Desc_AutoReloadInEditor"
+                "Desc_AutoReloadInEditor",
+                indent: 0f
                 );
 
                 GUILayout.Space(5);
@@ -682,7 +681,8 @@ namespace TimingShow.Options
                 bool analyzerEnabled = ToggleWithDescription(
                 ModContext.Settings.AnalyzerBridgeEnabled,
                 "Toggle_AnalyzerBridge",
-                "Desc_AnalyzerBridge"
+                "Desc_AnalyzerBridge",
+                indent: 0f
                 );
                 ModContext.Settings.AnalyzerBridgeEnabled = analyzerEnabled;
                 if (previousAnalyzerEnabled && !analyzerEnabled)
@@ -690,9 +690,9 @@ namespace TimingShow.Options
 
                 if (analyzerEnabled)
                 {
-                IntField("Label_AnalyzerPort", ref _analyzerPortText, ref ModContext.Settings.AnalyzerBridgePort, 0, 65535, 0, 160);
+                IntField("Label_AnalyzerPort", ref _analyzerPortText, ref ModContext.Settings.AnalyzerBridgePort, 0, 65535, 0, 160, 0f);
                 IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, ref ModContext.Settings.AnalyzerBridgeTimeoutSec,
-                    LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds, LogAnalyzerBridge.DefaultTimeoutSeconds, 160);
+                    LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds, LogAnalyzerBridge.DefaultTimeoutSeconds, 160, 0f);
                 }
                 GUILayout.Space(8);
 
@@ -706,35 +706,35 @@ namespace TimingShow.Options
             string debugFoldoutArrow = _showDebugSettings ? "▲" : "▼";
             if (GUILayout.Button($"{i18n.T("Btn_Debug")} {debugFoldoutArrow}", GUILayout.Width(150)))
                 _showDebugSettings = !_showDebugSettings;
-            
-            IndentedLabel($"<color=#888888>{i18n.T("Desc_DebugWarning")}</color>");
+
+            IndentedLabel($"<color=#888888>{i18n.T("Desc_DebugWarning")}</color>", 0f);
 
             if (!_showDebugSettings) return;
 
             GUILayout.Space(5);
 
-            Toggle(ref ModContext.Settings.Diag_PerfLogEnabled, "Toggle_DiagPerfLog");
-            Toggle(ref ModContext.Settings.Diag_GraphBounds, "Toggle_DiagGraphBounds");
-            Toggle(ref ModContext.Settings.Diag_InputTrace, "Toggle_DiagInputTrace");
-            Toggle(ref ModContext.Settings.Diag_TrackMeshBounds, "Toggle_DiagTrackMesh");
+            Toggle(ref ModContext.Settings.Diag_PerfLogEnabled, "Toggle_DiagPerfLog", 0f);
+            Toggle(ref ModContext.Settings.Diag_GraphBounds, "Toggle_DiagGraphBounds", 0f);
+            Toggle(ref ModContext.Settings.Diag_InputTrace, "Toggle_DiagInputTrace", 0f);
+            Toggle(ref ModContext.Settings.Diag_TrackMeshBounds, "Toggle_DiagTrackMesh", 0f);
 
             if (UpdateBridge.IsAvailable)
             {
                 bool updateTrace = ModContext.Settings.Diag_UpdateTrace;
                 bool previousGuiEnabled = GUI.enabled;
                 GUI.enabled = UpdateBridge.Supported;
-                Toggle(ref ModContext.Settings.Diag_UpdateTrace, "Toggle_DiagUpdateTrace");
+                Toggle(ref ModContext.Settings.Diag_UpdateTrace, "Toggle_DiagUpdateTrace", 0f);
                 GUI.enabled = previousGuiEnabled;
                 if (!updateTrace && ModContext.Settings.Diag_UpdateTrace) UpdateBridge.CheckNow();
             }
 
-            FloatField("Label_DiagBoundsInterval", ref _diagBoundsIntervalText, ref ModContext.Settings.Diag_BoundsIntervalSec, 0.1f, 5f);
-            FloatField("Label_DiagBoundsTolerance", ref _diagBoundsToleranceText, ref ModContext.Settings.Diag_BoundsTolerancePx, 0f, 4f);
-            IntField("Label_DiagBoundsLogLimit", ref _diagBoundsLogLimitText, ref ModContext.Settings.Diag_BoundsLogLimit, 1, 200, 40, 190);
-            FloatField("Label_DiagBoundsRepeat", ref _diagBoundsRepeatText, ref ModContext.Settings.Diag_BoundsLogRepeatSec, 0f, 30f);
+            FloatField("Label_DiagBoundsInterval", ref _diagBoundsIntervalText, ref ModContext.Settings.Diag_BoundsIntervalSec, 0.1f, 5f, indent: 0f);
+            FloatField("Label_DiagBoundsTolerance", ref _diagBoundsToleranceText, ref ModContext.Settings.Diag_BoundsTolerancePx, 0f, 4f, indent: 0f);
+            IntField("Label_DiagBoundsLogLimit", ref _diagBoundsLogLimitText, ref ModContext.Settings.Diag_BoundsLogLimit, 1, 200, 40, 190, 0f);
+            FloatField("Label_DiagBoundsRepeat", ref _diagBoundsRepeatText, ref ModContext.Settings.Diag_BoundsLogRepeatSec, 0f, 30f, indent: 0f);
 
-            IntField("Label_ScatterWarningLimit", ref _scatterWarningLimitText, ref ModContext.Settings.Diag_ScatterWarningLimit, 0, 50, 5, 190);
-            IntField("Label_LogListDrawBudget", ref _logListDrawBudgetText, ref ModContext.Settings.LogListDrawBudget, 4, 400, 60, 190);
+            IntField("Label_ScatterWarningLimit", ref _scatterWarningLimitText, ref ModContext.Settings.Diag_ScatterWarningLimit, 0, 50, 5, 190, 0f);
+            IntField("Label_LogListDrawBudget", ref _logListDrawBudgetText, ref ModContext.Settings.LogListDrawBudget, 4, 400, 60, 190, 0f);
 
             GUILayout.Space(5);
         }

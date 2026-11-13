@@ -13,14 +13,13 @@ namespace TimingShow.Update
             bool supported = Updater.Supported;
             bool previous = GUI.enabled;
             GUI.enabled = supported;
-            Toggle(ref settings.UpdateCheckEnabled, "Updater_Enable");
+            Toggle(ref settings.UpdateCheckEnabled, "Updater_Enable", 0f);
 
             GUI.enabled = supported && settings.UpdateCheckEnabled;
-            Toggle(ref settings.UpdateAutoUpdate, "Updater_Auto");
+            Toggle(ref settings.UpdateAutoUpdate, "Updater_Auto", 0f);
 
             GUILayout.BeginHorizontal();
             {
-                GUILayout.Space(ContentIndent);
                 if (GUILayout.Button(i18n.T("Btn_CheckUpdateNow"), GUILayout.Width(200)))
                     Updater.CheckNow();
                 GUILayout.Label(CheckResultText(), GUILayout.ExpandWidth(true));
@@ -32,7 +31,7 @@ namespace TimingShow.Update
             if (!supported)
             {
                 string color = Updater.UnavailableReasonKey == Updater.BootstrapMissingReasonKey ? "#FF5555" : "#888888";
-                IndentedLabel($"<color={color}>{i18n.T(Updater.UnavailableReasonKey)}</color>");
+                IndentedLabel($"<color={color}>{i18n.T(Updater.UnavailableReasonKey)}</color>", 0f);
             }
         }
 

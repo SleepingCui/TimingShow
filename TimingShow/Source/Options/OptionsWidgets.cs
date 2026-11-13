@@ -155,7 +155,10 @@ namespace TimingShow.Options
 
         public static bool ToggleWithDescription(bool value, string labelKey, string descKey, string extraDescriptionHtml = "", float indent = ContentIndent, string extraLabelHtml = "")
         {
+            GUILayout.BeginHorizontal();
+            if (indent > 0) GUILayout.Space(indent);
             bool newValue = GUILayout.Toggle(value, i18n.T(labelKey) + extraLabelHtml, RichToggleStyle);
+            GUILayout.EndHorizontal();
             IndentedLabel($"<color=#888888>{i18n.T(descKey)}</color>{extraDescriptionHtml}", indent);
             return newValue;
         }
@@ -211,10 +214,10 @@ namespace TimingShow.Options
             GUILayout.EndHorizontal();
         }
 
-        public static void IntField(string labelKey, ref string text, ref int value, int min, int max, int fallback, float labelWidth = 120)
+        public static void IntField(string labelKey, ref string text, ref int value, int min, int max, int fallback, float labelWidth = 120, float indent = ContentIndent)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(ContentIndent);
+            if (indent > 0) GUILayout.Space(indent);
             GUILayout.Label(i18n.T(labelKey), GUILayout.Width(labelWidth));
             if (text == null) text = value.ToString();
             string newText = GUILayout.TextField(text, GUILayout.Width(80));
@@ -234,10 +237,10 @@ namespace TimingShow.Options
             GUILayout.EndHorizontal();
         }
 
-        public static void FloatField(string labelKey, ref string text, ref float value, float min, float max, float labelWidth = 190f)
+        public static void FloatField(string labelKey, ref string text, ref float value, float min, float max, float labelWidth = 190f, float indent = ContentIndent)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Space(ContentIndent);
+            if (indent > 0) GUILayout.Space(indent);
             GUILayout.Label(i18n.T(labelKey), GUILayout.Width(labelWidth));
             if (text == null) text = value.ToString("0.###", CultureInfo.InvariantCulture);
             string newText = GUILayout.TextField(text, GUILayout.Width(80));

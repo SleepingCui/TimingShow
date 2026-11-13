@@ -1,11 +1,11 @@
 # Pack default assets into DEFLATE-compressed blobs for DLL embedding.
-# Regenerate after changing any file under TimingShow\assets\ :
+# Regenerate after changing any file under TimingShow\Assets\ :
 #   ./tools/Pack-EmbeddedAssets.ps1
-# The blobs are gitignored build inputs (the ORIGINALS in assets\ are the tracked
+# The blobs are gitignored build inputs (the ORIGINALS in Assets\ are the tracked
 # source of truth) — CI and local builds regenerate them before msbuild.
 
 param(
-    [string]$SourceDir = (Join-Path $PSScriptRoot '..\TimingShow\assets'),
+    [string]$SourceDir = (Join-Path $PSScriptRoot '..\TimingShow\Assets'),
     [string]$OutDir = (Join-Path $PSScriptRoot '..\TimingShow\embedded')
 )
 
