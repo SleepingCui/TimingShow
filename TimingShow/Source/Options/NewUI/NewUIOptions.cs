@@ -106,6 +106,18 @@ namespace TimingShow.Options
             GUILayout.BeginVertical(NewUISkin.CardStyle);
         }
 
+        private static bool BeginCard(string titleKey, string id)
+        {
+            GUILayout.BeginVertical(NewUISkin.CardStyle);
+            return NewUIWidgets.Section(titleKey, id);
+        }
+
+        private static bool BeginFeatureCard(string labelKey, string id, ref bool value, string descKey = null, bool enabled = true)
+        {
+            GUILayout.BeginVertical(NewUISkin.CardStyle);
+            return NewUIWidgets.ToggleFold(labelKey, id, ref value, descKey, enabled);
+        }
+
         private static void EndCard()
         {
             GUILayout.EndVertical();
@@ -120,49 +132,53 @@ namespace TimingShow.Options
             s.NewSettingsUI = NewUIWidgets.Toggle("Toggle_NewSettingsUI", s.NewSettingsUI, "Desc_NewSettingsUI");
             EndCard();
 
-            BeginCard();
-            DrawLanguageRow(s);
-            bool autoLanguage = s.AutoLanguage;
-            s.AutoLanguage = NewUIWidgets.Toggle("Toggle_AutoLanguage", s.AutoLanguage);
-            if (!autoLanguage && s.AutoLanguage) i18n.ApplyAutoLanguage();
-            EndCard();
-
-            BeginCard();
-            NewUIWidgets.CardTitle("Btn_Other");
-            s.SessionReport_Enabled = NewUIWidgets.Toggle("Toggle_SessionReport", s.SessionReport_Enabled);
-
-            bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
-            bool canToggleWindow = windowOpen || TimingShow.SessionReport.LastSessionReport.HasReport;
-            string windowKey = windowOpen ? "Btn_CloseLogWindow" : "Btn_OpenLogWindow";
-
-            Rect actions = NewUIWidgets.Row(30f);
-            Rect windowButton = new Rect(actions.x, actions.y, 200f, actions.height);
-            Rect resetButton = new Rect(windowButton.xMax + 8f, actions.y, 200f, actions.height);
-            if (NewUIWidgets.ButtonAt(windowButton, i18n.T(windowKey), false, canToggleWindow))
+            if (BeginCard("Label_Language", "card_general_language"))
             {
-                if (windowOpen) TimingShow.SessionReport.LastSessionReport.CloseWindow();
-                else TimingShow.SessionReport.LastSessionReport.OpenWindow();
+                DrawLanguageRow(s);
+                bool autoLanguage = s.AutoLanguage;
+                s.AutoLanguage = NewUIWidgets.Toggle("Toggle_AutoLanguage", s.AutoLanguage);
+                if (!autoLanguage && s.AutoLanguage) i18n.ApplyAutoLanguage();
             }
-
-            if (NewUIWidgets.ButtonAt(resetButton, i18n.T("Btn_Reset"))) Players.ResetAll();
-
-            NewUIWidgets.Divider();
-            DrawUpdateRows(s);
             EndCard();
 
-            BeginCard();
-            NewUIWidgets.CardTitle("Tab_Theme");
-            s.Theme_Primary = NewUIWidgets.ColorRow("Label_ThemePrimary", s.Theme_Primary, Settings.Theme_DefaultPrimary);
-            s.Theme_Background = NewUIWidgets.ColorRow("Label_ThemeBackground", s.Theme_Background, Settings.Theme_DefaultBackground);
-            s.Theme_Element = NewUIWidgets.ColorRow("Label_ThemeElement", s.Theme_Element, Settings.Theme_DefaultElement);
-            s.Theme_Text = NewUIWidgets.ColorRow("Label_ThemeText", s.Theme_Text, Settings.Theme_DefaultText);
-            NewUIWidgets.Hint(i18n.T("Hint_ThemeApply"));
-            if (NewUIWidgets.Button(i18n.T("Btn_ThemeReset"), 180f))
+            if (BeginCard("Btn_Other", "card_general_other"))
             {
-                s.Theme_Primary = Settings.Theme_DefaultPrimary;
-                s.Theme_Background = Settings.Theme_DefaultBackground;
-                s.Theme_Element = Settings.Theme_DefaultElement;
-                s.Theme_Text = Settings.Theme_DefaultText;
+                s.SessionReport_Enabled = NewUIWidgets.Toggle("Toggle_SessionReport", s.SessionReport_Enabled);
+
+                bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
+                bool canToggleWindow = windowOpen || TimingShow.SessionReport.LastSessionReport.HasReport;
+                string windowKey = windowOpen ? "Btn_CloseLogWindow" : "Btn_OpenLogWindow";
+
+                Rect actions = NewUIWidgets.Row(30f);
+                Rect windowButton = new Rect(actions.x, actions.y, 200f, actions.height);
+                Rect resetButton = new Rect(windowButton.xMax + 8f, actions.y, 200f, actions.height);
+                if (NewUIWidgets.ButtonAt(windowButton, i18n.T(windowKey), false, canToggleWindow))
+                {
+                    if (windowOpen) TimingShow.SessionReport.LastSessionReport.CloseWindow();
+                    else TimingShow.SessionReport.LastSessionReport.OpenWindow();
+                }
+
+                if (NewUIWidgets.ButtonAt(resetButton, i18n.T("Btn_Reset"))) Players.ResetAll();
+
+                NewUIWidgets.Divider();
+                DrawUpdateRows(s);
+            }
+            EndCard();
+
+            if (BeginCard("Tab_Theme", "card_general_theme"))
+            {
+                s.Theme_Primary = NewUIWidgets.ColorRow("Label_ThemePrimary", s.Theme_Primary, Settings.Theme_DefaultPrimary);
+                s.Theme_Background = NewUIWidgets.ColorRow("Label_ThemeBackground", s.Theme_Background, Settings.Theme_DefaultBackground);
+                s.Theme_Element = NewUIWidgets.ColorRow("Label_ThemeElement", s.Theme_Element, Settings.Theme_DefaultElement);
+                s.Theme_Text = NewUIWidgets.ColorRow("Label_ThemeText", s.Theme_Text, Settings.Theme_DefaultText);
+                NewUIWidgets.Hint(i18n.T("Hint_ThemeApply"));
+                if (NewUIWidgets.Button(i18n.T("Btn_ThemeReset"), 180f))
+                {
+                    s.Theme_Primary = Settings.Theme_DefaultPrimary;
+                    s.Theme_Background = Settings.Theme_DefaultBackground;
+                    s.Theme_Element = Settings.Theme_DefaultElement;
+                    s.Theme_Text = Settings.Theme_DefaultText;
+                }
             }
             EndCard();
         }
@@ -217,9 +233,8 @@ namespace TimingShow.Options
             Settings s = ModContext.Settings;
 
             {
-                BeginCard();
-                s.ShowInSongTitle = NewUIWidgets.Toggle("Toggle_Title", s.ShowInSongTitle);
-                if (s.ShowInSongTitle)
+                bool titleOpen = BeginFeatureCard("Toggle_Title", "card_display_title", ref s.ShowInSongTitle);
+                if (titleOpen && s.ShowInSongTitle)
                 {
                     s.Perc1 = NewUIWidgets.IntSlider("Label_Precision", s.Perc1, 0, 5);
                     s.Title_FontSize = NewUIWidgets.IntSlider("Label_FontSize", s.Title_FontSize, 20, 200);
@@ -231,12 +246,11 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
-                BeginCard();
                 bool oldShowOnPlanet = s.ShowOnPlanet;
-                s.ShowOnPlanet = NewUIWidgets.Toggle("Toggle_Planet", s.ShowOnPlanet);
+                bool planetOpen = BeginFeatureCard("Toggle_Planet", "card_display_planet", ref s.ShowOnPlanet);
                 if (oldShowOnPlanet != s.ShowOnPlanet && s.AutoReloadInEditor) _restartScene = true;
 
-                if (s.ShowOnPlanet)
+                if (planetOpen && s.ShowOnPlanet)
                 {
                     s.Perc2 = NewUIWidgets.IntSlider("Label_Precision", s.Perc2, 0, 5);
                     s.Planet_FontSize = NewUIWidgets.IntSlider("Label_FontSize", s.Planet_FontSize, 20, 200);
@@ -248,31 +262,46 @@ namespace TimingShow.Options
 
                 if (s.ShowOnPlanet)
                 {
-                    BeginCard();
-                    NewUIWidgets.CardTitle("Setting_Title");
-                    s.ReplaceFailOverload = NewUIWidgets.Toggle("Toggle_FailOverload", s.ReplaceFailOverload);
-                    s.ReplaceTooEarly = NewUIWidgets.Toggle("Toggle_TooEarly", s.ReplaceTooEarly);
-                    s.ReplaceVeryEarly = NewUIWidgets.Toggle("Toggle_VeryEarly", s.ReplaceVeryEarly);
-                    s.ReplaceEarlyPerfect = NewUIWidgets.Toggle("Toggle_EarlyPerfect", s.ReplaceEarlyPerfect);
-
-                    if (HitMarginCompat.IsGame34)
-                        s.ReplacePerfectMinus = NewUIWidgets.Toggle("Toggle_PerfectMinus", s.ReplacePerfectMinus);
-                    else
-                        s.ReplacePerfect = NewUIWidgets.Toggle("Toggle_Perfect", s.ReplacePerfect);
-
-                    if (HitMarginCompat.HasNativeXPerfect)
+                    bool replaceOpen = BeginCard("Setting_Title", "card_display_replace");
+                    if (replaceOpen)
                     {
-                        s.ReplaceXPerfect = NewUIWidgets.Toggle("Toggle_XPerfect", s.ReplaceXPerfect);
-                        s.ReplacePerfectPlus = NewUIWidgets.Toggle("Toggle_PerfectPlus", s.ReplacePerfectPlus);
-                    }
+                        if (NewUIWidgets.Section("Group_Early", "group_replace_early"))
+                        {
+                            s.ReplaceTooEarly = NewUIWidgets.Toggle("Toggle_TooEarly", s.ReplaceTooEarly);
+                            s.ReplaceVeryEarly = NewUIWidgets.Toggle("Toggle_VeryEarly", s.ReplaceVeryEarly);
+                            s.ReplaceEarlyPerfect = NewUIWidgets.Toggle("Toggle_EarlyPerfect", s.ReplaceEarlyPerfect);
+                        }
 
-                    s.ReplaceLatePerfect = NewUIWidgets.Toggle("Toggle_LatePerfect", s.ReplaceLatePerfect);
-                    s.ReplaceVeryLate = NewUIWidgets.Toggle("Toggle_VeryLate", s.ReplaceVeryLate);
-                    s.ReplaceTooLate = NewUIWidgets.Toggle("Toggle_TooLate", s.ReplaceTooLate);
-                    s.ReplaceFailMiss = NewUIWidgets.Toggle("Toggle_FailMiss", s.ReplaceFailMiss);
-                    s.ReplaceMultipress = NewUIWidgets.Toggle("Toggle_Multipress", s.ReplaceMultipress);
-                    s.ReplaceOverPress = NewUIWidgets.Toggle("Toggle_OverPress", s.ReplaceOverPress);
-                    s.ReplaceAuto = NewUIWidgets.Toggle("Toggle_Auto", s.ReplaceAuto);
+                        if (NewUIWidgets.Section("Group_Hit", "group_replace_hit"))
+                        {
+                            if (HitMarginCompat.IsGame34)
+                                s.ReplacePerfectMinus = NewUIWidgets.Toggle("Toggle_PerfectMinus", s.ReplacePerfectMinus);
+                            else
+                                s.ReplacePerfect = NewUIWidgets.Toggle("Toggle_Perfect", s.ReplacePerfect);
+
+                            if (HitMarginCompat.HasNativeXPerfect)
+                            {
+                                s.ReplaceXPerfect = NewUIWidgets.Toggle("Toggle_XPerfect", s.ReplaceXPerfect);
+                                s.ReplacePerfectPlus = NewUIWidgets.Toggle("Toggle_PerfectPlus", s.ReplacePerfectPlus);
+                            }
+                        }
+
+                        if (NewUIWidgets.Section("Group_Late", "group_replace_late"))
+                        {
+                            s.ReplaceLatePerfect = NewUIWidgets.Toggle("Toggle_LatePerfect", s.ReplaceLatePerfect);
+                            s.ReplaceVeryLate = NewUIWidgets.Toggle("Toggle_VeryLate", s.ReplaceVeryLate);
+                            s.ReplaceTooLate = NewUIWidgets.Toggle("Toggle_TooLate", s.ReplaceTooLate);
+                        }
+
+                        if (NewUIWidgets.Section("Group_Other", "group_replace_other"))
+                        {
+                            s.ReplaceFailOverload = NewUIWidgets.Toggle("Toggle_FailOverload", s.ReplaceFailOverload);
+                            s.ReplaceFailMiss = NewUIWidgets.Toggle("Toggle_FailMiss", s.ReplaceFailMiss);
+                            s.ReplaceMultipress = NewUIWidgets.Toggle("Toggle_Multipress", s.ReplaceMultipress);
+                            s.ReplaceOverPress = NewUIWidgets.Toggle("Toggle_OverPress", s.ReplaceOverPress);
+                            s.ReplaceAuto = NewUIWidgets.Toggle("Toggle_Auto", s.ReplaceAuto);
+                        }
+                    }
                     EndCard();
                 }
             }
@@ -283,9 +312,8 @@ namespace TimingShow.Options
             Settings s = ModContext.Settings;
 
             {
-                BeginCard();
-                s.ShowOnDeath = NewUIWidgets.Toggle("Toggle_Death", s.ShowOnDeath);
-                if (s.ShowOnDeath)
+                bool deathOpen = BeginFeatureCard("Toggle_Death", "card_judge_death", ref s.ShowOnDeath);
+                if (deathOpen && s.ShowOnDeath)
                 {
                     s.Perc3 = NewUIWidgets.IntSlider("Label_Precision", s.Perc3, 0, 5);
                     s.ShowOnDeath_ShowAvgTiming = NewUIWidgets.Toggle("Toggle_Death_AvgTiming", s.ShowOnDeath_ShowAvgTiming);
@@ -296,9 +324,8 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
-                BeginCard();
-                s.ShowInWinPage = NewUIWidgets.Toggle("Toggle_Win", s.ShowInWinPage);
-                if (s.ShowInWinPage)
+                bool winOpen = BeginFeatureCard("Toggle_Win", "card_judge_win", ref s.ShowInWinPage);
+                if (winOpen && s.ShowInWinPage)
                 {
                     s.Perc4 = NewUIWidgets.IntSlider("Label_Precision", s.Perc4, 0, 5);
                     s.ShowInWinPage_ShowAvgTiming = NewUIWidgets.Toggle("Toggle_Death_AvgTiming", s.ShowInWinPage_ShowAvgTiming);
@@ -354,9 +381,8 @@ namespace TimingShow.Options
             Settings s = ModContext.Settings;
 
             {
-                BeginCard();
-                s.ShowTimingHUD = NewUIWidgets.Toggle("Toggle_TimingHUD", s.ShowTimingHUD);
-                if (s.ShowTimingHUD)
+                bool timingHudOpen = BeginFeatureCard("Toggle_TimingHUD", "card_hud_timing", ref s.ShowTimingHUD);
+                if (timingHudOpen && s.ShowTimingHUD)
                 {
                     DrawHudRows(ref s.HUD_x, ref s.HUD_y, ref s.HUD_scale, ref s.HUD_bold, ref s.HUD_align, ref s.HUD_Format, ref s.PercHUD);
                     DrawHudFontRow(ref s.HUD_UseCustomFont, ref s.HUD_FontPath);
@@ -369,9 +395,8 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
-                BeginCard();
-                s.ShowAvgHUD = NewUIWidgets.Toggle("Toggle_AvgHUD", s.ShowAvgHUD);
-                if (s.ShowAvgHUD)
+                bool avgHudOpen = BeginFeatureCard("Toggle_AvgHUD", "card_hud_avg", ref s.ShowAvgHUD);
+                if (avgHudOpen && s.ShowAvgHUD)
                 {
                     DrawHudRows(ref s.AvgHUD_x, ref s.AvgHUD_y, ref s.AvgHUD_scale, ref s.AvgHUD_bold, ref s.AvgHUD_align, ref s.AvgHUD_Format, ref s.PercAvgHUD);
                     DrawHudFontRow(ref s.AvgHUD_UseCustomFont, ref s.AvgHUD_FontPath);
@@ -380,9 +405,8 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
-                BeginCard();
-                s.ShowURHUD = NewUIWidgets.Toggle("Toggle_URHUD", s.ShowURHUD);
-                if (s.ShowURHUD)
+                bool urHudOpen = BeginFeatureCard("Toggle_URHUD", "card_hud_ur", ref s.ShowURHUD);
+                if (urHudOpen && s.ShowURHUD)
                 {
                     DrawHudRows(ref s.URHUD_x, ref s.URHUD_y, ref s.URHUD_scale, ref s.URHUD_bold, ref s.URHUD_align, ref s.URHUD_Format, ref s.PercURHUD);
                     DrawHudFontRow(ref s.URHUD_UseCustomFont, ref s.URHUD_FontPath);
@@ -391,9 +415,8 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
-                BeginCard();
-                s.ShowRatioHUD = NewUIWidgets.Toggle("Toggle_RatioHUD", s.ShowRatioHUD);
-                if (s.ShowRatioHUD)
+                bool ratioHudOpen = BeginFeatureCard("Toggle_RatioHUD", "card_hud_ratio", ref s.ShowRatioHUD);
+                if (ratioHudOpen && s.ShowRatioHUD)
                 {
                     DrawHudRows(ref s.RatioHUD_x, ref s.RatioHUD_y, ref s.RatioHUD_scale, ref s.RatioHUD_bold, ref s.RatioHUD_align, ref s.RatioHUD_Format, ref s.PercRatioHUD);
                     DrawHudFontRow(ref s.RatioHUD_UseCustomFont, ref s.RatioHUD_FontPath);
@@ -410,9 +433,8 @@ namespace TimingShow.Options
             Settings s = ModContext.Settings;
 
             {
-                BeginCard();
-                s.ShowXACCGraph = NewUIWidgets.Toggle("Toggle_XACCGraph", s.ShowXACCGraph);
-                if (s.ShowXACCGraph)
+                bool xaccGraphOpen = BeginFeatureCard("Toggle_XACCGraph", "card_graph_xacc", ref s.ShowXACCGraph);
+                if (xaccGraphOpen && s.ShowXACCGraph)
                 {
                     s.XACCGraph_ShowEnd = NewUIWidgets.Toggle("Toggle_ShowEnd", s.XACCGraph_ShowEnd);
                     s.XACCGraph_ShowPerfInfo = NewUIWidgets.Toggle("Toggle_ShowPerfInfo", s.XACCGraph_ShowPerfInfo);
@@ -436,9 +458,8 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
-                BeginCard();
-                s.ShowTimingScatter = NewUIWidgets.Toggle("Toggle_TimingScatter", s.ShowTimingScatter);
-                if (s.ShowTimingScatter)
+                bool scatterOpen = BeginFeatureCard("Toggle_TimingScatter", "card_graph_scatter", ref s.ShowTimingScatter);
+                if (scatterOpen && s.ShowTimingScatter)
                 {
                     s.TimingScatter_ShowEnd = NewUIWidgets.Toggle("Toggle_ShowEnd", s.TimingScatter_ShowEnd);
                     s.TimingScatter_IgnoreOutliers = NewUIWidgets.Toggle("Toggle_IgnoreOutliers", s.TimingScatter_IgnoreOutliers);
@@ -495,9 +516,8 @@ namespace TimingShow.Options
             Settings s = ModContext.Settings;
 
             {
-                BeginCard();
-                s.EnableLogging = NewUIWidgets.Toggle("Toggle_Logging", s.EnableLogging);
-                if (s.EnableLogging)
+                bool loggingOpen = BeginFeatureCard("Toggle_Logging", "card_log_logging", ref s.EnableLogging);
+                if (loggingOpen && s.EnableLogging)
                 {
                     s.PercLog = NewUIWidgets.IntSlider("Label_Precision", s.PercLog, 0, 5);
                     if (!HitMarginCompat.IsGame34)
@@ -546,9 +566,8 @@ namespace TimingShow.Options
             Settings s = ModContext.Settings;
 
             {
-                BeginCard();
-                s.EditorHits_Enabled = NewUIWidgets.Toggle("Toggle_EditorHits", s.EditorHits_Enabled);
-                if (s.EditorHits_Enabled)
+                bool editorHitsOpen = BeginFeatureCard("Toggle_EditorHits", "card_editor_hits", ref s.EditorHits_Enabled);
+                if (editorHitsOpen && s.EditorHits_Enabled)
                 {
                     s.EditorHits_PanelWidth = NewUIWidgets.Slider("HitPanel_PanelWidth", s.EditorHits_PanelWidth, 240f, 460f, "0");
                     s.EditorHits_PanelKey = NewUIWidgets.KeyRow("Label_HitPanelKey", s.EditorHits_PanelKey);
@@ -565,38 +584,39 @@ namespace TimingShow.Options
             Settings s = ModContext.Settings;
 
             {
-                BeginCard();
-                NewUIWidgets.CardTitle("Btn_Advanced");
-
-                bool hookSupported = XPerfectBridge.IsSupported;
-                bool hookMode = NewUIWidgets.Toggle("Toggle_HookMode", s.UseHookMode, "Desc_HookMode", 0f, hookSupported);
-                if (hookSupported && hookMode != s.UseHookMode)
+                bool advancedOpen = BeginCard("Btn_Advanced", "card_advanced");
+                if (advancedOpen)
                 {
-                    s.UseHookMode = hookMode;
-                    if (hookMode) XPerfectBridge.TryInit(force: true);
-                    else XPerfectBridge.UnloadHook();
-                }
+                    bool hookSupported = XPerfectBridge.IsSupported;
+                    bool hookMode = NewUIWidgets.Toggle("Toggle_HookMode", s.UseHookMode, "Desc_HookMode", 0f, hookSupported);
+                    if (hookSupported && hookMode != s.UseHookMode)
+                    {
+                        s.UseHookMode = hookMode;
+                        if (hookMode) XPerfectBridge.TryInit(force: true);
+                        else XPerfectBridge.UnloadHook();
+                    }
 
-                DrawHookStatus(XPerfectBridge.CurrentState);
+                    DrawHookStatus(XPerfectBridge.CurrentState);
 
-                bool disableInputHooks = NewUIWidgets.Toggle("Toggle_DisableInputHooks", s.DisableInputHooks, "Desc_DisableInputHooks");
-                if (disableInputHooks != s.DisableInputHooks)
-                {
-                    s.DisableInputHooks = disableInputHooks;
-                    if (disableInputHooks) InputPatches.Uninstall(ModContext.HarmonyInstance);
-                    else InputPatches.Install(ModContext.HarmonyInstance);
-                }
+                    bool disableInputHooks = NewUIWidgets.Toggle("Toggle_DisableInputHooks", s.DisableInputHooks, "Desc_DisableInputHooks");
+                    if (disableInputHooks != s.DisableInputHooks)
+                    {
+                        s.DisableInputHooks = disableInputHooks;
+                        if (disableInputHooks) InputPatches.Uninstall(ModContext.HarmonyInstance);
+                        else InputPatches.Install(ModContext.HarmonyInstance);
+                    }
 
-                s.AutoReloadInEditor = NewUIWidgets.Toggle("Toggle_AutoReloadInEditor", s.AutoReloadInEditor, "Desc_AutoReloadInEditor");
+                    s.AutoReloadInEditor = NewUIWidgets.Toggle("Toggle_AutoReloadInEditor", s.AutoReloadInEditor, "Desc_AutoReloadInEditor");
 
-                bool previousAnalyzerEnabled = s.AnalyzerBridgeEnabled;
-                s.AnalyzerBridgeEnabled = NewUIWidgets.Toggle("Toggle_AnalyzerBridge", s.AnalyzerBridgeEnabled, "Desc_AnalyzerBridge");
-                if (previousAnalyzerEnabled && !s.AnalyzerBridgeEnabled) LogAnalyzerBridge.Stop();
+                    bool previousAnalyzerEnabled = s.AnalyzerBridgeEnabled;
+                    s.AnalyzerBridgeEnabled = NewUIWidgets.Toggle("Toggle_AnalyzerBridge", s.AnalyzerBridgeEnabled, "Desc_AnalyzerBridge");
+                    if (previousAnalyzerEnabled && !s.AnalyzerBridgeEnabled) LogAnalyzerBridge.Stop();
 
-                if (s.AnalyzerBridgeEnabled)
-                {
-                    s.AnalyzerBridgePort = NewUIWidgets.IntField("Label_AnalyzerPort", ref _analyzerPortText, s.AnalyzerBridgePort, 0, 65535);
-                    s.AnalyzerBridgeTimeoutSec = NewUIWidgets.IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, s.AnalyzerBridgeTimeoutSec, LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds);
+                    if (s.AnalyzerBridgeEnabled)
+                    {
+                        s.AnalyzerBridgePort = NewUIWidgets.IntField("Label_AnalyzerPort", ref _analyzerPortText, s.AnalyzerBridgePort, 0, 65535);
+                        s.AnalyzerBridgeTimeoutSec = NewUIWidgets.IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, s.AnalyzerBridgeTimeoutSec, LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds);
+                    }
                 }
                 EndCard();
 

@@ -47,24 +47,41 @@ namespace TimingShow.Options
 
         internal static bool Section(string titleKey, string id)
         {
-            bool open;
-            if (!SectionStates.TryGetValue(id, out open))
-            {
-                open = true;
-                SectionStates[id] = open;
-            }
+            return FoldHeader(i18n.T(titleKey), id);
+        }
 
+        internal static bool FoldHeader(string title, string id)
+        {
+            bool open = FoldState(id);
             Rect row = Row(24f);
             bool hover = row.Contains(Event.current.mousePosition);
             if (hover) NewUISkin.DrawRounded(new Rect(row.x - 4f, row.y - 1f, row.width + 8f, row.height + 2f), 5f, NewUISkin.Fade(NewUISkin.Element, 0.5f));
 
             NewUISkin.DrawRounded(new Rect(row.x + 2f, row.y + 4f, 3f, row.height - 8f), 1.5f, NewUISkin.Accent);
-            GUI.Label(new Rect(row.x + 12f, row.y, row.width - 40f, row.height), i18n.T(titleKey), NewUISkin.SectionStyle);
-            GUI.Label(new Rect(row.xMax - 18f, row.y, 18f, row.height), open ? "\u25BC" : "\u25B6", NewUISkin.MutedLabelStyle);
+            GUI.Label(new Rect(row.x + 12f, row.y, row.width - 40f, row.height), title, NewUISkin.SectionStyle);
+            DrawFoldArrow(row.xMax - 12f, row.y + RowHeight * 0.5f, open);
 
             if (GUI.Button(row, GUIContent.none, GUIStyle.none))
             {
                 open = !open;
+                SectionStates[id] = open;
+            }
+            return open;
+        }
+
+        private static void DrawFoldArrow(float centerX, float centerY, bool open)
+        {
+            Texture2D arrow = open ? NewUISkin.FoldArrowOpen : NewUISkin.FoldArrowClosed;
+            if (arrow == null) return;
+            GUI.DrawTexture(new Rect(centerX - 5f, centerY - 5f, 10f, 10f), arrow, ScaleMode.ScaleToFit, true);
+        }
+
+        private static bool FoldState(string id)
+        {
+            bool open;
+            if (!SectionStates.TryGetValue(id, out open))
+            {
+                open = true;
                 SectionStates[id] = open;
             }
             return open;
@@ -88,6 +105,38 @@ namespace TimingShow.Options
             DrawSwitch(new Rect(switchX, content.y + (RowHeight - SwitchHeight) * 0.5f, SwitchWidth, SwitchHeight), value, hover, enabled);
             if (enabled && GUI.Button(row, GUIContent.none, GUIStyle.none)) value = !value;
             return value;
+        }
+
+        internal static bool ToggleFold(string labelKey, string id, ref bool value, string descKey = null, bool enabled = true)
+        {
+            bool open = FoldState(id);
+            bool hasDesc = !string.IsNullOrEmpty(descKey);
+            float height = hasDesc ? RowHeight + 15f : RowHeight;
+            Rect row = Row(height);
+            bool hover = enabled && row.Contains(Event.current.mousePosition);
+            if (hover) NewUISkin.DrawRounded(new Rect(row.x - 4f, row.y - 1f, row.width + 8f, row.height + 2f), 5f, NewUISkin.Fade(NewUISkin.Element, 0.45f));
+
+            const float ArrowWidth = 22f;
+            Rect arrowRect = new Rect(row.xMax - ArrowWidth, row.y, ArrowWidth, row.height);
+            float switchX = row.xMax - ArrowWidth - SwitchWidth - 2f;
+            float textWidth = Mathf.Max(10f, switchX - row.x - 16f);
+            GUIStyle labelStyle = !enabled ? NewUISkin.MutedLabelStyle : (value ? NewUISkin.LabelStyle : NewUISkin.DimLabelStyle);
+            GUI.Label(new Rect(row.x + 8f, row.y, textWidth, hasDesc ? 18f : RowHeight), i18n.T(labelKey), labelStyle);
+            if (hasDesc) GUI.Label(new Rect(row.x + 8f, row.y + 17f, textWidth, 15f), i18n.T(descKey), NewUISkin.MutedLabelStyle);
+
+            DrawSwitch(new Rect(switchX, row.y + (RowHeight - SwitchHeight) * 0.5f, SwitchWidth, SwitchHeight), value, hover, enabled);
+            DrawFoldArrow(arrowRect.center.x, arrowRect.y + RowHeight * 0.5f, open);
+
+            if (GUI.Button(arrowRect, GUIContent.none, GUIStyle.none))
+            {
+                open = !open;
+                SectionStates[id] = open;
+            }
+            else if (enabled && GUI.Button(row, GUIContent.none, GUIStyle.none))
+            {
+                value = !value;
+            }
+            return open;
         }
 
         internal static void DrawSwitch(Rect rect, bool on, bool hover, bool enabled = true)
