@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
@@ -113,43 +113,42 @@ namespace TimingShow.Update
             AssertAssembly(Path.Combine(stagingDirectory, UmmLoaderAssemblyName), (string)packaged["AssemblyName"]);
         }
 
-        public static void WriteManifest(string stagingDirectory, UpdateTarget target)
+        public static void WritePending(string updateRoot, string stagingDirectory, string modPath, UpdateRelease release, string fromVersion, UpdateTarget target)
         {
             string root = Path.GetFullPath(stagingDirectory);
-            StringBuilder builder = new StringBuilder();
+            List<PendingFileEntry> files = new List<PendingFileEntry>();
             foreach (string file in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
             {
                 string relative = file.Substring(root.Length).TrimStart('\\', '/').Replace('\\', '/');
-                if (string.Equals(relative, PendingUpdateApplier.ManifestFileName, StringComparison.OrdinalIgnoreCase)) continue;
                 if (!IsApplicableFile(relative, target)) continue;
-                builder.Append(HashFile(file)).Append('\t').Append(relative).Append('\n');
+                files.Add(new PendingFileEntry
+                {
+                    RelativePath = relative,
+                    Size = new FileInfo(file).Length,
+                    Sha256 = PendingUpdateFile.ComputeHash(file)
+                });
             }
-            File.WriteAllText(Path.Combine(root, PendingUpdateApplier.ManifestFileName), builder.ToString(), new UTF8Encoding(false));
-        }
 
-        public static void WritePending(string updateRoot, string modPath, string version, string fromVersion, UpdateTarget target)
-        {
-            Directory.CreateDirectory(updateRoot);
-            string pendingPath = Path.Combine(updateRoot, PendingUpdateApplier.PendingFileName);
-            string tempPath = pendingPath + ".tmp";
-            string text = "version=" + version + "\nfrom=" + fromVersion + "\ntarget=" + (target == UpdateTarget.Melon ? "Melon" : "Umm") + "\npath=" + Path.GetFullPath(modPath) + "\n";
-            File.WriteAllText(tempPath, text, new UTF8Encoding(false));
-            if (File.Exists(pendingPath)) File.Delete(pendingPath);
-            File.Move(tempPath, pendingPath);
+            if (files.Count == 0) throw new InvalidDataException("The update package contains no files to install.");
+            files.Sort((left, right) => string.CompareOrdinal(left.RelativePath, right.RelativePath));
+
+            PendingUpdatePlan plan = new PendingUpdatePlan
+            {
+                Schema = PendingUpdateFile.SchemaVersion,
+                Id = target == UpdateTarget.Melon ? Updater.MelonRepositoryId : Updater.RepositoryId,
+                Version = release.Version,
+                FromVersion = fromVersion ?? string.Empty,
+                Target = target == UpdateTarget.Melon ? "Melon" : "Umm",
+                ModPath = Path.GetFullPath(modPath),
+                Created = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
+                Files = files
+            };
+            PendingUpdateFile.Write(updateRoot, plan);
         }
 
         public static bool ApplyStaged(string updateRoot, string modPath)
         {
             return PendingUpdateApplier.Apply(updateRoot, modPath, Log, Error);
-        }
-
-        public static string HashFile(string path)
-        {
-            using (FileStream stream = File.OpenRead(path))
-            using (SHA256 sha = SHA256.Create())
-            {
-                return UpdateClient.ToHex(sha.ComputeHash(stream));
-            }
         }
 
         public static string SanitizeVersion(string version)

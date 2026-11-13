@@ -13,8 +13,7 @@ namespace TimingShow.UpdateBootstrap
             try
             {
                 string updateRoot = ResolveUpdateRoot();
-                string pendingPath = Path.Combine(updateRoot, PendingUpdateApplier.PendingFileName);
-                if (!File.Exists(pendingPath)) return;
+                if (!PendingUpdateFile.Exists(updateRoot)) return;
 
                 MelonLogger.Msg("[UpdateBootstrap] Applying pending update from " + updateRoot);
 

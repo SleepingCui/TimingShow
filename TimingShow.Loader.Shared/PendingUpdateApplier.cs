@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace TimingShow.Update
@@ -10,13 +9,18 @@ namespace TimingShow.Update
     {
         public const string UpdateDirectoryName = "Update";
         public const string StagingDirectoryName = "staging";
-        public const string PendingFileName = "pending.txt";
-        public const string ManifestFileName = "manifest.txt";
         public const string DownloadDirectoryName = "download";
         public const string BackupDirectoryPrefix = "backup-";
 
+        private const string LegacyPendingFileName = "pending.txt";
+        private const string LegacyManifestFileName = "manifest.txt";
         private const string MelonTargetValue = "Melon";
         private const string MelonLoaderFileName = "TimingShow.Loader.Melon.dll";
+
+        public static bool HasPending(string updateRoot)
+        {
+            return PendingUpdateFile.Exists(updateRoot);
+        }
 
         public static bool Apply(string updateRoot, string fallbackModPath, Action<string> log, Action<string> error)
         {
@@ -26,31 +30,37 @@ namespace TimingShow.Update
 
             try
             {
-                string pendingPath = Path.Combine(updateRoot, PendingFileName);
-                if (!File.Exists(pendingPath)) return false;
+                DiscardLegacy(updateRoot, log);
+                if (!PendingUpdateFile.Exists(updateRoot)) return false;
 
-                string version = ReadValue(pendingPath, "version") ?? "unknown";
-                string backupDirectory = Path.Combine(updateRoot, BackupDirectoryPrefix + Sanitize(ReadValue(pendingPath, "from")));
-                string stagingDirectory = Path.GetFullPath(Path.Combine(updateRoot, StagingDirectoryName));
-                bool melonTarget = string.Equals(ReadValue(pendingPath, "target"), MelonTargetValue, StringComparison.OrdinalIgnoreCase);
-
-                string modPath = ResolveModPath(pendingPath, fallbackModPath);
-                if (!IsValidModPath(modPath, melonTarget))
+                PendingUpdatePlan plan;
+                string message;
+                if (!PendingUpdateFile.TryRead(updateRoot, out plan, out message))
                 {
-                    RestoreBackup(backupDirectory, modPath, error);
-                    File.Delete(pendingPath);
-                    DeleteDirectory(stagingDirectory);
-                    error("Pending update to " + version + " points at an unusable install path " + (modPath ?? "(none)") + "; it was discarded.");
+                    DiscardPending(updateRoot, error, message);
+                    return false;
+                }
+                if (plan.Schema > PendingUpdateFile.SchemaVersion)
+                {
+                    log("A pending update was written by a newer version of the updater; it was left in place.");
+                    return false;
+                }
+                if (!PendingUpdateFile.Validate(plan, out message))
+                {
+                    DiscardPending(updateRoot, error, message);
                     return false;
                 }
 
-                string manifestPath = Path.Combine(stagingDirectory, ManifestFileName);
-                if (!File.Exists(manifestPath))
+                string version = plan.Version;
+                string stagingDirectory = Path.GetFullPath(Path.Combine(updateRoot, StagingDirectoryName));
+                string backupDirectory = Path.Combine(updateRoot, BackupDirectoryPrefix + Sanitize(plan.FromVersion));
+                bool melonTarget = string.Equals(plan.Target, MelonTargetValue, StringComparison.OrdinalIgnoreCase);
+
+                string modPath = ResolveModPath(plan, fallbackModPath, log);
+                if (!IsValidModPath(modPath, melonTarget))
                 {
                     RestoreBackup(backupDirectory, modPath, error);
-                    File.Delete(pendingPath);
-                    DeleteDirectory(stagingDirectory);
-                    log("Pending update to " + version + " has no manifest; the previous files were restored.");
+                    DiscardPending(updateRoot, error, "Pending update to " + version + " points at an unusable install path " + (modPath ?? "(none)") + "; it was discarded.");
                     return false;
                 }
 
@@ -58,68 +68,62 @@ namespace TimingShow.Update
                 string modPrefix = modPath + Path.DirectorySeparatorChar;
 
                 bool failed = false;
-                List<string> entries = new List<string>();
-                foreach (string line in File.ReadAllLines(manifestPath))
+                List<PendingFileEntry> verified = new List<PendingFileEntry>(plan.Files.Count);
+                foreach (PendingFileEntry entry in plan.Files)
                 {
-                    int tab = line.IndexOf('\t');
-                    if (tab <= 0) continue;
-
-                    string expectedHash = line.Substring(0, tab).Trim();
-                    string relative = line.Substring(tab + 1).Trim().Replace('\\', '/').TrimStart('/', '\\');
-                    if (relative.Length == 0) continue;
-
-                    string source = Path.GetFullPath(Path.Combine(stagingDirectory, relative));
-                    string target = Path.GetFullPath(Path.Combine(modPath, relative));
+                    string source = Path.GetFullPath(Path.Combine(stagingDirectory, entry.RelativePath));
+                    string target = Path.GetFullPath(Path.Combine(modPath, entry.RelativePath));
                     if (!source.StartsWith(stagingPrefix, StringComparison.OrdinalIgnoreCase)
                         || !target.StartsWith(modPrefix, StringComparison.OrdinalIgnoreCase))
                     {
-                        error("Pending update entry escapes the install directory: " + relative);
-                        failed = true;
-                        continue;
-                    }
-                    if (!File.Exists(source) || !string.Equals(HashFile(source), expectedHash, StringComparison.OrdinalIgnoreCase))
-                    {
-                        error("Pending update file is corrupted: " + relative);
+                        error("Pending update entry escapes the install directory: " + entry.RelativePath);
                         failed = true;
                         continue;
                     }
 
-                    entries.Add(relative);
+                    FileInfo staged = new FileInfo(source);
+                    if (!staged.Exists || staged.Length != entry.Size
+                        || !string.Equals(ComputeHash(source), entry.Sha256, StringComparison.OrdinalIgnoreCase))
+                    {
+                        error("Pending update file is corrupted: " + entry.RelativePath);
+                        failed = true;
+                        continue;
+                    }
+
+                    verified.Add(entry);
                 }
 
                 if (failed)
                 {
                     RestoreBackup(backupDirectory, modPath, error);
-                    File.Delete(pendingPath);
-                    DeleteDirectory(stagingDirectory);
-                    log("Pending update to " + version + " is corrupted; the previous files were restored.");
+                    DiscardPending(updateRoot, error, "Pending update to " + version + " is corrupted; the previous files were restored.");
                     return false;
                 }
 
                 List<string> replaced = new List<string>();
-                foreach (string relative in entries)
+                foreach (PendingFileEntry entry in verified)
                 {
                     try
                     {
-                        string target = Path.Combine(modPath, relative);
-                        BackupFile(target, backupDirectory, relative);
-                        ReplaceFile(Path.Combine(stagingDirectory, relative), target);
-                        replaced.Add(relative);
+                        string target = Path.Combine(modPath, entry.RelativePath);
+                        BackupFile(target, backupDirectory, entry.RelativePath);
+                        InstallFile(Path.Combine(stagingDirectory, entry.RelativePath), target, entry);
+                        replaced.Add(entry.RelativePath);
                     }
                     catch (Exception e)
                     {
-                        error("Failed to replace " + relative + ": " + e.Message);
+                        error("Failed to replace " + entry.RelativePath + ": " + e.Message);
                         RestoreFiles(replaced, backupDirectory, modPath, error);
                         log("Pending update to " + version + " was rolled back; it will be retried on the next launch.");
                         return false;
                     }
                 }
 
-                File.Delete(pendingPath);
+                PendingUpdateFile.TryDelete(PendingUpdateFile.GetPath(updateRoot));
                 DeleteDirectory(stagingDirectory);
                 DeleteDirectory(Path.Combine(updateRoot, DownloadDirectoryName));
                 PruneBackups(updateRoot, backupDirectory);
-                log("Applied pending update " + version + " (" + entries.Count + " file(s)).");
+                log("Applied pending update " + version + " (" + verified.Count + " file(s)).");
                 return true;
             }
             catch (Exception e)
@@ -129,11 +133,41 @@ namespace TimingShow.Update
             }
         }
 
-        private static string ResolveModPath(string pendingPath, string fallbackModPath)
+        private static string ComputeHash(string path)
         {
-            string stored = ReadValue(pendingPath, "path");
-            string candidate = string.IsNullOrEmpty(stored) ? fallbackModPath : stored;
-            return string.IsNullOrEmpty(candidate) ? null : Path.GetFullPath(candidate);
+            return PendingUpdateFile.ComputeHash(path);
+        }
+
+        private static void DiscardLegacy(string updateRoot, Action<string> log)
+        {
+            string legacyPending = Path.Combine(updateRoot, LegacyPendingFileName);
+            string legacyManifest = Path.Combine(updateRoot, StagingDirectoryName, LegacyManifestFileName);
+            if (!File.Exists(legacyPending) && !File.Exists(legacyManifest)) return;
+
+            PendingUpdateFile.TryDelete(legacyPending);
+            PendingUpdateFile.TryDelete(legacyManifest);
+            DeleteDirectory(Path.Combine(updateRoot, StagingDirectoryName));
+            DeleteDirectory(Path.Combine(updateRoot, DownloadDirectoryName));
+            log("Discarded a pending update left behind by an older version of the updater; it will be downloaded again if it is still available.");
+        }
+
+        private static void DiscardPending(string updateRoot, Action<string> error, string message)
+        {
+            error(message);
+            PendingUpdateFile.TryDelete(PendingUpdateFile.GetPath(updateRoot));
+            DeleteDirectory(Path.Combine(updateRoot, StagingDirectoryName));
+            DeleteDirectory(Path.Combine(updateRoot, DownloadDirectoryName));
+        }
+
+        private static string ResolveModPath(PendingUpdatePlan plan, string fallbackModPath, Action<string> log)
+        {
+            string candidate = string.IsNullOrEmpty(fallbackModPath) ? plan.ModPath : fallbackModPath;
+            if (string.IsNullOrEmpty(candidate)) return null;
+
+            string resolved = Path.GetFullPath(candidate);
+            if (!string.IsNullOrEmpty(plan.ModPath) && !string.Equals(resolved, Path.GetFullPath(plan.ModPath), StringComparison.OrdinalIgnoreCase))
+                log("The pending update was prepared for " + plan.ModPath + " but is applied to " + resolved + ".");
+            return resolved;
         }
 
         private static bool IsValidModPath(string modPath, bool melonTarget)
@@ -142,20 +176,25 @@ namespace TimingShow.Update
             return !melonTarget || File.Exists(Path.Combine(modPath, MelonLoaderFileName));
         }
 
-        private static void ReplaceFile(string source, string target)
+        private static void InstallFile(string source, string target, PendingFileEntry entry)
         {
             string directory = Path.GetDirectoryName(target);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
 
             string incoming = target + ".incoming";
-            File.Copy(source, incoming, true);
-            if (File.Exists(target))
+            try
             {
-                File.Replace(incoming, target, null);
+                File.Copy(source, incoming, true);
+                FileInfo copied = new FileInfo(incoming);
+                if (copied.Length != entry.Size || !string.Equals(ComputeHash(incoming), entry.Sha256, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("the copy prepared for " + entry.RelativePath + " did not match its hash");
+
+                if (File.Exists(target)) File.Replace(incoming, target, null);
+                else File.Move(incoming, target);
             }
-            else
+            finally
             {
-                File.Move(incoming, target);
+                PendingUpdateFile.TryDelete(incoming);
             }
         }
 
@@ -238,30 +277,6 @@ namespace TimingShow.Update
             }
             catch (Exception)
             {
-            }
-        }
-
-        private static string ReadValue(string path, string key)
-        {
-            foreach (string line in File.ReadAllLines(path))
-            {
-                int separator = line.IndexOf('=');
-                if (separator <= 0) continue;
-                if (string.Equals(line.Substring(0, separator).Trim(), key, StringComparison.OrdinalIgnoreCase))
-                    return line.Substring(separator + 1).Trim();
-            }
-            return null;
-        }
-
-        private static string HashFile(string path)
-        {
-            using (FileStream stream = File.OpenRead(path))
-            using (SHA256 sha = SHA256.Create())
-            {
-                byte[] hash = sha.ComputeHash(stream);
-                StringBuilder builder = new StringBuilder(hash.Length * 2);
-                for (int i = 0; i < hash.Length; i++) builder.Append(hash[i].ToString("X2"));
-                return builder.ToString();
             }
         }
 

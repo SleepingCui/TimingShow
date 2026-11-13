@@ -315,7 +315,7 @@ namespace TimingShow.Update
             }
 
             string stagingDirectory = Path.Combine(updateRoot, PendingUpdateApplier.StagingDirectoryName);
-            string pendingPath = Path.Combine(updateRoot, PendingUpdateApplier.PendingFileName);
+            string pendingPath = PendingUpdateFile.GetPath(updateRoot);
             string zipPath = null;
             try
             {
@@ -332,8 +332,7 @@ namespace TimingShow.Update
                 Trace("Package extracted.");
                 UpdatePackage.Verify(stagingDirectory, modPath, release, target);
                 Trace("Package verified.");
-                UpdatePackage.WriteManifest(stagingDirectory, target);
-                UpdatePackage.WritePending(updateRoot, modPath, release.Version, current.ToString(), target);
+                UpdatePackage.WritePending(updateRoot, stagingDirectory, modPath, release, current.ToString(), target);
 
                 bool applied = UpdatePackage.ApplyStaged(updateRoot, modPath);
                 if (applied)
