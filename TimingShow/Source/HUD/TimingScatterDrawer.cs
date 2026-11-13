@@ -153,17 +153,12 @@ namespace TimingShow.HUD
             SetVerticesDirty();
         }
 
-        internal const float ThresholdLenientBpm = 220f;
-        internal const float ThresholdNormalBpm = 310f;
-        internal const float ThresholdStrictBpm = 500f;
         private const float PassAngleMsScale = 20000f;
         private const float MinWindowMs = 25f;
         private const float PerfectBaseMs = 20f;
         private const float ElPerfectBaseMs = 30f;
         private const float XpMinWindowMs = 16.666666f;
 
-        private static FieldInfo _gameDifficultyField;
-        private static bool _gameDifficultySearched;
         private static FieldInfo _gameSpeedTrialField;
         private static bool _gameSpeedTrialSearched;
 
@@ -172,46 +167,12 @@ namespace TimingShow.HUD
             if (settings != null && !settings.TimingScatter_BandAutoWindow)
                 return Mathf.Clamp(settings.TimingScatter_BandThresholdBpm, 100f, 600f);
 
-            switch (ReadGameDifficulty())
-            {
-                case 0: return ThresholdLenientBpm;
-                case 1: return ThresholdNormalBpm;
-                case 2: return ThresholdStrictBpm;
-                default: return ThresholdNormalBpm;
-            }
+            return GameDifficulty.ThresholdBpm(GameDifficulty.Read());
         }
         
         internal static string GetGameDifficultyLabel()
         {
-            switch (ReadGameDifficulty())
-            {
-                case 0: return "Lenient";
-                case 1: return "Normal";
-                case 2: return "Strict";
-                default: return "Unknown";
-            }
-        }
-        
-        private static int ReadGameDifficulty()
-        {
-            try
-            {
-                if (!_gameDifficultySearched)
-                {
-                    _gameDifficultySearched = true;
-                    System.Type type = System.Type.GetType("GCS, Assembly-CSharp");
-                    if (type != null)
-                        _gameDifficultyField = type.GetField("difficulty", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                }
-
-                if (_gameDifficultyField == null) return -1;
-                object value = _gameDifficultyField.GetValue(null);
-                return value == null ? -1 : System.Convert.ToInt32(value);
-            }
-            catch
-            {
-                return -1;
-            }
+            return GameDifficulty.Label(GameDifficulty.Read());
         }
         
         internal static float GetWindowBpm()
@@ -223,15 +184,8 @@ namespace TimingShow.HUD
                 double bpm = conductor != null ? conductor.bpm : 0.0;
                 double speed = controller != null && controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
                 double pitch = conductor != null && conductor.song != null ? conductor.song.pitch : 1.0;
-                double marginScale = 1.0;
-                if (controller != null && controller.currFloor != null)
-                {
-                    double scale = controller.currFloor.marginScale;
-                    if (!double.IsNaN(scale) && scale > 0.0) marginScale = scale;
-                }
-                double speedTrial = ReadGameSpeedTrial();
 
-                double windowBpm = bpm * pitch * speed / marginScale / speedTrial;
+                double windowBpm = bpm * pitch * speed;
                 if (!double.IsNaN(windowBpm) && windowBpm > 0.0) return (float)windowBpm;
             }
             catch
@@ -241,6 +195,11 @@ namespace TimingShow.HUD
             double fallback = ModContext.LastBpm * ModContext.LastSpeed * ModContext.LastPitch;
             if (double.IsNaN(fallback) || fallback <= 0.0) return 0f;
             return (float)fallback;
+        }
+
+        private static float ReadMarginScale()
+        {
+            return HitWindowScale.ReadControllerScale();
         }
 
         private static float ReadGameSpeedTrial()
@@ -278,21 +237,16 @@ namespace TimingShow.HUD
                 return PassAngleMsScale / manualBpm;
             }
 
-            switch (ReadGameDifficulty())
-            {
-                case 0: return 91f; // Lenient
-                case 1: return 65f; // Normal
-                case 2: return 40f; // Strict
-                default: return 65f;
-            }
+            return GameDifficulty.PassBaseMs(GameDifficulty.Read());
         }
 
-        private static float CalcWindow(float windowBpm, float speedTrial, float angle, float baseWindowMs)
+        private static float CalcWindow(float windowBpm, float speedTrial, float marginScale, float angle, float baseWindowMs)
         {
             float safeBpm = Mathf.Max(0.001f, windowBpm);
             float safeSpeedTrial = Mathf.Max(0.001f, speedTrial);
             float angleTerm = 60000f / safeBpm * angle / 180f;
-            return Mathf.Max(Mathf.Max(angleTerm, baseWindowMs) / safeSpeedTrial, MinWindowMs);
+            float window = Mathf.Max(angleTerm, baseWindowMs) * Mathf.Max(0.001f, marginScale) / safeSpeedTrial;
+            return Mathf.Max(window, MinWindowMs);
         }
 
         internal static void GetJudgeWindowMs(Settings settings, out float perfectMs, out float elPerfectMs, out float passMs)
@@ -301,15 +255,16 @@ namespace TimingShow.HUD
             if (!(windowBpm > 0f))
             {
                 windowBpm = GetThresholdBpm(settings);
-                if (!(windowBpm > 0f)) windowBpm = ThresholdNormalBpm;
+                if (!(windowBpm > 0f)) windowBpm = GameDifficulty.NormalThresholdBpm;
             }
 
             float speedTrial = ReadGameSpeedTrial();
+            float marginScale = ReadMarginScale();
             float passBase = GetPassBaseMs(settings);
 
-            perfectMs = CalcWindow(windowBpm, speedTrial, 30f, PerfectBaseMs);
-            elPerfectMs = CalcWindow(windowBpm, speedTrial, 45f, ElPerfectBaseMs);
-            passMs = CalcWindow(windowBpm, speedTrial, 60f, passBase);
+            perfectMs = CalcWindow(windowBpm, speedTrial, marginScale, 30f, PerfectBaseMs);
+            elPerfectMs = CalcWindow(windowBpm, speedTrial, marginScale, 45f, ElPerfectBaseMs);
+            passMs = CalcWindow(windowBpm, speedTrial, marginScale, 60f, passBase);
         }
 
         internal static float GetXpWindowMs()
@@ -318,26 +273,27 @@ namespace TimingShow.HUD
             if (!(windowBpm > 0f)) return 0f;
 
             float speedTrial = Mathf.Max(0.001f, ReadGameSpeedTrial());
-            float xpMs = 60000f / windowBpm * 12.5f / 180f / speedTrial;
+            float marginScale = Mathf.Max(0.001f, ReadMarginScale());
+            float xpMs = 60000f / windowBpm * 12.5f / 180f * marginScale / speedTrial;
             return Mathf.Max(xpMs, XpMinWindowMs);
         }
         
-        internal static void GetLogWindowMs(float windowBpm, float passThresholdBpm,
+        internal static void GetLogWindowMs(float windowBpm, float passThresholdBpm, float marginScale,
             out float perfectMs, out float elPerfectMs, out float passMs)
         {
             float threshold = Mathf.Clamp(passThresholdBpm, 100f, 600f);
             float safeBpm = windowBpm > 0f ? windowBpm : threshold;
             float passBase = PassAngleMsScale / threshold;
 
-            perfectMs = CalcWindow(safeBpm, 1f, 30f, PerfectBaseMs);
-            elPerfectMs = CalcWindow(safeBpm, 1f, 45f, ElPerfectBaseMs);
-            passMs = CalcWindow(safeBpm, 1f, 60f, passBase);
+            perfectMs = CalcWindow(safeBpm, 1f, marginScale, 30f, PerfectBaseMs);
+            elPerfectMs = CalcWindow(safeBpm, 1f, marginScale, 45f, ElPerfectBaseMs);
+            passMs = CalcWindow(safeBpm, 1f, marginScale, 60f, passBase);
         }
 
-        internal static float GetLogXpWindowMs(float windowBpm)
+        internal static float GetLogXpWindowMs(float windowBpm, float marginScale)
         {
             if (!(windowBpm > 0f)) return 0f;
-            return Mathf.Max(60000f / windowBpm * 12.5f / 180f, XpMinWindowMs);
+            return Mathf.Max(60000f / windowBpm * 12.5f / 180f * Mathf.Max(0.001f, marginScale), XpMinWindowMs);
         }
     }
 }

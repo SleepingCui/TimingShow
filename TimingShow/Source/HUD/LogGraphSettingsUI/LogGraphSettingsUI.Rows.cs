@@ -189,9 +189,14 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             rows.Add(Toggle("Toggle_ShowHitDetails",
                 () => _draft.ShowHitDetails,
                 v => _draft.ShowHitDetails = v));
-            rows.Add(Slider("Label_BandThresholdBpm", 100f, 600f, false, "F0",
+            rows.Add(Toggle("Toggle_BandUseLogDifficulty",
+                () => _draft.BandUseLogDifficulty,
+                v => _draft.BandUseLogDifficulty = v));
+            Row bandBpmRow = Slider("Label_BandThresholdBpm", 100f, 600f, false, "F0",
                 () => _draft.BandThresholdBpm,
-                v => _draft.BandThresholdBpm = v));
+                v => _draft.BandThresholdBpm = v);
+            bandBpmRow.IsEnabled = () => !_draft.BandUseLogDifficulty;
+            rows.Add(bandBpmRow);
 
             return rows;
         }

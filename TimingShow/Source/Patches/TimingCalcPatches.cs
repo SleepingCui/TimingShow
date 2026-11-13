@@ -37,6 +37,7 @@ namespace TimingShow.Patches
             internal double Bpm;
             internal double Speed;
             internal double Pitch;
+            internal float MarginScale;
         }
 
         private static PendingHitContext _pendingHit;
@@ -90,6 +91,7 @@ namespace TimingShow.Patches
             _pendingHit.Bpm = bpm;
             _pendingHit.Speed = speed;
             _pendingHit.Pitch = pitch;
+            _pendingHit.MarginScale = HitWindowScale.ReadFloorScale(planet);
         }
 
         private static void AppendTimingScatterSample(double timing, double angle, int playerId)
@@ -134,6 +136,7 @@ namespace TimingShow.Patches
                 Bpm = (float)context.Bpm,
                 Speed = (float)context.Speed,
                 Pitch = (float)context.Pitch,
+                MarginScale = context.MarginScale,
                 FloorId = context.Valid ? context.FloorId : -1,
                 HasAngle = !double.IsNaN(angle) && !double.IsInfinity(angle),
                 HasFloorId = context.Valid,
@@ -199,6 +202,7 @@ namespace TimingShow.Patches
                 player.LastBpm = bpm;
                 player.LastSpeed = speed;
                 player.LastPitch = pitch;
+                player.LastMarginScale = _pendingHit.MarginScale;
 
                 if (!hasParams) return;
 
@@ -390,7 +394,7 @@ namespace TimingShow.Patches
                 if (allowLog)
                 {
                     TimingLogger.LogHit(timingOverride ?? player.LastTiming, angleOverride ?? player.LastAngle, rawMargin, judge, player.LastIsXP,
-                        player.LastFloorId, player.LastBpm, player.LastSpeed, player.LastPitch);
+                        player.LastFloorId, player.LastBpm, player.LastSpeed, player.LastPitch, player.LastMarginScale);
                 }
             }
 

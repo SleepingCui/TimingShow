@@ -67,6 +67,8 @@ namespace TimingShow.SessionReport
                 data.JudgeCodeVersion = HitMarginCompat.JudgeCodeVersion;
                 data.Truncated = false;
                 data.PlayerCount = ResolvePlayerCount(live);
+                data.Difficulty = GameDifficulty.Read();
+                data.MarginScale = TimingLogReader.ResolveMarginScale(live);
                 data.Samples = new List<TimingScatterSample>(live.Count);
                 data.Samples.AddRange(live);
 

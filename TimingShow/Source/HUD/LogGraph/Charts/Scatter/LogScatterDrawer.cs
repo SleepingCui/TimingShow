@@ -15,6 +15,8 @@ namespace TimingShow.HUD
         private int _dataVersion;
         private bool _isAngle;
         private float _windowBpm;
+        private int _difficulty = GameDifficulty.Unknown;
+        private float _marginScale = 1f;
         private int _playerCount = 1;
         private bool _hasMinOffset;
         private bool _hasMaxOffset;
@@ -86,6 +88,8 @@ namespace TimingShow.HUD
             _samples = data != null && data.Samples != null ? data.Samples : new List<TimingScatterSample>();
             _isAngle = data != null && data.IsAngle;
             _windowBpm = ComputeWindowBpm(data);
+            _difficulty = data != null ? data.Difficulty : GameDifficulty.Unknown;
+            _marginScale = data != null && data.MarginScale > 0f ? data.MarginScale : 1f;
             _playerCount = data != null && data.PlayerCount > 0 ? data.PlayerCount : 1;
             _dataVersion++;
 
@@ -240,7 +244,7 @@ namespace TimingShow.HUD
             if (settings.LogGraph_ShowJudgeBands)
             {
                 float perfectMs, elPerfectMs, passMs;
-                TimingScatterDrawer.GetLogWindowMs(_windowBpm, settings.LogGraph_BandThresholdBpm,
+                TimingScatterDrawer.GetLogWindowMs(_windowBpm, ResolveThresholdBpm(settings), _marginScale,
                     out perfectMs, out elPerfectMs, out passMs);
 
                 if (passMs > 0f)
@@ -255,9 +259,16 @@ namespace TimingShow.HUD
 
             if (settings.LogGraph_ShowXpBand)
             {
-                float xpMs = TimingScatterDrawer.GetLogXpWindowMs(_windowBpm);
+                float xpMs = TimingScatterDrawer.GetLogXpWindowMs(_windowBpm, _marginScale);
                 if (xpMs > 0f) DrawBand(vh, w, h, rangeY, minY, -xpMs, xpMs, settings.LogGraph_BandXpColor);
             }
+        }
+
+        private float ResolveThresholdBpm(Settings settings)
+        {
+            if (settings == null) return GameDifficulty.NormalThresholdBpm;
+            if (_difficulty >= GameDifficulty.Lenient && settings.LogGraph_BandUseLogDifficulty) return GameDifficulty.ThresholdBpm(_difficulty);
+            return Mathf.Clamp(settings.LogGraph_BandThresholdBpm, 100f, 600f);
         }
 
         protected override int ComputeSettingsHash()
@@ -270,6 +281,7 @@ namespace TimingShow.HUD
 
                 hash = hash * 31 + (s.LogGraph_ShowJudgeBands ? 1 : 0);
                 hash = hash * 31 + (s.LogGraph_ShowXpBand ? 1 : 0);
+                hash = hash * 31 + (s.LogGraph_BandUseLogDifficulty ? 1 : 0);
                 hash = hash * 31 + s.LogGraph_BandThresholdBpm.GetHashCode();
                 hash = hash * 31 + s.LogGraph_BandPerfectColor.GetHashCode();
                 hash = hash * 31 + s.LogGraph_BandElPerfectColor.GetHashCode();

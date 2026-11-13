@@ -35,7 +35,7 @@ namespace TimingShow.Logging
                 string.Equals(_currentFilePath, filePath, StringComparison.OrdinalIgnoreCase);
         }
 
-        public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
+        public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, int difficulty, string customDir, int bufferSize)
         {
             CloseSession();
             _writeErrorLogged = false;
@@ -86,6 +86,7 @@ namespace TimingShow.Logging
                 _writer.Write((byte)HitMarginCompat.Version);
                 _writer.Write((byte)HitMarginCompat.JudgeCodeVersion);
                 _writer.Write((byte)_playerCount);
+                _writer.Write((byte)(difficulty < 0 ? 255 : difficulty));
 
                 FlushWriter(LogWriteStats.FlushReason.Header);
                 ModLog.UnityLog($"created: {_currentFilePath} (binary)");
@@ -99,7 +100,7 @@ namespace TimingShow.Logging
         
         
         public static void LogHit(double timing, double angle, int rawMarginCode, int judgeCode, bool isXP, int playerId,
-            int floorId, double bpm, double speed, double pitch)
+            int floorId, double bpm, double speed, double pitch, float marginScale)
         {
             if (_writer == null) return;
 
@@ -124,6 +125,7 @@ namespace TimingShow.Logging
                 _writer.Write(hasHitParams ? SafeFloat(speed) : float.NaN);
                 _writer.Write(hasHitParams ? SafeFloat(pitch) : float.NaN);
                 VarInt.Write(_writer, floorId >= 0 ? floorId : -1);
+                _writer.Write(marginScale > 0f && !float.IsInfinity(marginScale) ? marginScale : 1f);
             }
             catch (Exception ex)
             {

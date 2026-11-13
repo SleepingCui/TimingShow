@@ -20,6 +20,7 @@ namespace TimingShow
         public float Bpm;
         public float Speed;
         public float Pitch;
+        public float MarginScale;
         public int RawMargin;
         public bool HasAngle;
         public bool HasFloorId;

@@ -51,6 +51,7 @@ namespace TimingShow
         public double LastBpm;
         public double LastSpeed = 1.0;
         public double LastPitch = 1.0;
+        public float LastMarginScale = 1f;
         public int LastFloorId = -1;
 
         public readonly List<double> Offsets = new List<double>();
@@ -85,6 +86,7 @@ namespace TimingShow
             LastBpm = 0.0;
             LastSpeed = 1.0;
             LastPitch = 1.0;
+            LastMarginScale = 1f;
             LastFloorId = -1;
         }
 

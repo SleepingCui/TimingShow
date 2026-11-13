@@ -56,7 +56,7 @@ namespace TimingShow.HUD
 
         private const int CardCount = 4;
         private const int MaxMargins = 16;
-        private const int MaxMetaEntries = 16;
+        private const int MaxMetaEntries = 17;
 
         private struct MetaEntry
         {
@@ -466,6 +466,8 @@ namespace TimingShow.HUD
             AddMeta(i18n.T("LogGraph_MetaFormatVersion"),
                 _log.FormatVersion > 0 ? "v" + _log.FormatVersion.ToString(CultureInfo.InvariantCulture) : "Unknown");
             AddMeta(i18n.T("LogGraph_MetaAnalysisTime"), FormatTimestamp(_log.Timestamp));
+            AddMeta(i18n.T("LogGraph_MetaDifficulty"), GameDifficulty.LocalizedLabel(_log.Difficulty));
+            AddMeta(i18n.T("LogGraph_MetaMarginScale"), FormatNumber(_log.MarginScale, "F2") + "×");
             AddMeta(i18n.T("LogGraph_MetaJudgeVersion"),
                 _log.JudgeCodeVersion > 0 ? "v" + _log.JudgeCodeVersion.ToString(CultureInfo.InvariantCulture) : "Unknown");
             AddMeta(i18n.T("LogGraph_MetaHitMarginVersion"),

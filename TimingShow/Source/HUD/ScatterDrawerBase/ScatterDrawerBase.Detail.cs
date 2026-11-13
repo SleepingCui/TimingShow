@@ -338,6 +338,12 @@ namespace TimingShow.HUD.ScatterDrawerBase
                         FormatDetailNumber(sample.Pitch, "0.##"));
                 }
 
+                if (sample.MarginScale > 0f && (sample.MarginScale < 0.9999f || sample.MarginScale > 1.0001f))
+                {
+                    body += "\n" + i18n.T("Detail_MarginScale") + ": "
+                        + sample.MarginScale.ToString("0.###", CultureInfo.InvariantCulture) + "×";
+                }
+
                 if (sample.HasOrbitDirection)
                 {
                     body += "\n" + i18n.T("Detail_Orbit") + ": "

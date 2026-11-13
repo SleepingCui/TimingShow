@@ -10,8 +10,8 @@ namespace TimingShow.Logging
 {
     public static class TimingLogger
     {
-        public const int FormatVersion = 8;
-        public const int BinaryFormatVersion = 9;
+        public const int FormatVersion = 10;
+        public const int BinaryFormatVersion = 11;
 
         private static StreamWriter _writer;
         private static string _currentFilePath;
@@ -106,7 +106,7 @@ namespace TimingShow.Logging
             return _sessionCleanStart ? "discarded" : "started from checkpoint or practice mode";
         }
 
-        public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, string customDir, int bufferSize)
+        public static void StartNewSession(string levelPath, string songName, double bpm, double speed, double pitch, int difficulty, string customDir, int bufferSize)
         {
             CloseSession();
             _writeErrorLogged = false;
@@ -114,7 +114,7 @@ namespace TimingShow.Logging
             _isCurrentSessionBinary = !ModContext.Settings.UseJsonWriter;
             if (_isCurrentSessionBinary)
             {
-                TimingLoggerBinary.StartNewSession(levelPath, songName, bpm, speed, pitch, customDir, bufferSize);
+                TimingLoggerBinary.StartNewSession(levelPath, songName, bpm, speed, pitch, difficulty, customDir, bufferSize);
                 return;
             }
 
@@ -158,6 +158,7 @@ namespace TimingShow.Logging
                 _writer.WriteLine($"  \"formatVersion\": {FormatVersion},");
                 _writer.WriteLine($"  \"hitMarginVersion\": \"{HitMarginCompat.Version}\",");
                 _writer.WriteLine($"  \"judgeCodeVersion\": {HitMarginCompat.JudgeCodeVersion},");
+                _writer.WriteLine($"  \"difficulty\": {(difficulty < 0 ? GameDifficulty.Unknown : difficulty)},");
 
                 _writer.Flush();
             }
@@ -170,7 +171,7 @@ namespace TimingShow.Logging
         }
         
         public static void LogHit(double timing, double angle, int rawMarginCode, HitMan judge, bool isXP,
-            int floorId, double bpm, double speed, double pitch)
+            int floorId, double bpm, double speed, double pitch, float marginScale)
         {
             int judgeCode = (int)judge;
 
@@ -182,7 +183,7 @@ namespace TimingShow.Logging
             if (_isCurrentSessionBinary)
             {
                 TimingLoggerBinary.LogHit(timing, angle, rawMarginCode, judgeCode, logXP, playerId,
-                    floorId, bpm, speed, pitch);
+                    floorId, bpm, speed, pitch, marginScale);
                 return;
             }
 
@@ -227,6 +228,10 @@ namespace TimingShow.Logging
                 buffer.Append(hasHitParams ? pitch.ToString("R", CultureInfo.InvariantCulture) : "null");
                 buffer.Append(',');
                 buffer.Append(floorId >= 0 ? floorId.ToString(CultureInfo.InvariantCulture) : "-1");
+                buffer.Append(',');
+                buffer.Append(marginScale > 0f && !float.IsInfinity(marginScale)
+                    ? marginScale.ToString("R", CultureInfo.InvariantCulture)
+                    : "1");
                 buffer.Append(']');
             }
             catch (Exception ex)

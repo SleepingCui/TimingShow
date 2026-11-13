@@ -24,6 +24,8 @@ namespace TimingShow.Logging
         public int JudgeCodeVersion;
         public bool Truncated;
         public int PlayerCount = 1;
+        public int Difficulty = -1;
+        public float MarginScale = 1f;
         public List<TimingScatterSample> Samples = new List<TimingScatterSample>(1024);
     }
 
@@ -31,6 +33,8 @@ namespace TimingShow.Logging
     {
 
         private const int MaxSamples = 2000000;
+
+        private const int MarginScaleBuckets = 8;
 
         private const int StreamBufferSize = 1 << 16;
 
@@ -284,6 +288,9 @@ namespace TimingShow.Logging
                 case "judgeCodeVersion":
                     data.JudgeCodeVersion = TokenToInt32(reader.Value);
                     return true;
+                case "difficulty":
+                    data.Difficulty = TokenToInt32(reader.Value);
+                    return true;
                 default:
                     return false;
             }
@@ -363,6 +370,7 @@ namespace TimingShow.Logging
                 double hitBpm = double.NaN;
                 double hitSpeed = double.NaN;
                 double hitPitch = double.NaN;
+                double hitMarginScale = 0.0;
                 int floorId = -1;
                 bool hasFloorField = false;
                 int judgeCode = -1;
@@ -428,6 +436,9 @@ namespace TimingShow.Logging
                                 hasFloorField = true;
                             }
                             break;
+                        case 10:
+                            if (inner != JsonToken.Null) hitMarginScale = TokenToDouble(reader.Value);
+                            break;
                         default:
                             break;
                     }
@@ -464,6 +475,8 @@ namespace TimingShow.Logging
                     sample.AngleDeg = (float)angleDeg;
                     sample.HasAngle = true;
                 }
+
+                if (hitMarginScale > 0.0 && IsFinite(hitMarginScale)) sample.MarginScale = (float)hitMarginScale;
 
                 samples.Add(sample);
             }
@@ -532,6 +545,12 @@ namespace TimingShow.Logging
                     {
                         int playerCount = reader.ReadByte();
                         if (playerCount > 0) result.PlayerCount = playerCount;
+                    }
+
+                    if (result.FormatVersion >= 10)
+                    {
+                        int difficulty = reader.ReadByte();
+                        result.Difficulty = difficulty > GameDifficulty.Strict ? GameDifficulty.Unknown : difficulty;
                     }
                 }
                 catch (Exception ex)
@@ -629,6 +648,7 @@ namespace TimingShow.Logging
                         float hitBpm = float.NaN;
                         float hitSpeed = float.NaN;
                         float hitPitch = float.NaN;
+                        float hitMarginScale = 0f;
                         int floorId = -1;
 
                         if (result.FormatVersion >= 9)
@@ -647,6 +667,8 @@ namespace TimingShow.Logging
                                     break;
                                 }
                                 floorId = decodedFloorId;
+
+                                if (result.FormatVersion >= 11) hitMarginScale = reader.ReadSingle();
                             }
                             catch (EndOfStreamException)
                             {
@@ -679,6 +701,8 @@ namespace TimingShow.Logging
                             sample.AngleDeg = angleDeg;
                             sample.HasAngle = true;
                         }
+
+                        if (hitMarginScale > 0f && IsFinite(hitMarginScale)) sample.MarginScale = hitMarginScale;
 
                         samples.Add(sample);
                     }
@@ -810,6 +834,7 @@ namespace TimingShow.Logging
             if (data == null || data.Samples == null) return;
 
             List<TimingScatterSample> samples = data.Samples;
+
             for (int i = 0; i < samples.Count; i++)
             {
                 TimingScatterSample sample = samples[i];
@@ -838,6 +863,52 @@ namespace TimingShow.Logging
 
                 samples[i] = sample;
             }
+
+            data.MarginScale = ResolveMarginScale(samples);
+        }
+
+        // Bands can only show one window scale, so use the one most hits were judged with.
+        internal static float ResolveMarginScale(List<TimingScatterSample> samples)
+        {
+            if (samples == null || samples.Count == 0) return 1f;
+
+            float[] scaleValues = new float[MarginScaleBuckets];
+            int[] scaleCounts = new int[MarginScaleBuckets];
+            int bucketCount = 0;
+            int bestCount = 0;
+            float bestScale = 1f;
+
+            for (int i = 0; i < samples.Count; i++)
+            {
+                float scale = samples[i].MarginScale;
+                if (!(scale > 0f) || float.IsInfinity(scale)) continue;
+
+                int slot = -1;
+                for (int b = 0; b < bucketCount; b++)
+                {
+                    if (Math.Abs(scaleValues[b] - scale) <= 0.0001f)
+                    {
+                        slot = b;
+                        break;
+                    }
+                }
+
+                if (slot < 0)
+                {
+                    if (bucketCount >= MarginScaleBuckets) continue;
+                    slot = bucketCount++;
+                    scaleValues[slot] = scale;
+                }
+
+                scaleCounts[slot]++;
+                if (scaleCounts[slot] > bestCount)
+                {
+                    bestCount = scaleCounts[slot];
+                    bestScale = scaleValues[slot];
+                }
+            }
+
+            return bestScale;
         }
 
         private sealed class CountingStream : Stream

@@ -162,7 +162,7 @@ namespace TimingShow.Patches
                     double speed = controller != null && controller.planetarySystem != null ? controller.planetarySystem.speed : 1.0;
                     double pitch = conductor != null && conductor.song != null ? conductor.song.pitch : 1.0;
 
-                    TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename, bpm, speed, pitch, ModContext.Settings.LogDirectory, ModContext.Settings.LogBufferSizeKB);
+                    TimingLogger.StartNewSession(scnGame.instance.levelPath, scnGame.instance.levelData.songFilename, bpm, speed, pitch, GameDifficulty.Read(), ModContext.Settings.LogDirectory, ModContext.Settings.LogBufferSizeKB);
                 }
                 catch (Exception e)
                 {
