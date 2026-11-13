@@ -18,6 +18,12 @@ namespace TimingShow.Options
         private static string _analyzerTimeoutText;
         private static string _scatterSampleCountText;
         private static string _scatterMaxPointsText;
+        private static string _diagBoundsIntervalText;
+        private static string _diagBoundsToleranceText;
+        private static string _diagBoundsLogLimitText;
+        private static string _diagBoundsRepeatText;
+        private static string _scatterWarningLimitText;
+        private static string _logListDrawBudgetText;
         private static bool _capturingPanelKey;
         private static int _panelKeySuppressFrame = -1;
 
@@ -705,13 +711,13 @@ namespace TimingShow.Options
                 if (!updateTrace && ModContext.Settings.Diag_UpdateTrace) UpdateBridge.CheckNow();
             }
 
-            SliderFloat("Label_DiagBoundsInterval", ref ModContext.Settings.Diag_BoundsIntervalSec, 0.1f, 5f);
-            SliderFloat("Label_DiagBoundsTolerance", ref ModContext.Settings.Diag_BoundsTolerancePx, 0f, 4f);
-            SliderInt("Label_DiagBoundsLogLimit", ref ModContext.Settings.Diag_BoundsLogLimit, 1, 200);
-            SliderFloat("Label_DiagBoundsRepeat", ref ModContext.Settings.Diag_BoundsLogRepeatSec, 0f, 30f);
+            FloatField("Label_DiagBoundsInterval", ref _diagBoundsIntervalText, ref ModContext.Settings.Diag_BoundsIntervalSec, 0.1f, 5f);
+            FloatField("Label_DiagBoundsTolerance", ref _diagBoundsToleranceText, ref ModContext.Settings.Diag_BoundsTolerancePx, 0f, 4f);
+            IntField("Label_DiagBoundsLogLimit", ref _diagBoundsLogLimitText, ref ModContext.Settings.Diag_BoundsLogLimit, 1, 200, 40, 190);
+            FloatField("Label_DiagBoundsRepeat", ref _diagBoundsRepeatText, ref ModContext.Settings.Diag_BoundsLogRepeatSec, 0f, 30f);
 
-            SliderInt("Label_ScatterWarningLimit", ref ModContext.Settings.Diag_ScatterWarningLimit, 0, 50);
-            SliderInt("Label_LogListDrawBudget", ref ModContext.Settings.LogListDrawBudget, 4, 400);
+            IntField("Label_ScatterWarningLimit", ref _scatterWarningLimitText, ref ModContext.Settings.Diag_ScatterWarningLimit, 0, 50, 5, 190);
+            IntField("Label_LogListDrawBudget", ref _logListDrawBudgetText, ref ModContext.Settings.LogListDrawBudget, 4, 400, 60, 190);
 
             GUILayout.Space(5);
         }

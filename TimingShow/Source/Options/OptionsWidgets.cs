@@ -234,6 +234,22 @@ namespace TimingShow.Options
             GUILayout.EndHorizontal();
         }
 
+        public static void FloatField(string labelKey, ref string text, ref float value, float min, float max, float labelWidth = 190f)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(ContentIndent);
+            GUILayout.Label(i18n.T(labelKey), GUILayout.Width(labelWidth));
+            if (text == null) text = value.ToString("0.###", CultureInfo.InvariantCulture);
+            string newText = GUILayout.TextField(text, GUILayout.Width(80));
+            if (newText != text)
+            {
+                text = newText;
+                if (float.TryParse(newText, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed))
+                    value = Mathf.Clamp(parsed, min, max);
+            }
+            GUILayout.EndHorizontal();
+        }
+
         public static void RatioModeButtons()
         {
             GUILayout.BeginHorizontal();
