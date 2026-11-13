@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 using TimingShow.Bridge;
+using TimingShow.Options;
 using TimingShow.Update;
 using OptionsPage = TimingShow.Options.Options;
 
@@ -13,6 +14,7 @@ namespace TimingShow.Melon
     {
         private const float WindowWidth = 900f;
         private const float WindowHeight = 600f;
+        private const float FooterHeight = 32f;
         private const string UpdateDirectoryName = "Update";
 
         private bool _showSettings;
@@ -25,6 +27,7 @@ namespace TimingShow.Melon
             string modPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var logger = new MelonLoggerAdapter();
             ModContext.Initialize(modPath, logger);
+            ModContext.IsMelon = true;
             ModContext.Settings = Settings.Load(modPath);
 
             i18n.LoadLanguages(modPath);
@@ -67,46 +70,48 @@ namespace TimingShow.Melon
         {
             if (!_showSettings) return;
 
-            _settingsWindowRect = GUILayout.Window(GetHashCode(), _settingsWindowRect, (id) =>
-                {
-                    _scrollPos = GUILayout.BeginScrollView( _scrollPos, GUILayout.Width(WindowWidth - 20), GUILayout.Height(WindowHeight - 60));
-                    OptionsPage.OnGUI();
-                    GUILayout.EndScrollView();
+            _settingsWindowRect = GUI.Window(GetHashCode(), _settingsWindowRect, DrawSettingsWindow, GUIContent.none, SettingsWindow.WindowStyle);
+        }
 
-                    // keybind
-                    GUILayout.Space(4);
-                    GUILayout.BeginHorizontal();
-                    {
-                        GUILayout.Label(i18n.T("Label_ConfigKey"), GUILayout.Width(100));
-                        if (_isRebinding)
-                        {
-                            GUILayout.Button(i18n.T("Btn_PressKey"), GUILayout.Width(140));
-                            CaptureConfigKey();
-                        }
-                        else
-                        {
-                            KeyCode key = ModContext.Settings.ConfigKey;
-                            string keyText = key == KeyCode.None ? i18n.T("Status_Disabled") : key.ToString();
-                            if (GUILayout.Button(keyText, GUILayout.Width(140)))
-                                _isRebinding = true;
-                        }
-                    }
-                    GUILayout.EndHorizontal();
+        private void DrawSettingsWindow(int id)
+        {
+            Rect windowRect = new Rect(0f, 0f, _settingsWindowRect.width, _settingsWindowRect.height);
+            bool close = SettingsWindow.DrawFrame(windowRect, $"TimingShow v{Info.Version}");
 
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button(i18n.T("Btn_SaveAndClose"), GUILayout.Width(120)))
-                    {
-                        ModContext.SaveSettings();
-                        _showSettings = false;
-                    }
-                    GUILayout.EndHorizontal();
+            Rect content = SettingsWindow.ContentRect(windowRect);
+            Rect scrollRect = new Rect(content.x, content.y, content.width, Mathf.Max(40f, content.height - FooterHeight - 10f));
+            Rect footerRect = new Rect(content.x, content.yMax - FooterHeight, content.width, FooterHeight);
 
-                    GUI.DragWindow(new Rect(0, 0, WindowWidth, 20));
-                },
-                $"TimingShow v{Info.Version}",
-                GUILayout.Width(WindowWidth),
-                GUILayout.Height(WindowHeight)
-            );
+            GUILayout.BeginArea(scrollRect);
+            _scrollPos = GUILayout.BeginScrollView(_scrollPos);
+            OptionsPage.OnGUI();
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+
+            DrawFooter(footerRect);
+
+            if (!close) return;
+
+            ModContext.SaveSettings();
+            _showSettings = false;
+        }
+
+        private void DrawFooter(Rect rect)
+        {
+            SettingsWindow.Divider(new Rect(rect.x, rect.y - 6f, rect.width, 1f));
+            SettingsWindow.Label(new Rect(rect.x, rect.y, 110f, rect.height), i18n.T("Label_ConfigKey"));
+
+            KeyCode key = ModContext.Settings.ConfigKey;
+            string keyText = _isRebinding
+                ? i18n.T("Btn_PressKey")
+                : (key == KeyCode.None ? i18n.T("Status_Disabled") : key.ToString());
+            if (SettingsWindow.Button(new Rect(rect.x + 112f, rect.y + 2f, 130f, rect.height - 4f), keyText, _isRebinding)) _isRebinding = true;
+            if (_isRebinding) CaptureConfigKey();
+
+            if (!SettingsWindow.Button(new Rect(rect.xMax - 150f, rect.y + 2f, 150f, rect.height - 4f), i18n.T("Btn_SaveAndClose"), true)) return;
+
+            ModContext.SaveSettings();
+            _showSettings = false;
         }
 
         private void CaptureConfigKey()

@@ -303,7 +303,7 @@ namespace TimingShow
         public static readonly Color Theme_LegacyElement = new Color(0.1922f, 0.2f, 0.2196f, 1f);
         public static readonly Color Theme_DefaultText = new Color(0.9137f, 0.9255f, 0.9373f, 1f);
 
-        public bool NewSettingsUI;
+        public bool NewSettingsUI = ModContext.IsMelon;
         public Color Theme_Primary = Theme_DefaultPrimary;
         public Color Theme_Background = Theme_DefaultBackground;
         public Color Theme_Element = Theme_DefaultElement;
@@ -319,7 +319,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 6;
+        public const int CurrentSettingsVersion = 7;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -408,6 +408,12 @@ namespace TimingShow
             if (SettingsVersion < 6 && SameColor(Theme_Element, Theme_LegacyElement))
             {
                 Theme_Element = Theme_DefaultElement;
+                migrated = true;
+            }
+
+            if (SettingsVersion < 7 && ModContext.IsMelon && !NewSettingsUI)
+            {
+                NewSettingsUI = true;
                 migrated = true;
             }
 
