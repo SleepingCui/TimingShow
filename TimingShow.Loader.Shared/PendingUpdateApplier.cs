@@ -52,7 +52,7 @@ namespace TimingShow.Update
                 }
 
                 string version = plan.Version;
-                string stagingDirectory = Path.GetFullPath(Path.Combine(updateRoot, StagingDirectoryName));
+                string stagingDirectory = NormalizeDirectory(Path.Combine(updateRoot, StagingDirectoryName));
                 string backupDirectory = Path.Combine(updateRoot, BackupDirectoryPrefix + Sanitize(plan.FromVersion));
                 bool melonTarget = string.Equals(plan.Target, MelonTargetValue, StringComparison.OrdinalIgnoreCase);
 
@@ -76,7 +76,7 @@ namespace TimingShow.Update
                     if (!source.StartsWith(stagingPrefix, StringComparison.OrdinalIgnoreCase)
                         || !target.StartsWith(modPrefix, StringComparison.OrdinalIgnoreCase))
                     {
-                        error("Pending update entry escapes the install directory: " + entry.RelativePath);
+                        error("Pending update entry escapes the install directory: " + entry.RelativePath + " (install " + modPath + ", staging " + stagingDirectory + ")");
                         failed = true;
                         continue;
                     }
@@ -164,10 +164,17 @@ namespace TimingShow.Update
             string candidate = string.IsNullOrEmpty(fallbackModPath) ? plan.ModPath : fallbackModPath;
             if (string.IsNullOrEmpty(candidate)) return null;
 
-            string resolved = Path.GetFullPath(candidate);
-            if (!string.IsNullOrEmpty(plan.ModPath) && !string.Equals(resolved, Path.GetFullPath(plan.ModPath), StringComparison.OrdinalIgnoreCase))
+            string resolved = NormalizeDirectory(candidate);
+            if (!string.IsNullOrEmpty(plan.ModPath) && !string.Equals(resolved, NormalizeDirectory(plan.ModPath), StringComparison.OrdinalIgnoreCase))
                 log("The pending update was prepared for " + plan.ModPath + " but is applied to " + resolved + ".");
             return resolved;
+        }
+
+        internal static string NormalizeDirectory(string path)
+        {
+            string full = Path.GetFullPath(path);
+            string root = Path.GetPathRoot(full);
+            return full.Length > root.Length ? full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) : full;
         }
 
         private static bool IsValidModPath(string modPath, bool melonTarget)

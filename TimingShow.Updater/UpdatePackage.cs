@@ -45,7 +45,7 @@ namespace TimingShow.Update
 
         public static void Extract(string packagePath, string stagingDirectory, UpdateTarget target)
         {
-            string root = Path.GetFullPath(stagingDirectory);
+            string root = PendingUpdateApplier.NormalizeDirectory(stagingDirectory);
             string prefix = root + Path.DirectorySeparatorChar;
             if (Directory.Exists(root)) Directory.Delete(root, true);
             Directory.CreateDirectory(root);
@@ -115,7 +115,7 @@ namespace TimingShow.Update
 
         public static void WritePending(string updateRoot, string stagingDirectory, string modPath, UpdateRelease release, string fromVersion, UpdateTarget target)
         {
-            string root = Path.GetFullPath(stagingDirectory);
+            string root = PendingUpdateApplier.NormalizeDirectory(stagingDirectory);
             List<PendingFileEntry> files = new List<PendingFileEntry>();
             foreach (string file in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
             {
@@ -139,7 +139,7 @@ namespace TimingShow.Update
                 Version = release.Version,
                 FromVersion = fromVersion ?? string.Empty,
                 Target = target == UpdateTarget.Melon ? "Melon" : "Umm",
-                ModPath = Path.GetFullPath(modPath),
+                ModPath = PendingUpdateApplier.NormalizeDirectory(modPath),
                 Created = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
                 Files = files
             };
