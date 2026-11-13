@@ -405,7 +405,7 @@ namespace TimingShow.Options
             return TryParseHex(edited, current, out Color parsed) ? parsed : current;
         }
 
-        private static string ColorToHex(Color color)
+        internal static string ColorToHex(Color color)
         {
             return ChannelToHex(color.r) + ChannelToHex(color.g) + ChannelToHex(color.b) + ChannelToHex(color.a);
         }
@@ -415,7 +415,7 @@ namespace TimingShow.Options
             return Mathf.RoundToInt(Mathf.Clamp01(value) * 255f).ToString("X2");
         }
 
-        private static bool TryParseHex(string text, Color current, out Color color)
+        internal static bool TryParseHex(string text, Color current, out Color color)
         {
             color = current;
             if (string.IsNullOrEmpty(text)) return false;

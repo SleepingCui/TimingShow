@@ -14,6 +14,21 @@ namespace TimingShow.Update
             get { return Updater.Suffix; }
         }
 
+        public string StatusText
+        {
+            get { return UpdateSettingsUI.CheckResultText(); }
+        }
+
+        public string UnavailableText
+        {
+            get { return Updater.Supported ? string.Empty : i18n.T(Updater.UnavailableReasonKey); }
+        }
+
+        public bool UnavailableIsError
+        {
+            get { return Updater.UnavailableReasonKey == Updater.BootstrapMissingReasonKey; }
+        }
+
         public event Action Changed
         {
             add { Updater.Changed += value; }
