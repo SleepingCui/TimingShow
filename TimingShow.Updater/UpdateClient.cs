@@ -97,7 +97,11 @@ namespace TimingShow.Update
                 if (string.IsNullOrEmpty(release.DownloadUrl))
                     throw new InvalidDataException("Release " + release.Version + " has no DownloadUrl.");
                 if (string.IsNullOrEmpty(release.Sha256))
-                    throw new InvalidDataException("Release " + release.Version + " has no Sha256 checksum.");
+                {
+                    if (!SkipChecksumEnabled)
+                        throw new InvalidDataException("Release " + release.Version + " has no Sha256 checksum.");
+                    TraceLine("Release " + release.Version + " has no Sha256 checksum; verification is disabled by debug settings.");
+                }
                 if (release.Size <= 0)
                     throw new InvalidDataException("Release " + release.Version + " has no Size.");
                 TraceLine("Selected " + release.Version + ": size " + release.Size + ", sha256 " + release.Sha256 + ".");
@@ -141,10 +145,18 @@ namespace TimingShow.Update
                     using (SHA256 sha = SHA256.Create())
                     {
                         string actual = ToHex(sha.ComputeHash(package));
-                        TraceLine("Received " + package.Length + " bytes in " + elapsed.ElapsedMilliseconds + " ms; SHA-256 " + actual + ".");
-                        if (!string.Equals(actual, release.Sha256.Trim(), StringComparison.OrdinalIgnoreCase))
-                            throw new InvalidDataException("SHA-256 mismatch: expected " + release.Sha256 + ", got " + actual + ".");
-                        TraceLine("SHA-256 matches the repository entry.");
+                        if (SkipChecksumEnabled)
+                        {
+                            TraceLine("Received " + package.Length + " bytes in " + elapsed.ElapsedMilliseconds + " ms; SHA-256 " + actual + " (verification disabled).");
+                            TraceLine("SHA-256 verification is disabled by debug settings.");
+                        }
+                        else
+                        {
+                            TraceLine("Received " + package.Length + " bytes in " + elapsed.ElapsedMilliseconds + " ms; SHA-256 " + actual + ".");
+                            if (!string.Equals(actual, release.Sha256.Trim(), StringComparison.OrdinalIgnoreCase))
+                                throw new InvalidDataException("SHA-256 mismatch: expected " + release.Sha256 + ", got " + actual + ".");
+                            TraceLine("SHA-256 matches the repository entry.");
+                        }
                     }
                     File.WriteAllBytes(destination, package);
                 }
@@ -191,9 +203,9 @@ namespace TimingShow.Update
             Uri uri;
             if (string.IsNullOrEmpty(url) || !Uri.TryCreate(url, UriKind.Absolute, out uri))
                 throw new InvalidDataException("Invalid update URL: " + url);
-            if (uri.Scheme != Uri.UriSchemeHttps)
+            if (uri.Scheme != Uri.UriSchemeHttps && !(SkipTlsValidationEnabled && uri.Scheme == Uri.UriSchemeHttp))
                 throw new InvalidDataException("Update URL must use HTTPS: " + url);
-            if (!IsTrustedHost(uri.Host))
+            if (!HasCustomUrl && !IsTrustedHost(uri.Host))
                 throw new InvalidDataException("Untrusted update host: " + uri.Host);
             return uri;
         }
@@ -213,6 +225,33 @@ namespace TimingShow.Update
             return builder.ToString();
         }
 
+        private static bool HasCustomUrl
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.Debug_CustomUpdateUrl && !string.IsNullOrWhiteSpace(settings.Debug_UpdateUrl);
+            }
+        }
+
+        private static bool SkipChecksumEnabled
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.Debug_SkipUpdateChecksum;
+            }
+        }
+
+        private static bool SkipTlsValidationEnabled
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.Debug_SkipTlsValidation;
+            }
+        }
+
         private static bool IsTrustedHost(string host)
         {
             foreach (string trusted in TrustedHosts)
@@ -225,7 +264,7 @@ namespace TimingShow.Update
 
         private static void ValidateResponse(WebResponse response)
         {
-            if (response.ResponseUri != null && !IsTrustedHost(response.ResponseUri.Host))
+            if (response.ResponseUri != null && !HasCustomUrl && !IsTrustedHost(response.ResponseUri.Host))
                 throw new InvalidDataException("Request was redirected to an untrusted host: " + response.ResponseUri.Host);
         }
 
@@ -249,6 +288,11 @@ namespace TimingShow.Update
             request.ReadWriteTimeout = timeoutMs;
             request.UserAgent = UserAgent;
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+            if (SkipTlsValidationEnabled)
+            {
+                request.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => true;
+                TraceLine("TLS certificate validation is disabled by debug settings.");
+            }
             return request;
         }
 

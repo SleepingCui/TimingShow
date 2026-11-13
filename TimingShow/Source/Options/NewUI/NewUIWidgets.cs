@@ -292,6 +292,20 @@ namespace TimingShow.Options
             GUI.Label(new Rect(row.x + 8f, row.y, row.width - 16f, row.height), text, NewUISkin.MutedLabelStyle);
         }
 
+        internal static void Warning(string text)
+        {
+            const float IconSize = 20f;
+            const float IconInset = 12f;
+
+            GUILayout.BeginVertical(NewUISkin.WarningBoxStyle);
+            GUILayout.Label(text, NewUISkin.WarningStyle);
+            Rect textRect = GUILayoutUtility.GetLastRect();
+            GUILayout.EndVertical();
+
+            Rect icon = new Rect(textRect.x - 40f + IconInset, textRect.y + (textRect.height - IconSize) * 0.5f, IconSize, IconSize);
+            GUI.DrawTexture(icon, NewUISkin.WarningIcon, ScaleMode.ScaleToFit, true);
+        }
+
         internal static void Divider()
         {
             Rect row = Row(9f);

@@ -299,6 +299,17 @@ namespace TimingShow
         public float Diag_BoundsLogRepeatSec = 5f;
         public int Diag_ScatterWarningLimit = 5;
 
+        public bool Debug_CustomUpdateUrl;
+        public string Debug_UpdateUrl = string.Empty;
+        public bool Debug_SkipUpdateChecksum;
+        public bool Debug_SkipTlsValidation;
+
+        [JsonIgnore]
+        public bool InsecureUpdateDebugEnabled
+        {
+            get { return Debug_CustomUpdateUrl || Debug_SkipUpdateChecksum || Debug_SkipTlsValidation; }
+        }
+
         public static readonly Color Theme_DefaultPrimary = new Color(0.0784f, 0.3216f, 0.8f, 1f);
         public static readonly Color Theme_DefaultBackground = Color.black;
         public static readonly Color Theme_DefaultElement = new Color(0.1451f, 0.1529f, 0.1686f, 1f);

@@ -139,7 +139,7 @@ namespace TimingShow.Update
             if (_gameVersion.IsEmpty) Log("Game version is unavailable; game version constraints in the repository are ignored.");
 
             UpdateClient.Trace = Trace;
-            Trace("Initialized: version " + _currentVersion + ", game " + _gameVersionText + ", target " + _target + ", repository " + _repositoryUrl + ", mod path " + modPath + ", update root " + _updateRoot + ", check " + CheckEnabled + ", auto update " + AutoUpdateEnabled + ", supported " + Supported + ".");
+            Trace("Initialized: version " + _currentVersion + ", game " + _gameVersionText + ", target " + _target + ", repository " + ResolveRepositoryUrl() + ", mod path " + modPath + ", update root " + _updateRoot + ", check " + CheckEnabled + ", auto update " + AutoUpdateEnabled + ", supported " + Supported + ".");
 
             if (!Supported)
             {
@@ -239,11 +239,14 @@ namespace TimingShow.Update
         private static void CheckWorker(bool autoUpdate)
         {
             string releaseId = ReleaseId;
-            Trace("Checking " + _repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + " for game " + _gameVersionText + ".");
+            string repositoryUrl = ResolveRepositoryUrl();
+            if (!string.Equals(repositoryUrl, _repositoryUrl, StringComparison.Ordinal))
+                Log("Using custom update repository from debug settings: " + repositoryUrl);
+            Trace("Checking " + repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + " for game " + _gameVersionText + ".");
             Stopwatch elapsed = Stopwatch.StartNew();
             try
             {
-                string json = UpdateClient.FetchRepository(_repositoryUrl);
+                string json = UpdateClient.FetchRepository(repositoryUrl);
                 string skippedForGame;
                 UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion, _gameVersion, out skippedForGame);
                 Trace("Check completed in " + elapsed.ElapsedMilliseconds + " ms.");
@@ -411,6 +414,14 @@ namespace TimingShow.Update
             IModLogger logger;
             lock (Sync) logger = _logger;
             if (logger != null) logger.Log(message);
+        }
+
+        private static string ResolveRepositoryUrl()
+        {
+            Settings settings = ModContext.Settings;
+            if (settings != null && settings.Debug_CustomUpdateUrl && !string.IsNullOrWhiteSpace(settings.Debug_UpdateUrl))
+                return settings.Debug_UpdateUrl.Trim();
+            return _repositoryUrl;
         }
 
         private static bool TraceEnabled

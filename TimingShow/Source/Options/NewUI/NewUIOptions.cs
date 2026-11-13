@@ -47,6 +47,7 @@ namespace TimingShow.Options
             NewUIWidgets.BeginFrame();
             UpdateBridge.DrawBanner();
             DrawTabs();
+            if (ModContext.Settings.InsecureUpdateDebugEnabled) NewUIWidgets.Warning(i18n.T("Warning_InsecureUpdateDebug"));
             GUILayout.Space(6f);
             DrawPage();
         }
@@ -613,6 +614,12 @@ namespace TimingShow.Options
                         bool updateTrace = s.Diag_UpdateTrace;
                         s.Diag_UpdateTrace = NewUIWidgets.Toggle("Toggle_DiagUpdateTrace", s.Diag_UpdateTrace, null, 0f, UpdateBridge.Supported);
                         if (!updateTrace && s.Diag_UpdateTrace) UpdateBridge.CheckNow();
+
+                        s.Debug_CustomUpdateUrl = NewUIWidgets.Toggle("Toggle_DebugCustomUrl", s.Debug_CustomUpdateUrl, "Desc_DebugCustomUrl", 0f, UpdateBridge.Supported);
+                        if (s.Debug_CustomUpdateUrl)
+                            s.Debug_UpdateUrl = NewUIWidgets.TextRow("Label_DebugUpdateUrl", s.Debug_UpdateUrl ?? string.Empty);
+                        s.Debug_SkipUpdateChecksum = NewUIWidgets.Toggle("Toggle_DebugSkipChecksum", s.Debug_SkipUpdateChecksum, "Desc_DebugSkipChecksum", 0f, UpdateBridge.Supported);
+                        s.Debug_SkipTlsValidation = NewUIWidgets.Toggle("Toggle_DebugSkipTls", s.Debug_SkipTlsValidation, "Desc_DebugSkipTls", 0f, UpdateBridge.Supported);
                     }
 
                     s.Diag_BoundsIntervalSec = NewUIWidgets.FloatField("Label_DiagBoundsInterval", ref _diagBoundsIntervalText, s.Diag_BoundsIntervalSec, 0.1f, 5f);

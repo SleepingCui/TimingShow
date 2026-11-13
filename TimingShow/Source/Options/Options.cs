@@ -26,6 +26,7 @@ namespace TimingShow.Options
         private static string _logListDrawBudgetText;
         private static bool _capturingPanelKey;
         private static int _panelKeySuppressFrame = -1;
+        private static GUIStyle _warningLabelStyle;
 
         internal static bool HotkeySuppressed
         {
@@ -78,6 +79,7 @@ namespace TimingShow.Options
             }
 
             UpdateBridge.DrawBanner();
+            if (ModContext.Settings.InsecureUpdateDebugEnabled) DrawInsecureUpdateWarning();
             DrawLanguageSettings();
             DrawTitleSettings();
             DrawPlanetSettings();
@@ -701,6 +703,13 @@ namespace TimingShow.Options
             GUILayout.EndVertical();
         }
 
+        private static void DrawInsecureUpdateWarning()
+        {
+            if (_warningLabelStyle == null)
+                _warningLabelStyle = new GUIStyle(GUI.skin.label) { wordWrap = true, richText = true };
+            GUILayout.Label($"<color=#F79009>{i18n.T("Warning_InsecureUpdateDebug")}</color>", _warningLabelStyle);
+        }
+
         private static void DrawDebugSettings()
         {
             string debugFoldoutArrow = _showDebugSettings ? "▲" : "▼";
@@ -724,6 +733,16 @@ namespace TimingShow.Options
                 bool previousGuiEnabled = GUI.enabled;
                 GUI.enabled = UpdateBridge.Supported;
                 Toggle(ref ModContext.Settings.Diag_UpdateTrace, "Toggle_DiagUpdateTrace", 0f);
+                ModContext.Settings.Debug_CustomUpdateUrl = ToggleWithDescription(ModContext.Settings.Debug_CustomUpdateUrl, "Toggle_DebugCustomUrl", "Desc_DebugCustomUrl", "", 0f);
+                if (ModContext.Settings.Debug_CustomUpdateUrl)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(i18n.T("Label_DebugUpdateUrl"), GUILayout.Width(120));
+                    ModContext.Settings.Debug_UpdateUrl = GUILayout.TextField(ModContext.Settings.Debug_UpdateUrl ?? string.Empty);
+                    GUILayout.EndHorizontal();
+                }
+                ModContext.Settings.Debug_SkipUpdateChecksum = ToggleWithDescription(ModContext.Settings.Debug_SkipUpdateChecksum, "Toggle_DebugSkipChecksum", "Desc_DebugSkipChecksum", "", 0f);
+                ModContext.Settings.Debug_SkipTlsValidation = ToggleWithDescription(ModContext.Settings.Debug_SkipTlsValidation, "Toggle_DebugSkipTls", "Desc_DebugSkipTls", "", 0f);
                 GUI.enabled = previousGuiEnabled;
                 if (!updateTrace && ModContext.Settings.Diag_UpdateTrace) UpdateBridge.CheckNow();
             }
