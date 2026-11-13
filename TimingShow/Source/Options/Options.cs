@@ -34,7 +34,11 @@ namespace TimingShow.Options
 
         internal static bool HitPanelHotkeySuppressed
         {
-            get { return _capturingPanelKey || _panelKeySuppressFrame == Time.frameCount; }
+            get
+            {
+                if (_capturingPanelKey || _panelKeySuppressFrame == Time.frameCount) return true;
+                return ModContext.Settings != null && ModContext.Settings.NewSettingsUI && NewUIWidgets.IsCapturingKey;
+            }
         }
 
         private static bool _showOtherSettings;
@@ -66,6 +70,12 @@ namespace TimingShow.Options
             OptionsWidgets.BeginFrame();
             ModContext.LastConfigGuiFrame = Time.frameCount;
             ModContext.UIDirty = true;
+
+            if (ModContext.Settings != null && ModContext.Settings.NewSettingsUI)
+            {
+                NewUIOptions.Draw();
+                return;
+            }
 
             UpdateBridge.DrawBanner();
             DrawLanguageSettings();
@@ -552,6 +562,12 @@ namespace TimingShow.Options
             GUILayout.BeginVertical();
             {
                 GUILayout.Space(5);
+
+                ModContext.Settings.NewSettingsUI = ToggleWithDescription(
+                    ModContext.Settings.NewSettingsUI,
+                    "Toggle_NewSettingsUI",
+                    "Desc_NewSettingsUI"
+                );
 
                 bool autoLanguage = ModContext.Settings.AutoLanguage;
                 Toggle(ref ModContext.Settings.AutoLanguage, "Toggle_AutoLanguage");

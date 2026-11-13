@@ -8,6 +8,12 @@ namespace TimingShow.Update
 
         string Suffix { get; }
 
+        string StatusText { get; }
+
+        string UnavailableText { get; }
+
+        bool UnavailableIsError { get; }
+
         event Action Changed;
 
         void Initialize(string modPath, string updateRoot, string repositoryUrl, string version, UpdateTarget target, bool autoApplyAvailable, IModLogger logger);

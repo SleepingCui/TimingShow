@@ -297,6 +297,18 @@ namespace TimingShow
         public float Diag_BoundsLogRepeatSec = 5f;
         public int Diag_ScatterWarningLimit = 5;
 
+        public static readonly Color Theme_DefaultPrimary = new Color(0.0784f, 0.3216f, 0.8f, 1f);
+        public static readonly Color Theme_DefaultBackground = Color.black;
+        public static readonly Color Theme_DefaultElement = new Color(0.1451f, 0.1529f, 0.1686f, 1f);
+        public static readonly Color Theme_LegacyElement = new Color(0.1922f, 0.2f, 0.2196f, 1f);
+        public static readonly Color Theme_DefaultText = new Color(0.9137f, 0.9255f, 0.9373f, 1f);
+
+        public bool NewSettingsUI = ModContext.IsMelon;
+        public Color Theme_Primary = Theme_DefaultPrimary;
+        public Color Theme_Background = Theme_DefaultBackground;
+        public Color Theme_Element = Theme_DefaultElement;
+        public Color Theme_Text = Theme_DefaultText;
+
         public const int LogSort_Time = 0;
         public const int LogSort_Size = 1;
         public const int LogSort_SongName = 2;
@@ -307,7 +319,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 5;
+        public const int CurrentSettingsVersion = 7;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -393,6 +405,18 @@ namespace TimingShow
                 migrated = true;
             }
 
+            if (SettingsVersion < 6 && SameColor(Theme_Element, Theme_LegacyElement))
+            {
+                Theme_Element = Theme_DefaultElement;
+                migrated = true;
+            }
+
+            if (SettingsVersion < 7 && ModContext.IsMelon && !NewSettingsUI)
+            {
+                NewSettingsUI = true;
+                migrated = true;
+            }
+
             if (SettingsVersion < CurrentSettingsVersion)
             {
                 SettingsVersion = CurrentSettingsVersion;
@@ -409,6 +433,12 @@ namespace TimingShow
             {
                 ModContext.Logger?.Log("Settings migrated to ver " + CurrentSettingsVersion);
             }
+        }
+        
+        private static bool SameColor(Color a, Color b)
+        {
+            return Mathf.Abs(a.r - b.r) < 0.001f && Mathf.Abs(a.g - b.g) < 0.001f &&
+                   Mathf.Abs(a.b - b.b) < 0.001f && Mathf.Abs(a.a - b.a) < 0.001f;
         }
         
         private static string StripValueSuffix(string format)

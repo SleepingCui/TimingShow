@@ -36,7 +36,7 @@ namespace TimingShow.Update
             }
         }
 
-        private static string CheckResultText()
+        internal static string CheckResultText()
         {
             switch (Updater.CheckResult)
             {

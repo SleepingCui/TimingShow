@@ -183,6 +183,10 @@
     <Compile Include="Source\Options\OptionLogList.cs" />
     <Compile Include="Source\Options\Options.cs" />
     <Compile Include="Source\Options\OptionsWidgets.cs" />
+    <Compile Include="Source\Options\NewUI\NewUISkin.cs" />
+    <Compile Include="Source\Options\NewUI\NewUIWidgets.cs" />
+    <Compile Include="Source\Options\NewUI\NewUIOptions.cs" />
+    <Compile Include="Source\Options\NewUI\SettingsWindow.cs" />
     <Compile Include="Source\Patches\InputPatches.cs" />
     <Compile Include="Source\Patches\PlayStatePatches.cs" />
     <Compile Include="Source\Patches\TimingCalcPatches.cs" />

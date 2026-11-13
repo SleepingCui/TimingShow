@@ -35,6 +35,7 @@ namespace TimingShow
         public static string ModPath;
         public static Harmony HarmonyInstance;
         public static bool IsEnabled;
+        public static bool IsMelon;
         public static Settings Settings;
 
         public static double LastTiming

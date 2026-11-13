@@ -42,6 +42,7 @@ namespace TimingShow.Options
 
         private const float LogListHeight = 180f;
         private static float _logRowHeight;
+        private static bool _newUI;
 
         private static int LogListDrawBudget => Mathf.Clamp(ModContext.Settings.LogListDrawBudget, 4, 400);
         
@@ -113,19 +114,9 @@ namespace TimingShow.Options
 
         public static void Draw()
         {
-            EnsureStyles();
-            ProcessDeleteResults();
-            ApplyLogScanResults();
-
-            int cleanVersion = LogRetention.CompletedVersion;
-            if (cleanVersion != _autoCleanSeenVersion)
-            {
-                _autoCleanSeenVersion = cleanVersion;
-                _logListDirty = true;
-            }
-            ApplyLogGraphLoadResult();
-            RemoveActiveLogEntries();
-            UpdatePendingHintSnapshot();
+            _newUI = false;
+            _logRowHeight = 0f;
+            Prepare();
 
             string foldoutArrow = _showLogList ? "▲" : "▼";
             GUILayout.Space(6);
@@ -193,6 +184,120 @@ namespace TimingShow.Options
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
+        }
+
+        public static void DrawNewUI()
+        {
+            _newUI = true;
+            Prepare();
+
+            string foldoutArrow = _showLogList ? "▲" : "▼";
+            Rect foldoutRow = NewUIWidgets.Row(28f);
+            if (NewUIWidgets.ButtonAt(new Rect(foldoutRow.x, foldoutRow.y, 150f, foldoutRow.height), i18n.T("Label_LogList") + " " + foldoutArrow, _showLogList))
+                _showLogList = !_showLogList;
+
+            if (!_showLogList) return;
+
+            string logDir;
+            try { logDir = GetLogDirectory(); }
+            catch { logDir = string.Empty; }
+
+            if (_logListDirty || _logListDirectory != logDir)
+                RequestLogScan(logDir);
+
+            long totalBytes = 0;
+            for (int i = 0; i < _visibleEntries.Count; i++) totalBytes += _visibleEntries[i].Length;
+
+            Rect toolbar = NewUIWidgets.Row(26f);
+            if (NewUIWidgets.ButtonAt(new Rect(toolbar.x, toolbar.y, 70f, toolbar.height), i18n.T("Btn_RefreshLogs")))
+            {
+                _logListDirty = true;
+                RequestLogScan(logDir);
+            }
+
+            if (NewUIWidgets.ButtonAt(new Rect(toolbar.x + 74f, toolbar.y, 120f, toolbar.height), GetSortButtonText()))
+            {
+                ModContext.Settings.LogSort = (ModContext.Settings.LogSort + 1) % 3;
+                _logEntries.Sort(CompareLogEntries);
+                RebuildVisibleEntries();
+            }
+
+            string summary = string.Format(i18n.T("LogSummary"), _visibleEntries.Count, FormatFileSize(totalBytes));
+            GUI.Label(new Rect(toolbar.x + 198f, toolbar.y, Mathf.Max(10f, toolbar.width - 198f), toolbar.height), summary, NewUISkin.ValueStyle);
+
+            Rect searchRow = NewUIWidgets.Row(26f);
+            GUI.Label(new Rect(searchRow.x, searchRow.y, 84f, searchRow.height), i18n.T("Label_SearchLogs"), NewUISkin.LabelStyle);
+            float searchWidth = Mathf.Clamp(searchRow.width - 160f, 80f, 240f);
+            string newQuery = NewUIWidgets.TextField(new Rect(searchRow.x + 84f, searchRow.y + 3f, searchWidth, searchRow.height - 6f), _searchQuery ?? string.Empty);
+            if (!string.Equals(newQuery, _searchQuery, StringComparison.Ordinal))
+            {
+                _searchQuery = newQuery;
+                RebuildVisibleEntries();
+                _logListScroll.y = 0f;
+            }
+
+            if (!string.IsNullOrEmpty(_searchQuery) && NewUIWidgets.ButtonAt(new Rect(searchRow.x + 88f + searchWidth, searchRow.y, 26f, searchRow.height), "×"))
+            {
+                _searchQuery = string.Empty;
+                RebuildVisibleEntries();
+                _logListScroll.y = 0f;
+            }
+
+            bool autoClean = ModContext.Settings.LogAutoClean;
+            bool newAutoClean = NewUIWidgets.Toggle("Toggle_LogAutoClean", autoClean);
+            if (newAutoClean != autoClean)
+            {
+                ModContext.Settings.LogAutoClean = newAutoClean;
+                if (newAutoClean) LogRetention.RequestCleanup();
+            }
+
+            if (_keepFirstText == null) _keepFirstText = KeepFirstCount().ToString();
+
+            Rect keepRow = NewUIWidgets.Row(26f);
+            GUI.Label(new Rect(keepRow.x, keepRow.y, 154f, keepRow.height), i18n.T("Label_KeepLogsPrefix"), NewUISkin.LabelStyle);
+            string newKeepText = NewUIWidgets.TextField(new Rect(keepRow.x + 154f, keepRow.y + 3f, 56f, keepRow.height - 6f), _keepFirstText);
+            if (!string.Equals(newKeepText, _keepFirstText, StringComparison.Ordinal))
+            {
+                _keepFirstText = newKeepText;
+                int parsed;
+                if (int.TryParse(newKeepText, out parsed) && parsed >= 0 && parsed <= MaxKeepLogCount)
+                    ModContext.Settings.LogKeepCount = parsed;
+            }
+            GUI.Label(new Rect(keepRow.x + 214f, keepRow.y, Mathf.Max(10f, keepRow.width - 214f), keepRow.height), i18n.T("Label_KeepLogsSuffix"), NewUISkin.MutedLabelStyle);
+
+            DrawLogGraphPendingOverlay();
+
+            Rect listRect = GUILayoutUtility.GetRect(0f, LogListHeight, GUILayout.ExpandWidth(true));
+            GUILayout.Space(NewUIWidgets.RowGap);
+            NewUISkin.DrawRounded(listRect, NewUISkin.ElementRadius, NewUISkin.Field);
+
+            _logRowHeight = NewUIWidgets.RowHeight + 2f;
+            Rect viewport = new Rect(listRect.x + 4f, listRect.y + 4f, listRect.width - 8f, listRect.height - 8f);
+
+            if (_visibleEntries.Count == 0)
+            {
+                GUI.Label(new Rect(viewport.x + 4f, viewport.y + 2f, viewport.width - 8f, 26f), i18n.T(_logEntries.Count > 0 ? "Label_NoMatchingLogs" : "Label_NoLogs"), NewUISkin.MutedLabelStyle);
+                return;
+            }
+
+            DrawVirtualLogList(viewport, ref _logListScroll);
+        }
+
+        private static void Prepare()
+        {
+            EnsureStyles();
+            ProcessDeleteResults();
+            ApplyLogScanResults();
+
+            int cleanVersion = LogRetention.CompletedVersion;
+            if (cleanVersion != _autoCleanSeenVersion)
+            {
+                _autoCleanSeenVersion = cleanVersion;
+                _logListDirty = true;
+            }
+            ApplyLogGraphLoadResult();
+            RemoveActiveLogEntries();
+            UpdatePendingHintSnapshot();
         }
 
         private static void DrawAutoCleanControls()
@@ -292,6 +397,12 @@ namespace TimingShow.Options
 
         private static void DrawLogRow(LogListEntry entry, Rect row)
         {
+            if (_newUI)
+            {
+                DrawLogRowNewUI(entry, row);
+                return;
+            }
+
             GUI.Box(row, GUIContent.none);
 
             float x = row.x + 6f;
@@ -352,6 +463,65 @@ namespace TimingShow.Options
             if (GUI.Button(new Rect(x, buttonY, deleteWidth, buttonHeight), deleteLabel, deleteStyle))
                 HandleDeleteClick(entry.FullPath);
             GUI.enabled = previousEnabled;
+        }
+
+        private static void DrawLogRowNewUI(LogListEntry entry, Rect row)
+        {
+            Event current = Event.current;
+            if (current != null && row.Contains(current.mousePosition))
+                NewUISkin.DrawRounded(new Rect(row.x + 1f, row.y + 1f, row.width - 2f, row.height - 2f), 5f, NewUISkin.Fade(NewUISkin.Accent, 0.18f));
+
+            float x = row.x + 8f;
+            float innerWidth = Mathf.Max(1f, row.xMax - 6f - x);
+            float labelHeight = Mathf.Max(1f, row.height - 4f);
+            float labelY = row.y + 2f;
+            float buttonY = row.y + 3f;
+            float buttonHeight = Mathf.Max(1f, row.height - 6f);
+
+            const float sizeWidth = 74f;
+            const float timeWidth = 130f;
+            const float buttonWidth = 62f;
+            const float buttonGap = 4f;
+
+            bool analyzerEnabled = ModContext.Settings.AnalyzerBridgeEnabled;
+            string analyzeLabel = i18n.T("Btn_AnalyzeLog");
+            string graphLabel = i18n.T("Btn_ViewLogGraph");
+            string openFileLabel = i18n.T("Btn_OpenLogFile");
+
+            int buttonCount = analyzerEnabled ? 4 : 3;
+            float buttonsWidth = buttonWidth * buttonCount + buttonGap * (buttonCount - 1);
+            float nameWidth = Mathf.Max(90f, innerWidth - sizeWidth - timeWidth - buttonsWidth - 8f);
+
+            GUI.Label(new Rect(x, labelY, nameWidth, labelHeight), TruncateToWidth(entry.FileName, NewUISkin.LabelStyle, nameWidth), NewUISkin.LabelStyle);
+            x += nameWidth;
+
+            GUI.Label(new Rect(x, labelY, sizeWidth, labelHeight), FormatFileSize(entry.Length), NewUISkin.MutedLabelStyle);
+            x += sizeWidth;
+
+            GUI.Label(new Rect(x, labelY, timeWidth, labelHeight), FormatTimestamp(entry.Timestamp), NewUISkin.MutedLabelStyle);
+            x += timeWidth;
+
+            if (analyzerEnabled)
+            {
+                if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), analyzeLabel))
+                    OpenLogInAnalyzer(entry.FullPath);
+                x += buttonWidth + buttonGap;
+            }
+
+            if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), graphLabel))
+                OpenLogGraphWindow(entry.FullPath);
+            x += buttonWidth + buttonGap;
+
+            if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), openFileLabel))
+                OpenLogFile(entry.FullPath);
+            x += buttonWidth + buttonGap;
+
+            bool deletePending;
+            lock (DeleteSync) deletePending = _deletePending.Contains(entry.FullPath);
+            bool deleteArmed = IsDeleteArmed(entry.FullPath);
+            string deleteLabel = deletePending ? i18n.T("Btn_DeletingLog") : i18n.T("Btn_DeleteLog");
+            if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), deleteLabel, deleteArmed, !deletePending, new Color(0.85f, 0.22f, 0.22f)))
+                HandleDeleteClick(entry.FullPath);
         }
 
         private static void EnsureStyles()

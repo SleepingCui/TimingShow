@@ -30,6 +30,21 @@ namespace TimingShow.Update
             get { return _service == null ? string.Empty : _service.Suffix; }
         }
 
+        public static string StatusText
+        {
+            get { return _service == null ? string.Empty : _service.StatusText; }
+        }
+
+        public static string UnavailableText
+        {
+            get { return _service == null ? string.Empty : _service.UnavailableText; }
+        }
+
+        public static bool UnavailableIsError
+        {
+            get { return _service != null && _service.UnavailableIsError; }
+        }
+
         public static void Initialize(string modPath, string updateRoot, string repositoryUrl, string version, UpdateTarget target, bool autoApplyAvailable, IModLogger logger)
         {
             _service = LoadService(modPath, logger);
