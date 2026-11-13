@@ -57,6 +57,7 @@ namespace TimingShow.Options
                 _capturingPanelKey = false;
             }
 
+            OptionsWidgets.BeginFrame();
             ModContext.LastConfigGuiFrame = Time.frameCount;
             ModContext.UIDirty = true;
 
@@ -328,13 +329,15 @@ namespace TimingShow.Options
                 SliderFloat("Label_Scale", ref ModContext.Settings.XACCGraph_Scale, 0.2f, 3.0f);
                 IntField("Label_MaxPoints", ref _maxPointsText, ref ModContext.Settings.XACCGraph_MaxPoints, 20, 5000, 250);
 
-                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.XACCGraph_BgColor);
-                ColorPicker(i18n.T("Label_LineColor"), ref ModContext.Settings.XACCGraph_LineColor);
-                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor);
-                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor);
-                ColorPicker(i18n.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor);
+                BeginColorPickerGrid();
+                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.XACCGraph_BgColor, Settings.XACCGraph_DefaultBgColor);
+                ColorPicker(i18n.T("Label_LineColor"), ref ModContext.Settings.XACCGraph_LineColor, Settings.XACCGraph_DefaultLineColor);
+                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.XACCGraph_GridColor, Settings.XACCGraph_DefaultGridColor);
+                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.XACCGraph_AxisTextColor, Settings.XACCGraph_DefaultAxisTextColor);
+                ColorPicker(i18n.T("Label_InfoTextColor"), ref ModContext.Settings.XACCGraph_ValueTextColor, Settings.XACCGraph_DefaultValueTextColor);
                 if (ModContext.Settings.XACCGraph_ShowBorder)
-                    ColorPicker(i18n.T("Label_BorderColor"), ref ModContext.Settings.XACCGraph_BorderColor);
+                    ColorPicker(i18n.T("Label_BorderColor"), ref ModContext.Settings.XACCGraph_BorderColor, Settings.XACCGraph_DefaultBorderColor);
+                EndColorPickerGrid();
 
                 DrawHUDFontSettings(ref ModContext.Settings.XACCGraph_UseCustomFont, ref ModContext.Settings.XACCGraph_FontPath);
             }
@@ -370,25 +373,31 @@ namespace TimingShow.Options
                     if (!ModContext.Settings.TimingScatter_BandAutoWindow)
                         SliderFloat("Label_BandThresholdBpm", ref ModContext.Settings.TimingScatter_BandThresholdBpm, 100f, 600f);
 
-                    ColorPicker(i18n.T("Label_BandPerfectColor"), ref ModContext.Settings.TimingScatter_BandPerfectColor);
-                    ColorPicker(i18n.T("Label_BandElPerfectColor"), ref ModContext.Settings.TimingScatter_BandElPerfectColor);
-                    ColorPicker(i18n.T("Label_BandEarlyLateColor"), ref ModContext.Settings.TimingScatter_BandEarlyLateColor);
+                    BeginColorPickerGrid();
+                    ColorPicker(i18n.T("Label_BandPerfectColor"), ref ModContext.Settings.TimingScatter_BandPerfectColor, Settings.TimingScatter_DefaultBandPerfectColor);
+                    ColorPicker(i18n.T("Label_BandElPerfectColor"), ref ModContext.Settings.TimingScatter_BandElPerfectColor, Settings.TimingScatter_DefaultBandElPerfectColor);
+                    ColorPicker(i18n.T("Label_BandEarlyLateColor"), ref ModContext.Settings.TimingScatter_BandEarlyLateColor, Settings.TimingScatter_DefaultBandEarlyLateColor);
+                    EndColorPickerGrid();
                 }
 
                 Toggle(ref ModContext.Settings.TimingScatter_ShowXpBand, "Toggle_ShowXpBand");
                 if (ModContext.Settings.TimingScatter_ShowXpBand)
                 {
-                    ColorPicker(i18n.T("Label_BandXpColor"), ref ModContext.Settings.TimingScatter_BandXpColor);
+                    BeginColorPickerGrid();
+                    ColorPicker(i18n.T("Label_BandXpColor"), ref ModContext.Settings.TimingScatter_BandXpColor, Settings.TimingScatter_DefaultBandXpColor);
+                    EndColorPickerGrid();
                 }
 
-                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.TimingScatter_BgColor);
-                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.TimingScatter_GridColor);
-                ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.TimingScatter_PointColor);
-                ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.TimingScatter_ZeroLineColor);
-                ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.TimingScatter_AvgLineColor);
-                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.TimingScatter_AxisTextColor);
+                BeginColorPickerGrid();
+                ColorPicker(i18n.T("Label_BgColor"), ref ModContext.Settings.TimingScatter_BgColor, Settings.TimingScatter_DefaultBgColor);
+                ColorPicker(i18n.T("Label_GridColor"), ref ModContext.Settings.TimingScatter_GridColor, Settings.TimingScatter_DefaultGridColor);
+                ColorPicker(i18n.T("Label_PointColor"), ref ModContext.Settings.TimingScatter_PointColor, Settings.TimingScatter_DefaultPointColor);
+                ColorPicker(i18n.T("Label_ZeroLineColor"), ref ModContext.Settings.TimingScatter_ZeroLineColor, Settings.TimingScatter_DefaultZeroLineColor);
+                ColorPicker(i18n.T("Label_AvgLineColor"), ref ModContext.Settings.TimingScatter_AvgLineColor, Settings.TimingScatter_DefaultAvgLineColor);
+                ColorPicker(i18n.T("Label_AxisTextColor"), ref ModContext.Settings.TimingScatter_AxisTextColor, Settings.TimingScatter_DefaultAxisTextColor);
                 if (ModContext.Settings.TimingScatter_ShowBorder)
-                    ColorPicker(i18n.T("Label_BorderColor"), ref ModContext.Settings.TimingScatter_BorderColor);
+                    ColorPicker(i18n.T("Label_BorderColor"), ref ModContext.Settings.TimingScatter_BorderColor, Settings.TimingScatter_DefaultBorderColor);
+                EndColorPickerGrid();
 
                 DrawHUDFontSettings(ref ModContext.Settings.TimingScatter_UseCustomFont, ref ModContext.Settings.TimingScatter_FontPath);
             }

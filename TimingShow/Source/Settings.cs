@@ -134,12 +134,19 @@ namespace TimingShow
         public float XACCGraph_Scale = 1.0f;
         public int XACCGraph_MaxPoints = 250;
 
-        public Color XACCGraph_BgColor = new Color(0f, 0f, 0f, 0.6f);
-        public Color XACCGraph_LineColor = new Color(0.2f, 0.9f, 0.3f, 1f);
-        public Color XACCGraph_BorderColor = new Color(1f, 1f, 1f, 0.35f);
-        public Color XACCGraph_GridColor = new Color(1f, 1f, 1f, 1f);
-        public Color XACCGraph_AxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-        public Color XACCGraph_ValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
+        public static readonly Color XACCGraph_DefaultBgColor = new Color(0f, 0f, 0f, 0.6f);
+        public static readonly Color XACCGraph_DefaultLineColor = new Color(0.2f, 0.9f, 0.3f, 1f);
+        public static readonly Color XACCGraph_DefaultBorderColor = new Color(1f, 1f, 1f, 0.35f);
+        public static readonly Color XACCGraph_DefaultGridColor = new Color(1f, 1f, 1f, 1f);
+        public static readonly Color XACCGraph_DefaultAxisTextColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        public static readonly Color XACCGraph_DefaultValueTextColor = new Color(1f, 0.9f, 0.3f, 1f);
+
+        public Color XACCGraph_BgColor = XACCGraph_DefaultBgColor;
+        public Color XACCGraph_LineColor = XACCGraph_DefaultLineColor;
+        public Color XACCGraph_BorderColor = XACCGraph_DefaultBorderColor;
+        public Color XACCGraph_GridColor = XACCGraph_DefaultGridColor;
+        public Color XACCGraph_AxisTextColor = XACCGraph_DefaultAxisTextColor;
+        public Color XACCGraph_ValueTextColor = XACCGraph_DefaultValueTextColor;
         public bool XACCGraph_UseCustomFont;
         public string XACCGraph_FontPath = "";
 
@@ -166,17 +173,29 @@ namespace TimingShow
         public bool TimingScatter_BandAutoWindow = true;
         public float TimingScatter_BandThresholdBpm = 310f;
 
-        public Color TimingScatter_BgColor = new Color(0f, 0f, 0f, 0.60f);
-        public Color TimingScatter_GridColor = new Color(1f, 1f, 1f, 0.35f);
-        public Color TimingScatter_ZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
-        public Color TimingScatter_AvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
-        public Color TimingScatter_PointColor = new Color(0.30f, 0.76f, 1f, 1f);
-        public Color TimingScatter_AxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
-        public Color TimingScatter_BorderColor = new Color(1f, 1f, 1f, 0.35f);
-        public Color TimingScatter_BandPerfectColor = new Color(0.25f, 0.90f, 0.35f, 0.14f);
-        public Color TimingScatter_BandElPerfectColor = new Color(1f, 0.85f, 0.20f, 0.12f);
-        public Color TimingScatter_BandEarlyLateColor = new Color(0.95f, 0.40f, 0.30f, 0.10f);
-        public Color TimingScatter_BandXpColor = new Color(77f / 255f, 204f / 255f, 1f, 0.14f);
+        public static readonly Color TimingScatter_DefaultBgColor = new Color(0f, 0f, 0f, 0.60f);
+        public static readonly Color TimingScatter_DefaultGridColor = new Color(1f, 1f, 1f, 0.35f);
+        public static readonly Color TimingScatter_DefaultZeroLineColor = new Color(1f, 1f, 1f, 0.65f);
+        public static readonly Color TimingScatter_DefaultAvgLineColor = new Color(1f, 0.85f, 0.20f, 0.95f);
+        public static readonly Color TimingScatter_DefaultPointColor = new Color(0.30f, 0.76f, 1f, 1f);
+        public static readonly Color TimingScatter_DefaultAxisTextColor = new Color(0.80f, 0.80f, 0.80f, 1f);
+        public static readonly Color TimingScatter_DefaultBorderColor = new Color(1f, 1f, 1f, 0.35f);
+        public static readonly Color TimingScatter_DefaultBandPerfectColor = new Color(0.25f, 0.90f, 0.35f, 0.14f);
+        public static readonly Color TimingScatter_DefaultBandElPerfectColor = new Color(1f, 0.85f, 0.20f, 0.12f);
+        public static readonly Color TimingScatter_DefaultBandEarlyLateColor = new Color(0.95f, 0.40f, 0.30f, 0.10f);
+        public static readonly Color TimingScatter_DefaultBandXpColor = new Color(77f / 255f, 204f / 255f, 1f, 0.14f);
+
+        public Color TimingScatter_BgColor = TimingScatter_DefaultBgColor;
+        public Color TimingScatter_GridColor = TimingScatter_DefaultGridColor;
+        public Color TimingScatter_ZeroLineColor = TimingScatter_DefaultZeroLineColor;
+        public Color TimingScatter_AvgLineColor = TimingScatter_DefaultAvgLineColor;
+        public Color TimingScatter_PointColor = TimingScatter_DefaultPointColor;
+        public Color TimingScatter_AxisTextColor = TimingScatter_DefaultAxisTextColor;
+        public Color TimingScatter_BorderColor = TimingScatter_DefaultBorderColor;
+        public Color TimingScatter_BandPerfectColor = TimingScatter_DefaultBandPerfectColor;
+        public Color TimingScatter_BandElPerfectColor = TimingScatter_DefaultBandElPerfectColor;
+        public Color TimingScatter_BandEarlyLateColor = TimingScatter_DefaultBandEarlyLateColor;
+        public Color TimingScatter_BandXpColor = TimingScatter_DefaultBandXpColor;
         public bool TimingScatter_UseCustomFont;
         public string TimingScatter_FontPath = "";
         

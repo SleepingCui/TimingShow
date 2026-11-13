@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace TimingShow.Options
@@ -274,20 +276,151 @@ namespace TimingShow.Options
             GUILayout.EndHorizontal();
         }
 
-        public static void ColorPicker(string label, ref Color color)
+        private const float ColorColumnGap = 18f;
+        private const float MaxColorColumnWidth = 330f;
+        private const float ColorTitleMinWidth = 150f;
+        private const int ColorColumnsPerRow = 2;
+
+        private static int _colorColumn;
+
+        private static readonly Dictionary<int, string> HexFieldTexts = new Dictionary<int, string>();
+        private static int _colorPickerIndex;
+        private static int _focusedHexPicker = -1;
+        private static GUIStyle _valueLabelStyle;
+
+        private static GUIStyle ValueLabelStyle
+        {
+            get
+            {
+                if (_valueLabelStyle == null)
+                {
+                    _valueLabelStyle = new GUIStyle(GUI.skin.label);
+                    _valueLabelStyle.alignment = TextAnchor.MiddleRight;
+                }
+                return _valueLabelStyle;
+            }
+        }
+
+        public static void BeginFrame()
+        {
+            _colorPickerIndex = 0;
+        }
+
+        public static void BeginColorPickerGrid()
+        {
+            _colorColumn = 0;
+        }
+
+        public static void EndColorPickerGrid()
+        {
+            if (_colorColumn != 0) GUILayout.EndHorizontal();
+            _colorColumn = 0;
+        }
+
+        public static void ColorPicker(string label, ref Color color, Color defaultColor)
+        {
+            if (_colorColumn == 0) GUILayout.BeginHorizontal();
+            else GUILayout.Space(ColorColumnGap);
+
+            GUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.MaxWidth(MaxColorColumnWidth));
+            int index = _colorPickerIndex++;
+
+            GUILayout.Space(6);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(ContentIndent);
+            GUILayout.Label(label, GUILayout.MinWidth(ColorTitleMinWidth));
+            GUILayout.EndHorizontal();
+            ChannelRow("R:", ref color.r);
+            ChannelRow("G:", ref color.g);
+            ChannelRow("B:", ref color.b);
+            ChannelRow("A:", ref color.a);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(ContentIndent);
+            GUILayout.Label("Hex:", GUILayout.Width(34));
+            color = DrawHexField(index, color);
+            if (GUILayout.Button(i18n.T("Btn_ResetColor"), GUILayout.Width(60)))
+            {
+                color = defaultColor;
+                HexFieldTexts[index] = ColorToHex(defaultColor);
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
+
+            if (++_colorColumn >= ColorColumnsPerRow)
+            {
+                GUILayout.EndHorizontal();
+                _colorColumn = 0;
+            }
+        }
+
+        private static void ChannelRow(string channelLabel, ref float value)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Space(ContentIndent);
-            GUILayout.Label(label, GUILayout.Width(100));
-            GUILayout.Label("R", GUILayout.Width(15));
-            color.r = GUILayout.HorizontalSlider(color.r, 0f, 1f, GUILayout.Width(50));
-            GUILayout.Label("G", GUILayout.Width(15));
-            color.g = GUILayout.HorizontalSlider(color.g, 0f, 1f, GUILayout.Width(50));
-            GUILayout.Label("B", GUILayout.Width(15));
-            color.b = GUILayout.HorizontalSlider(color.b, 0f, 1f, GUILayout.Width(50));
-            GUILayout.Label("A", GUILayout.Width(15));
-            color.a = GUILayout.HorizontalSlider(color.a, 0f, 1f, GUILayout.Width(50));
+            GUILayout.Label(channelLabel, GUILayout.Width(34));
+            value = GUILayout.HorizontalSlider(Mathf.Clamp01(value), 0f, 1f);
+            GUILayout.Label(Mathf.RoundToInt(value * 255f).ToString(), ValueLabelStyle, GUILayout.Width(40));
             GUILayout.EndHorizontal();
+        }
+
+        private static Color DrawHexField(int index, Color current)
+        {
+            string controlName = "TimingShowHexField" + index;
+            GUI.SetNextControlName(controlName);
+            bool editing = GUI.GetNameOfFocusedControl() == controlName;
+
+            if (editing && _focusedHexPicker != index)
+            {
+                HexFieldTexts[index] = ColorToHex(current);
+                _focusedHexPicker = index;
+            }
+            else if (!editing && _focusedHexPicker == index)
+            {
+                _focusedHexPicker = -1;
+            }
+
+            string shown = editing && HexFieldTexts.TryGetValue(index, out string buffered) ? buffered : ColorToHex(current);
+            string edited = GUILayout.TextField(shown, GUILayout.Width(96));
+            if (!editing || edited == shown) return current;
+
+            HexFieldTexts[index] = edited;
+            return TryParseHex(edited, current, out Color parsed) ? parsed : current;
+        }
+
+        private static string ColorToHex(Color color)
+        {
+            return ChannelToHex(color.r) + ChannelToHex(color.g) + ChannelToHex(color.b) + ChannelToHex(color.a);
+        }
+
+        private static string ChannelToHex(float value)
+        {
+            return Mathf.RoundToInt(Mathf.Clamp01(value) * 255f).ToString("X2");
+        }
+
+        private static bool TryParseHex(string text, Color current, out Color color)
+        {
+            color = current;
+            if (string.IsNullOrEmpty(text)) return false;
+
+            string digits = text.Trim().TrimStart('#');
+            if (digits.Length != 6 && digits.Length != 8) return false;
+
+            if (!TryParseHexByte(digits, 0, out byte r) || !TryParseHexByte(digits, 2, out byte g) || !TryParseHexByte(digits, 4, out byte b))
+                return false;
+
+            byte a = 255;
+            if (digits.Length == 8 && !TryParseHexByte(digits, 6, out a)) return false;
+
+            float alpha = digits.Length == 8 ? a / 255f : current.a;
+            color = new Color(r / 255f, g / 255f, b / 255f, alpha);
+            return true;
+        }
+
+        private static bool TryParseHexByte(string digits, int start, out byte value)
+        {
+            return byte.TryParse(digits.Substring(start, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value);
         }
     }
 }
