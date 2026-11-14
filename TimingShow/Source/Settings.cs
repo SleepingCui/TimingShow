@@ -274,7 +274,6 @@ namespace TimingShow
         public bool UseHookMode;
         public bool DisableInputHooks;
         public bool UseJsonWriter;
-        public bool AutoReloadInEditor;
 
         public bool AnalyzerBridgeEnabled;
         public int AnalyzerBridgePort;

@@ -134,14 +134,7 @@ namespace TimingShow.Options
 
         private static void DrawPlanetSettings()
         {
-            bool oldShowOnPlanet = ModContext.Settings.ShowOnPlanet;
             FoldoutToggle(i18n.T("Toggle_Planet"), ref ModContext.Settings.ShowOnPlanet, ref _foldoutPlanetSettings);
-            
-            if (oldShowOnPlanet != ModContext.Settings.ShowOnPlanet && ModContext.Settings.AutoReloadInEditor)
-            {
-                if (!ADOBase.isLevelEditor) return;
-                ADOBase.RestartScene();
-            }
 
             if (ModContext.Settings.ShowOnPlanet && _foldoutPlanetSettings)
             {
@@ -666,16 +659,6 @@ namespace TimingShow.Options
                 if (disableInputHooks) InputPatches.Uninstall(ModContext.HarmonyInstance);
                 else InputPatches.Install(ModContext.HarmonyInstance);
                 }
-
-                GUILayout.Space(5);
-
-                //autoreload
-                ModContext.Settings.AutoReloadInEditor = ToggleWithDescription(
-                ModContext.Settings.AutoReloadInEditor,
-                "Toggle_AutoReloadInEditor",
-                "Desc_AutoReloadInEditor",
-                indent: 0f
-                );
 
                 GUILayout.Space(5);
 

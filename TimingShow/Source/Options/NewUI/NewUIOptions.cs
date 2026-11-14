@@ -25,7 +25,6 @@ namespace TimingShow.Options
         private const float TabGap = 6f;
 
         private static int _page;
-        private static bool _restartScene;
         private static string _maxPointsText;
         private static string _scatterSampleCountText;
         private static string _scatterMaxPointsText;
@@ -70,8 +69,6 @@ namespace TimingShow.Options
 
         private static void DrawPage()
         {
-            _restartScene = false;
-
             GUILayout.BeginVertical(NewUISkin.PageStyle);
             {
                 switch (_page)
@@ -97,8 +94,6 @@ namespace TimingShow.Options
                 }
             }
             GUILayout.EndVertical();
-
-            if (_restartScene && ADOBase.isLevelEditor) ADOBase.RestartScene();
         }
 
         private static void BeginCard()
@@ -248,9 +243,7 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
-                bool oldShowOnPlanet = s.ShowOnPlanet;
                 bool planetOpen = BeginFeatureCard("Toggle_Planet", "card_display_planet", ref s.ShowOnPlanet);
-                if (oldShowOnPlanet != s.ShowOnPlanet && s.AutoReloadInEditor) _restartScene = true;
 
                 if (planetOpen && s.ShowOnPlanet)
                 {
@@ -596,8 +589,6 @@ namespace TimingShow.Options
                         if (disableInputHooks) InputPatches.Uninstall(ModContext.HarmonyInstance);
                         else InputPatches.Install(ModContext.HarmonyInstance);
                     }
-
-                    s.AutoReloadInEditor = NewUIWidgets.Toggle("Toggle_AutoReloadInEditor", s.AutoReloadInEditor, "Desc_AutoReloadInEditor");
 
                     bool previousAnalyzerEnabled = s.AnalyzerBridgeEnabled;
                     s.AnalyzerBridgeEnabled = NewUIWidgets.Toggle("Toggle_AnalyzerBridge", s.AnalyzerBridgeEnabled, "Desc_AnalyzerBridge");
