@@ -237,7 +237,7 @@ namespace TimingShow.LevelEditor
             if (_scalingPanel && !_held)
             {
                 _scalingPanel = false;
-                ModContext.SaveSettings();
+                ModEntry.SaveSettings();
             }
         }
 

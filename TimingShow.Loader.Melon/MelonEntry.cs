@@ -13,7 +13,7 @@ namespace TimingShow.Melon
         {
             string modPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var logger = new MelonLoggerAdapter();
-            ModContext.Initialize(modPath, logger);
+            ModEntry.Initialize(modPath, logger);
             ModContext.IsMelon = true;
             ModContext.DataPath = Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow");
             bool firstRun = !File.Exists(Path.Combine(modPath, "Settings.json"));
@@ -21,11 +21,11 @@ namespace TimingShow.Melon
 
             i18n.LoadLanguages(modPath);
             MelonHotkeys.Initialize(ModContext.Settings);
-            ModContext.InitializeJudgeCompat();
+            ModEntry.InitializeJudgeCompat();
             XPerfectBridge.TryInit();
             var harmony = new HarmonyLib.Harmony("TimingShow.Loader.Melon");
             ModContext.HarmonyInstance = harmony;
-            ModContext.Enable();
+            ModEntry.Enable();
             
             ScheduleStartupHint(firstRun);
             InitializeUpdater(modPath, Info.Version, logger);
@@ -53,8 +53,8 @@ namespace TimingShow.Melon
 
         public override void OnApplicationQuit()
         {
-            ModContext.SaveSettings();
-            ModContext.Disable();
+            ModEntry.SaveSettings();
+            ModEntry.Disable();
         }
     }
 }

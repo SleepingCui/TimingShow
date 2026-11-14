@@ -14,11 +14,11 @@ namespace TimingShow.UMM
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
             var logger = new UmmLogger(modEntry.Logger);
-            ModContext.Initialize(modEntry.Path, logger);
+            ModEntry.Initialize(modEntry.Path, logger);
             ModContext.Settings = Settings.Load(modEntry.Path);
 
             i18n.LoadLanguages(ModContext.ModPath);
-            ModContext.InitializeJudgeCompat();
+            ModEntry.InitializeJudgeCompat();
             XPerfectBridge.TryInit();
 
             var harmony = new Harmony(modEntry.Info.Id);
@@ -26,20 +26,20 @@ namespace TimingShow.UMM
 
             _displayName = modEntry.Info.DisplayName;
             UpdateBridge.Changed += () => ApplyDisplayName(modEntry);
-            UpdateBridge.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version.ToString(), UpdateTarget.Umm, true, logger);
+            UpdateBridge.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version, UpdateTarget.Umm, true, logger);
 
             modEntry.OnToggle = (entry, value) =>
             {
-                if (value) ModContext.Enable();
-                else ModContext.Disable();
+                if (value) ModEntry.Enable();
+                else ModEntry.Disable();
                 return true;
             };
             modEntry.OnGUI = (entry) =>
             {
                 ApplyDisplayName(entry);
-                ModContext.OnGUI();
+                ModEntry.OnGUI();
             };
-            modEntry.OnSaveGUI = (entry) => ModContext.SaveSettings();
+            modEntry.OnSaveGUI = (entry) => ModEntry.SaveSettings();
 
             return true;
         }
@@ -50,7 +50,7 @@ namespace TimingShow.UMM
             {
                 string suffix = UpdateBridge.Suffix;
                 string name = string.IsNullOrEmpty(suffix) ? _displayName : _displayName + " " + suffix;
-                if (modEntry.Info.DisplayName != name) modEntry.Info.DisplayName = name;
+                modEntry.Info.DisplayName = name; 
             }
             catch (Exception e)
             {

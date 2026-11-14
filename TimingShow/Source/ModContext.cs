@@ -2,7 +2,6 @@ using HarmonyLib;
 using System.Collections.Generic;
 using UnityEngine;
 using TimingShow.HUD;
-using OptionsPage = TimingShow.Options.Options;
 
 namespace TimingShow
 {
@@ -112,84 +111,23 @@ namespace TimingShow
 
         public static bool IsLevelFinished = false;
         public static bool IsPlaying { get; set; } = false;
-        
+
         public static bool UIDirty = true;
         public static int XAccVersion;
-        
+
         public static readonly List<TimingScatterSample> TimingScatterSamples = new List<TimingScatterSample>(1024);
-        
+
         public static int TimingScatterVersion;
-        
+
         public static void ClearTimingScatterSamples()
         {
             TimingScatterSamples.Clear();
             Patches.TimingCalcPatches.InvalidatePendingScatterSample();
             TimingScatterVersion++;
         }
-        
+
         public static int LastConfigGuiFrame = -1;
         public static bool IsConfigOpen => LastConfigGuiFrame >= 0 && Time.frameCount - LastConfigGuiFrame <= 1;
-
-        public static void Initialize(string modPath, IModLogger logger)
-        {
-            ModPath = modPath;
-            DataPath = modPath;
-            Logger = logger;
-            Patches.PlayStatePatches.RegisterSceneHook();
-        }
-        
-        public static void InitializeJudgeCompat()
-        {
-            HitMarginCompat.Initialize();
-            Logger.Log($"Detected version: {HitMarginCompat.Version}");
-            if (HitMarginCompat.Version == HitMarginVersion.Unknown)
-                Logger.Error("Unrecognized HitMargin enum version");
-        }
-        
-        public static void Enable()
-        {
-            IsEnabled = true;
-            try
-            {
-                HarmonyInstance?.PatchAll();
-            }
-            catch (System.Exception e)
-            {
-                Logger.Error($"PatchAll failed: {e.GetType().Name}: {e.Message}");
-            }
-            if (Settings == null || !Settings.DisableInputHooks)
-                Patches.InputPatches.Install(HarmonyInstance);
-            SessionReport.SessionReportHotkey.EnsureHost();
-            LevelEditor.EditorHitMarkerController.EnsureHost();
-        }
-
-        public static void Disable()
-        {
-            IsEnabled = false;
-            Patches.InputPatches.Uninstall(HarmonyInstance);
-            HarmonyInstance?.UnpatchAll(HarmonyInstance.Id);
-            Players.ResetAll();
-            ClearTimingScatterSamples();
-            HUDMan.Destroy();
-            LevelEditor.EditorHitSnapshot.Clear();
-            SessionReport.SessionReportHotkey.DestroyHost();
-            SessionReport.LastSessionReport.Clear();
-        }
-
-        public static void OnGUI()
-        {
-            OptionsPage.OnGUI();
-        }
-
-        public static void SaveSettings()
-        {
-            if (Settings == null)
-            {
-                Logger.Error("SaveSettings: Settings is NULL!!!");
-                return;
-            }
-            Settings.Save(ModPath);
-        }
 
         public static string Format(double val, int precision)
         {

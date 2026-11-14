@@ -57,7 +57,7 @@ namespace TimingShow.Melon
         private void CloseSettings()
         {
             ModContext.Settings.WindowScale = _pendingScale;
-            ModContext.SaveSettings();
+            ModEntry.SaveSettings();
             _showSettings = false;
         }
 

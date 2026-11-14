@@ -99,8 +99,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IModLogger.cs" />
-    <Compile Include="ModContext.cs" />
+    <Compile Include="Main.cs" />
     <Compile Include="Source\Calc.cs" />
+    <Compile Include="Source\ModContext.cs" />
     <Compile Include="Source\Game\GameDifficulty.cs" />
     <Compile Include="Source\Game\HitWindowScale.cs" />
     <Compile Include="Source\Game\Coop.cs" />
