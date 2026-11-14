@@ -2,6 +2,8 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using TMPro;
 using UnityEngine;
 using TimingShow.HUD;
 using TimingShow.Logging;
@@ -36,13 +38,22 @@ namespace TimingShow.Patches
         {
             public static void Postfix(scrHitTextMesh __instance)
             {
-                if (!ModContext.IsEnabled || !ModContext.Settings.ShowOnPlanet || !ModContext.IsPlaying) return;
                 if (__instance.text == null) return;
+
+                if (!ModContext.IsEnabled || !ModContext.IsPlaying)
+                {
+                    RestoreText(__instance);
+                    return;
+                }
 
                 int rawMargin = (int)__instance.hitMargin;
                 HitMan judge = HitMarginCompat.ToJudgeKind(rawMargin);
 
-                if (!ShouldReplace(judge)) return;
+                if (!ModContext.Settings.ShowOnPlanet || !ShouldReplace(judge))
+                {
+                    RestoreText(__instance);
+                    return;
+                }
 
                 PlayerSession player = HitTextManagerShowPatch.CurrentHitMargin == rawMargin
                     ? Players.Current
@@ -50,18 +61,54 @@ namespace TimingShow.Patches
 
                 Color targetColor = JColors.GetColor(judge, player.IsXPerfect(judge), ModContext.Settings.Planet_EnableXPerfect);
 
-                string timingText = ModContext.Settings.Planet_ShowAngle
-                    ? ModContext.FormatAngle(player.LastAngle, ModContext.Settings.Perc2)
+                string timingText = ModContext.Settings.Planet_ShowAngle ? ModContext.FormatAngle(player.LastAngle, ModContext.Settings.Perc2)
                     : ModContext.Format(player.LastTiming, ModContext.Settings.Perc2);
 
                 int fontSize = ModContext.Settings.Planet_FontSize;
-                __instance.text.richText = true;
-                __instance.text.text = fontSize == 100 ? timingText : $"<size={fontSize}%>{timingText}</size>";
-                __instance.text.color = targetColor;
-                __instance.text.ForceMeshUpdate();
+                TextMeshPro label = __instance.text;
+                ReplacedText state = ReplacedTexts.GetOrCreateValue(__instance);
+                if (state.Replaced == null || label.text != state.Replaced)
+                {
+                    state.Text = label.text;
+                    state.RichText = label.richText;
+                }
+
+                label.richText = true;
+                label.text = fontSize == 100 ? timingText : $"<size={fontSize}%>{timingText}</size>";
+                label.color = targetColor;
+                label.ForceMeshUpdate();
+                state.Replaced = label.text;
 
                 if (judge == HitMan.XPerfect)
                     HideXPerfectBorder(__instance);
+            }
+
+            private sealed class ReplacedText
+            {
+                public string Text;
+                public string Replaced;
+                public bool RichText;
+            }
+            
+            private static readonly ConditionalWeakTable<scrHitTextMesh, ReplacedText> ReplacedTexts = new ConditionalWeakTable<scrHitTextMesh, ReplacedText>();
+
+            private static void RestoreText(scrHitTextMesh instance)
+            {
+                ReplacedText state;
+                if (!ReplacedTexts.TryGetValue(instance, out state) || state.Replaced == null) return;
+
+                TextMeshPro label = instance.text;
+                if (label == null) return;
+                if (label.text != state.Replaced)
+                {
+                    state.Replaced = null;
+                    return;
+                }
+
+                label.richText = state.RichText;
+                label.text = state.Text;
+                label.ForceMeshUpdate();
+                state.Replaced = null;
             }
 
             private static FieldInfo _xPerfectBorderField;

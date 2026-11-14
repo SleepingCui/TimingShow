@@ -72,7 +72,7 @@ namespace TimingShow
         public bool HUD_bold;
         public int HUD_align;
         public int PercHUD = 1;
-        public string HUD_Format = "Timing - {0}ms";
+        public string HUD_Format = "Timing - {0}";
         public bool HUD_UseJudgeColor;
         public bool HUD_ShowAngle;
         public bool HUD_Bump;
@@ -86,7 +86,7 @@ namespace TimingShow
         public bool AvgHUD_bold;
         public int AvgHUD_align;
         public int PercAvgHUD = 1;
-        public string AvgHUD_Format = "Avg - {0}ms";
+        public string AvgHUD_Format = "Avg - {0}";
         public bool AvgHUD_Bump;
         public bool AvgHUD_UseCustomFont;
         public string AvgHUD_FontPath = "";
@@ -110,7 +110,7 @@ namespace TimingShow
         public bool RatioHUD_bold;
         public int RatioHUD_align;
         public int PercRatioHUD = 1;
-        public string RatioHUD_Format = "Ratio - {0}:1";
+        public string RatioHUD_Format = "Ratio - {0}";
         public bool RatioHUD_UseCustomFont;
         public string RatioHUD_FontPath = "";
         public bool RatioHUD_Bump;
@@ -405,16 +405,6 @@ namespace TimingShow
                 migrated = true;
             }
 
-            if (SettingsVersion < 3)
-            {
-                HUD_Format = StripValueSuffix(HUD_Format);
-                AvgHUD_Format = StripValueSuffix(AvgHUD_Format);
-                URHUD_Format = StripValueSuffix(URHUD_Format);
-                RatioHUD_Format = StripValueSuffix(RatioHUD_Format);
-
-                migrated = true;
-            }
-            
             if (SettingsVersion < 5 &&
                 (Mathf.Approximately(EditorHits_MarkerSize, 4f) || Mathf.Approximately(EditorHits_MarkerSize, 7f)))
             {
@@ -499,6 +489,11 @@ namespace TimingShow
 
         public void Sanitize()
         {
+            HUD_Format = StripValueSuffix(HUD_Format);
+            AvgHUD_Format = StripValueSuffix(AvgHUD_Format);
+            URHUD_Format = StripValueSuffix(URHUD_Format);
+            RatioHUD_Format = StripValueSuffix(RatioHUD_Format);
+
             XACCGraph_X = Mathf.Clamp01(XACCGraph_X);
             XACCGraph_Y = Mathf.Clamp01(XACCGraph_Y);
             XACCGraph_Width = Mathf.Clamp(XACCGraph_Width, 80f, 1200f);

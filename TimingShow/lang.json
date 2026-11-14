@@ -1,7 +1,7 @@
 {
   "简体中文": {
     "Toggle_Title": "替换标题",
-    "Toggle_Planet": "替换判定显示 (需重进编辑器)",
+    "Toggle_Planet": "替换判定显示",
     "Toggle_Death": "在玩家死亡时显示",
     "Toggle_Win": "在结算界面显示",
     "Toggle_Coop_WinPageAllPlayers": "结算页每页显示全员统计",
@@ -393,7 +393,7 @@
   },
   "English": {
     "Toggle_Title": "Replace Title",
-    "Toggle_Planet": "Replace Judgment Display (Requires Editor Restart)",
+    "Toggle_Planet": "Replace Judgment Display",
     "Toggle_Death": "Show on Player Death",
     "Toggle_Win": "Show in Results Screen",
     "Toggle_Coop_WinPageAllPlayers": "Show all players on every results page",
@@ -804,7 +804,7 @@
   },
   "한국어": {
     "Toggle_Title": "제목 대체",
-    "Toggle_Planet": "판정 표시 대체 (편집기 재시작 필요)",
+    "Toggle_Planet": "판정 표시 대체",
     "Toggle_Death": "플레이어 사망 시 표시",
     "Toggle_Win": "결산 화면에 표시",
     "Toggle_Coop_WinPageAllPlayers": "결산 화면의 모든 페이지에 전체 플레이어 통계 표시",
