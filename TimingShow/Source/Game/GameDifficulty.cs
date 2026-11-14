@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace TimingShow
@@ -14,10 +15,30 @@ namespace TimingShow
         internal const float NormalThresholdBpm = 310f;
         internal const float StrictThresholdBpm = 500f;
 
+        private const double CacheSeconds = 0.5;
+
+        private static readonly Stopwatch CacheClock = Stopwatch.StartNew();
         private static FieldInfo _field;
         private static bool _searched;
+        private static int _cached = Unknown;
+        private static double _cachedAt = double.NegativeInfinity;
 
         internal static int Read()
+        {
+            double now = CacheClock.Elapsed.TotalSeconds;
+            if (now - _cachedAt < CacheSeconds) return _cached;
+
+            _cached = ReadUncached();
+            _cachedAt = now;
+            return _cached;
+        }
+
+        internal static void Invalidate()
+        {
+            _cachedAt = double.NegativeInfinity;
+        }
+
+        private static int ReadUncached()
         {
             try
             {
