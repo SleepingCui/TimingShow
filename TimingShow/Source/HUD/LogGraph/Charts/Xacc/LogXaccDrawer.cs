@@ -672,11 +672,7 @@ namespace TimingShow.HUD
             for (int i = 0; i < count; i++)
             {
                 float value = ys[i];
-                if (float.IsNaN(value) || !IsFinite(value))
-                {
-                    hasPrevious = false;
-                    continue;
-                }
+                if (float.IsNaN(value) || !IsFinite(value)) continue;
 
                 Vector2 point = new Vector2(XToPx(xs[i]), YToPx(value));
                 if (!IsFinite(point))
