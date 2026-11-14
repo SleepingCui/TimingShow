@@ -97,6 +97,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             for (int i = 0; i < _renderPoints.Count; i++)
             {
                 RenderPoint point = _renderPoints[i];
+                if (!IsJudgeVisible(point.Judge, point.IsXPerfect)) continue;
                 if (!TryGetPointLocalPosition(point, w, h, out Vector2 center)) continue;
 
                 float distanceSqr = (center - localMouse).sqrMagnitude;

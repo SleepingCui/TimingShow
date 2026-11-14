@@ -111,6 +111,7 @@ namespace TimingShow.HUD.LogGraphWindow
             UpdateChartButtonLabel();
             SyncSettingsInteraction();
             SyncRangeFilterVisible();
+            SyncJudgeLegendVisible();
 
             if (_windowRect != null) RefreshButtonHover(Input.mousePosition);
         }
@@ -261,6 +262,7 @@ namespace TimingShow.HUD.LogGraphWindow
             UpdateChartButtonLabel();
             UpdatePlayerButtonLabel();
             CreateRangeFilter(font);
+            CreateJudgeLegend(font);
         }
 
         private LogChartMenu CreateMenu(string name, TMP_FontAsset font, System.Action<int> onSelect)

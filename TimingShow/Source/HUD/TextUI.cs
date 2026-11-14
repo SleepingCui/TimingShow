@@ -135,7 +135,7 @@ namespace TimingShow.HUD
             }
         }
 
-        private static TMP_FontAsset FindGameFont()
+        internal static TMP_FontAsset FindGameFont()
         {
             try
             {

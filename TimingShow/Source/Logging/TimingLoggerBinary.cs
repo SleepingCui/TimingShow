@@ -42,7 +42,7 @@ namespace TimingShow.Logging
 
             try
             {
-                string dir = string.IsNullOrWhiteSpace(customDir) ? Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs") : Path.GetFullPath(Path.Combine(Application.dataPath, "..", customDir));
+                string dir = string.IsNullOrWhiteSpace(customDir) ? Settings.DefaultLogDirectory() : Path.GetFullPath(Path.Combine(Application.dataPath, "..", customDir));
 
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 

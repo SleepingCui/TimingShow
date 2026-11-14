@@ -165,6 +165,8 @@ namespace TimingShow.HUD.LogGraphWindow
             }
 
             ApplyRangeFilterFont(font);
+            ApplyJudgeLegendFont(font);
+            SyncJudgeLegendVisible();
 
             if (_panel != null) _panel.MarkDirty();
             if (_settingsUI != null) _settingsUI.SetFont(_drawer != null ? _drawer.GraphFontAsset : null);

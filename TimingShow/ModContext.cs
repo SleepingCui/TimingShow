@@ -34,6 +34,7 @@ namespace TimingShow
     {
         public static IModLogger Logger;
         public static string ModPath;
+        public static string DataPath;
         public static Harmony HarmonyInstance;
         public static bool IsEnabled;
         public static bool IsMelon;
@@ -132,6 +133,7 @@ namespace TimingShow
         public static void Initialize(string modPath, IModLogger logger)
         {
             ModPath = modPath;
+            DataPath = modPath;
             Logger = logger;
             Patches.PlayStatePatches.RegisterSceneHook();
         }

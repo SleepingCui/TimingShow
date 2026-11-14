@@ -171,6 +171,8 @@ namespace TimingShow.HUD.LogGraphWindow
             ClearChartCaches();
             UpdatePlayerButtonLabel();
             RefreshStats();
+
+            if (_windowRect != null) ApplyLayout(_windowRect.sizeDelta, _windowRect.anchoredPosition);
         }
         
         private void UpdateStatTexts()

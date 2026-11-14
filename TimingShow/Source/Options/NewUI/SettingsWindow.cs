@@ -17,6 +17,7 @@ namespace TimingShow.Options
         private static GUIStyle _titleStyle;
         private static GUIStyle _glyphStyle;
         private static GUIStyle _labelStyle;
+        private static GUIStyle _valueStyle;
         private static int _styleRevision = -1;
 
         public static GUIStyle WindowStyle
@@ -83,6 +84,18 @@ namespace TimingShow.Options
             GUI.Label(rect, text, _labelStyle);
         }
 
+        public static void ValueLabel(Rect rect, string text)
+        {
+            EnsureStyles();
+            GUI.Label(rect, text, _valueStyle);
+        }
+
+        public static float Slider(Rect track, float value, float min, float max)
+        {
+            EnsureStyles();
+            return NewUIWidgets.SliderCore(track, value, min, max);
+        }
+
         public static void Divider(Rect rect)
         {
             EnsureStyles();
@@ -101,6 +114,7 @@ namespace TimingShow.Options
             _titleStyle = TextStyle(font, size + 1, FontStyle.Bold, TextAnchor.MiddleCenter, NewUISkin.Text);
             _glyphStyle = TextStyle(font, size + 4, FontStyle.Normal, TextAnchor.MiddleCenter, Color.white);
             _labelStyle = TextStyle(font, size, FontStyle.Normal, TextAnchor.MiddleLeft, NewUISkin.TextDim);
+            _valueStyle = TextStyle(font, size, FontStyle.Normal, TextAnchor.MiddleRight, NewUISkin.Text);
         }
 
         private static GUIStyle TextStyle(Font font, int size, FontStyle fontStyle, TextAnchor anchor, Color color)

@@ -75,6 +75,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
             DrawSegment(vh, new Vector2(0f, y), new Vector2(w, y), halfWidth, ScatterZeroLineColor);
         }
 
+        protected virtual bool IsJudgeVisible(HitMan judge, bool isXPerfect)
+        {
+            return true;
+        }
+
         protected override void DrawSeries(VertexHelper vh, float w, float h)
         {
             int count = _renderPoints.Count;
@@ -112,6 +117,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             for (int i = 0; i < count; i++)
             {
                 RenderPoint point = _renderPoints[i];
+                if (!IsJudgeVisible(point.Judge, point.IsXPerfect)) continue;
                 if (!TryGetPointLocalPosition(point, w, h, out Vector2 center)) continue;
 
                 Color color;
@@ -400,6 +406,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             for (int i = 0; i < count; i++)
             {
                 RenderPoint point = _renderPoints[i];
+                if (!IsJudgeVisible(point.Judge, point.IsXPerfect)) continue;
                 float ny = (point.OffsetMs - _minY) / rangeY;
                 if (ny >= 0f && ny <= 1f) continue;
 

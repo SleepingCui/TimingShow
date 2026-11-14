@@ -135,10 +135,10 @@ namespace TimingShow.HUD.LogGraphWindow
             Rect container = _resolvedContainerRect;
             Rect plot = _resolvedPlotRect;
 
-            float rangeStrip = RangeStripHeight();
-            if (rangeStrip > 0f && plot.height > rangeStrip * 2f)
+            float stripHeight = RangeStripHeight() + JudgeLegendStripHeight();
+            if (stripHeight > 0f && plot.height > stripHeight * 2f)
             {
-                plot = new Rect(plot.x, plot.y, plot.width, plot.height - rangeStrip);
+                plot = new Rect(plot.x, plot.y, plot.width, plot.height - stripHeight);
                 _resolvedPlotRect = plot;
             }
             
@@ -185,6 +185,7 @@ namespace TimingShow.HUD.LogGraphWindow
             }
 
             SyncRangeFilterVisible();
+            SyncJudgeLegendVisible();
         }
         
         private void ApplyHeaderLayout(Vector2 size)

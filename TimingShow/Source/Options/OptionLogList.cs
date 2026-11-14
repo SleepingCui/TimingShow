@@ -191,10 +191,7 @@ namespace TimingShow.Options
             _newUI = true;
             Prepare();
 
-            string foldoutArrow = _showLogList ? "▲" : "▼";
-            Rect foldoutRow = NewUIWidgets.Row(28f);
-            if (NewUIWidgets.ButtonAt(new Rect(foldoutRow.x, foldoutRow.y, 150f, foldoutRow.height), i18n.T("Label_LogList") + " " + foldoutArrow, _showLogList))
-                _showLogList = !_showLogList;
+            _showLogList = NewUIWidgets.FoldHeader(i18n.T("Label_LogList"), "log_list", _showLogList);
 
             if (!_showLogList) return;
 
@@ -225,10 +222,10 @@ namespace TimingShow.Options
             string summary = string.Format(i18n.T("LogSummary"), _visibleEntries.Count, FormatFileSize(totalBytes));
             GUI.Label(new Rect(toolbar.x + 198f, toolbar.y, Mathf.Max(10f, toolbar.width - 198f), toolbar.height), summary, NewUISkin.ValueStyle);
 
-            Rect searchRow = NewUIWidgets.Row(26f);
-            GUI.Label(new Rect(searchRow.x, searchRow.y, 84f, searchRow.height), i18n.T("Label_SearchLogs"), NewUISkin.LabelStyle);
-            float searchWidth = Mathf.Clamp(searchRow.width - 160f, 80f, 240f);
-            string newQuery = NewUIWidgets.TextField(new Rect(searchRow.x + 84f, searchRow.y + 3f, searchWidth, searchRow.height - 6f), _searchQuery ?? string.Empty);
+            Rect searchRow = NewUIWidgets.Row(28f);
+            float clearWidth = string.IsNullOrEmpty(_searchQuery) ? 0f : 30f;
+            Rect searchRect = new Rect(searchRow.x + 6f, searchRow.y + 2f, Mathf.Max(80f, searchRow.width - 12f - clearWidth), searchRow.height - 4f);
+            string newQuery = NewUIWidgets.SearchField(searchRect, _searchQuery ?? string.Empty, i18n.T("Label_SearchLogs"));
             if (!string.Equals(newQuery, _searchQuery, StringComparison.Ordinal))
             {
                 _searchQuery = newQuery;
@@ -236,7 +233,7 @@ namespace TimingShow.Options
                 _logListScroll.y = 0f;
             }
 
-            if (!string.IsNullOrEmpty(_searchQuery) && NewUIWidgets.ButtonAt(new Rect(searchRow.x + 88f + searchWidth, searchRow.y, 26f, searchRow.height), "×"))
+            if (!string.IsNullOrEmpty(_searchQuery) && NewUIWidgets.ButtonAt(new Rect(searchRect.xMax + 2f, searchRow.y + 2f, 26f, searchRow.height - 4f), "×"))
             {
                 _searchQuery = string.Empty;
                 RebuildVisibleEntries();
@@ -244,18 +241,16 @@ namespace TimingShow.Options
             }
 
             bool autoClean = ModContext.Settings.LogAutoClean;
-            bool newAutoClean = NewUIWidgets.Toggle("Toggle_LogAutoClean", autoClean);
-            if (newAutoClean != autoClean)
-            {
-                ModContext.Settings.LogAutoClean = newAutoClean;
-                if (newAutoClean) LogRetention.RequestCleanup();
-            }
-
             if (_keepFirstText == null) _keepFirstText = KeepFirstCount().ToString();
 
-            Rect keepRow = NewUIWidgets.Row(26f);
-            GUI.Label(new Rect(keepRow.x, keepRow.y, 154f, keepRow.height), i18n.T("Label_KeepLogsPrefix"), NewUISkin.LabelStyle);
-            string newKeepText = NewUIWidgets.TextField(new Rect(keepRow.x + 154f, keepRow.y + 3f, 56f, keepRow.height - 6f), _keepFirstText);
+            Rect retentionRow = NewUIWidgets.Row(26f);
+            float keepX = retentionRow.x + 8f;
+            string keepPrefix = i18n.T("Label_KeepLogsPrefix");
+            float keepPrefixWidth = MeasureWidth(keepPrefix, NewUISkin.LabelStyle);
+            GUI.Label(new Rect(keepX, retentionRow.y, keepPrefixWidth, retentionRow.height), keepPrefix, autoClean ? NewUISkin.LabelStyle : NewUISkin.DimLabelStyle);
+            keepX += keepPrefixWidth + 4f;
+
+            string newKeepText = NewUIWidgets.TextField(new Rect(keepX, retentionRow.y + 3f, 56f, retentionRow.height - 6f), _keepFirstText);
             if (!string.Equals(newKeepText, _keepFirstText, StringComparison.Ordinal))
             {
                 _keepFirstText = newKeepText;
@@ -263,7 +258,27 @@ namespace TimingShow.Options
                 if (int.TryParse(newKeepText, out parsed) && parsed >= 0 && parsed <= MaxKeepLogCount)
                     ModContext.Settings.LogKeepCount = parsed;
             }
-            GUI.Label(new Rect(keepRow.x + 214f, keepRow.y, Mathf.Max(10f, keepRow.width - 214f), keepRow.height), i18n.T("Label_KeepLogsSuffix"), NewUISkin.MutedLabelStyle);
+            keepX += 60f;
+
+            string keepSuffix = i18n.T("Label_KeepLogsSuffix");
+            GUI.Label(new Rect(keepX, retentionRow.y, Mathf.Max(10f, retentionRow.xMax - keepX), retentionRow.height), keepSuffix, autoClean ? NewUISkin.MutedLabelStyle : NewUISkin.DimLabelStyle);
+
+            float switchX = retentionRow.xMax - NewUIWidgets.SwitchWidth - 2f;
+            Rect switchRect = new Rect(switchX, retentionRow.y + (retentionRow.height - NewUIWidgets.SwitchHeight) * 0.5f, NewUIWidgets.SwitchWidth, NewUIWidgets.SwitchHeight);
+            string cleanLabel = i18n.T("Toggle_LogAutoClean");
+            float cleanLabelWidth = Mathf.Min(retentionRow.width * 0.35f, MeasureWidth(cleanLabel, NewUISkin.LabelStyle));
+            Rect cleanLabelRect = new Rect(switchX - cleanLabelWidth - 10f, retentionRow.y, cleanLabelWidth, retentionRow.height);
+            GUI.Label(cleanLabelRect, cleanLabel, autoClean ? NewUISkin.LabelStyle : NewUISkin.DimLabelStyle);
+            bool switchHover = switchRect.Contains(Event.current.mousePosition) || cleanLabelRect.Contains(Event.current.mousePosition);
+            NewUIWidgets.DrawSwitch(switchRect, autoClean, switchHover);
+
+            bool switchClicked = GUI.Button(switchRect, GUIContent.none, GUIStyle.none);
+            bool cleanLabelClicked = GUI.Button(cleanLabelRect, GUIContent.none, GUIStyle.none);
+            if (switchClicked || cleanLabelClicked)
+            {
+                ModContext.Settings.LogAutoClean = !autoClean;
+                if (!autoClean) LogRetention.RequestCleanup();
+            }
 
             DrawLogGraphPendingOverlay();
 
@@ -480,7 +495,6 @@ namespace TimingShow.Options
 
             const float sizeWidth = 74f;
             const float timeWidth = 130f;
-            const float buttonWidth = 62f;
             const float buttonGap = 4f;
 
             bool analyzerEnabled = ModContext.Settings.AnalyzerBridgeEnabled;
@@ -488,9 +502,19 @@ namespace TimingShow.Options
             string graphLabel = i18n.T("Btn_ViewLogGraph");
             string openFileLabel = i18n.T("Btn_OpenLogFile");
 
+            bool deletePending;
+            lock (DeleteSync) deletePending = _deletePending.Contains(entry.FullPath);
+            bool deleteArmed = IsDeleteArmed(entry.FullPath);
+            string deleteLabel = deletePending ? i18n.T("Btn_DeletingLog") : i18n.T("Btn_DeleteLog");
+
+            float analyzeWidth = MeasureLogRowButton(analyzeLabel);
+            float graphWidth = MeasureLogRowButton(graphLabel);
+            float openFileWidth = MeasureLogRowButton(openFileLabel);
+            float deleteWidth = MeasureLogRowButton(deleteLabel);
+
             int buttonCount = analyzerEnabled ? 4 : 3;
-            float buttonsWidth = buttonWidth * buttonCount + buttonGap * (buttonCount - 1);
-            float nameWidth = Mathf.Max(90f, innerWidth - sizeWidth - timeWidth - buttonsWidth - 8f);
+            float buttonsWidth = graphWidth + openFileWidth + deleteWidth + (analyzerEnabled ? analyzeWidth : 0f) + buttonGap * (buttonCount - 1);
+            float nameWidth = Mathf.Max(60f, innerWidth - sizeWidth - timeWidth - buttonsWidth - 8f);
 
             GUI.Label(new Rect(x, labelY, nameWidth, labelHeight), TruncateToWidth(entry.FileName, NewUISkin.LabelStyle, nameWidth), NewUISkin.LabelStyle);
             x += nameWidth;
@@ -499,28 +523,26 @@ namespace TimingShow.Options
             x += sizeWidth;
 
             GUI.Label(new Rect(x, labelY, timeWidth, labelHeight), FormatTimestamp(entry.Timestamp), NewUISkin.MutedLabelStyle);
-            x += timeWidth;
 
-            if (analyzerEnabled)
-            {
-                if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), analyzeLabel))
-                    OpenLogInAnalyzer(entry.FullPath);
-                x += buttonWidth + buttonGap;
-            }
+            float rightX = row.xMax - 6f;
+            Rect deleteRect = new Rect(rightX - deleteWidth, buttonY, deleteWidth, buttonHeight);
+            rightX = deleteRect.x - buttonGap;
+            Rect openFileRect = new Rect(rightX - openFileWidth, buttonY, openFileWidth, buttonHeight);
+            rightX = openFileRect.x - buttonGap;
+            Rect graphRect = new Rect(rightX - graphWidth, buttonY, graphWidth, buttonHeight);
+            rightX = graphRect.x - buttonGap;
+            Rect analyzeRect = new Rect(rightX - analyzeWidth, buttonY, analyzeWidth, buttonHeight);
 
-            if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), graphLabel))
+            if (analyzerEnabled && NewUIWidgets.ButtonAt(analyzeRect, analyzeLabel))
+                OpenLogInAnalyzer(entry.FullPath);
+
+            if (NewUIWidgets.ButtonAt(graphRect, graphLabel))
                 OpenLogGraphWindow(entry.FullPath);
-            x += buttonWidth + buttonGap;
 
-            if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), openFileLabel))
+            if (NewUIWidgets.ButtonAt(openFileRect, openFileLabel))
                 OpenLogFile(entry.FullPath);
-            x += buttonWidth + buttonGap;
 
-            bool deletePending;
-            lock (DeleteSync) deletePending = _deletePending.Contains(entry.FullPath);
-            bool deleteArmed = IsDeleteArmed(entry.FullPath);
-            string deleteLabel = deletePending ? i18n.T("Btn_DeletingLog") : i18n.T("Btn_DeleteLog");
-            if (NewUIWidgets.ButtonAt(new Rect(x, buttonY, buttonWidth, buttonHeight), deleteLabel, deleteArmed, !deletePending, new Color(0.85f, 0.22f, 0.22f)))
+            if (NewUIWidgets.ButtonAt(deleteRect, deleteLabel, deleteArmed, !deletePending, new Color(0.85f, 0.22f, 0.22f)))
                 HandleDeleteClick(entry.FullPath);
         }
 
@@ -1124,6 +1146,11 @@ namespace TimingShow.Options
             return Mathf.Max(minWidth, MeasureWidth(text, GUI.skin.button) + 14f);
         }
 
+        private static float MeasureLogRowButton(string text)
+        {
+            return Mathf.Max(62f, MeasureWidth(text, NewUISkin.CenterDimStyle) + 18f);
+        }
+
         private static string TruncateToWidth(string text, GUIStyle style, float maxWidth)
         {
             if (string.IsNullOrEmpty(text)) return text;
@@ -1243,7 +1270,7 @@ namespace TimingShow.Options
 
         public static string GetDefaultLogDirectory()
         {
-            return Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
+            return Settings.DefaultLogDirectory();
         }
 
         public static string GetLogDirectory()

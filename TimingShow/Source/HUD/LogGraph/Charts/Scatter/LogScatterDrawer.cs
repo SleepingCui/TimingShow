@@ -58,6 +58,36 @@ namespace TimingShow.HUD
 
         public int RangeHiddenCount => OffsetRangeHidden;
 
+        private int _judgeMask = LogScatterJudgeLegend.AllMask;
+
+        internal bool ShowJudgeLegend
+        {
+            get { return ScatterUseJudgeColor && !ColorPointsByPlayer; }
+        }
+
+        internal bool IsJudgeClassVisible(int index)
+        {
+            return index >= 0 && index < LogScatterJudgeLegend.Count && (_judgeMask & (1 << index)) != 0;
+        }
+
+        internal void ToggleJudgeClass(int index)
+        {
+            if (index < 0 || index >= LogScatterJudgeLegend.Count) return;
+
+            int bit = 1 << index;
+            int mask = (_judgeMask & bit) != 0 ? _judgeMask & ~bit : _judgeMask | bit;
+            if (mask == _judgeMask) return;
+
+            _judgeMask = mask;
+            SetVerticesDirty();
+        }
+
+        protected override bool IsJudgeVisible(HitMan judge, bool isXPerfect)
+        {
+            if (!ShowJudgeLegend || _judgeMask == LogScatterJudgeLegend.AllMask) return true;
+            return LogScatterJudgeLegend.IsVisible(_judgeMask, judge, isXPerfect);
+        }
+
         public void SetOffsetRange(bool hasMin, float min, bool hasMax, float max)
         {
             if (_hasMinOffset == hasMin && _hasMaxOffset == hasMax &&

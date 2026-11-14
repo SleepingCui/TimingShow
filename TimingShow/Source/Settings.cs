@@ -267,7 +267,7 @@ namespace TimingShow
         public bool LogAutoplay;
         public bool LogFullClearOnly;
         public bool Logger_ShowAngle;
-        public string LogDirectory = Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs");
+        public string LogDirectory = DefaultLogDirectory();
         public int PercLog = 4;
         public int LogBufferSizeKB = 64;
 
@@ -316,7 +316,7 @@ namespace TimingShow
         public static readonly Color Theme_LegacyElement = new Color(0.1922f, 0.2f, 0.2196f, 1f);
         public static readonly Color Theme_DefaultText = new Color(0.9137f, 0.9255f, 0.9373f, 1f);
 
-        public bool NewSettingsUI = ModContext.IsMelon;
+        public bool NewSettingsUI = true;
         public Color Theme_Primary = Theme_DefaultPrimary;
         public Color Theme_Background = Theme_DefaultBackground;
         public Color Theme_Element = Theme_DefaultElement;
@@ -329,10 +329,14 @@ namespace TimingShow
         //ml only
         public KeyCode ConfigKey = KeyCode.F9;
         public KeyCode ReportKey = KeyCode.F10;
+        public bool ShowConfigHintOnStart;
+        public float WindowScale = 1f;
+        public const float MinWindowScale = 0.75f;
+        public const float MaxWindowScale = 2f;
         
         
         
-        public const int CurrentSettingsVersion = 7;
+        public const int CurrentSettingsVersion = 9;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -424,9 +428,15 @@ namespace TimingShow
                 migrated = true;
             }
 
-            if (SettingsVersion < 7 && ModContext.IsMelon && !NewSettingsUI)
+            if (SettingsVersion < 8 && !NewSettingsUI)
             {
                 NewSettingsUI = true;
+                migrated = true;
+            }
+
+            if (SettingsVersion < 9 && IsLegacyLogDirectory(LogDirectory))
+            {
+                LogDirectory = DefaultLogDirectory();
                 migrated = true;
             }
 
@@ -448,6 +458,30 @@ namespace TimingShow
             }
         }
         
+        public static string DefaultLogDirectory()
+        {
+            string root = ModContext.DataPath;
+            if (string.IsNullOrEmpty(root)) return Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
+            return Path.GetFullPath(Path.Combine(root, "Logs"));
+        }
+
+        private static bool IsLegacyLogDirectory(string logDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(logDirectory)) return true;
+            try
+            {
+                string absolute = Path.IsPathRooted(logDirectory)
+                    ? Path.GetFullPath(logDirectory)
+                    : Path.GetFullPath(Path.Combine(Application.dataPath, "..", logDirectory));
+                string legacy = Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
+                return string.Equals(absolute.TrimEnd('\\', '/'), legacy.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         private static bool SameColor(Color a, Color b)
         {
             return Mathf.Abs(a.r - b.r) < 0.001f && Mathf.Abs(a.g - b.g) < 0.001f &&
@@ -489,6 +523,7 @@ namespace TimingShow
             EditorHits_PanelScale = Mathf.Clamp(EditorHits_PanelScale, 0.75f, 2.5f);
             EditorHits_PanelWidth = Mathf.Clamp(EditorHits_PanelWidth, 240f, 460f);
 
+            WindowScale = Mathf.Clamp(WindowScale, MinWindowScale, MaxWindowScale);
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);
             LogGraph_PointSize = Mathf.Clamp(LogGraph_PointSize, 1f, 12f);
             LogGraph_BandThresholdBpm = Mathf.Clamp(LogGraph_BandThresholdBpm, 100f, 600f);

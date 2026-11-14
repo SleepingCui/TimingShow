@@ -143,6 +143,8 @@ namespace TimingShow.Options
 
             if (BeginCard("Btn_Other", "card_general_other"))
             {
+                if (ModContext.IsMelon) s.ShowConfigHintOnStart = NewUIWidgets.Toggle("Toggle_ConfigHintOnStart", s.ShowConfigHintOnStart);
+
                 s.SessionReport_Enabled = NewUIWidgets.Toggle("Toggle_SessionReport", s.SessionReport_Enabled);
 
                 bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
@@ -265,42 +267,30 @@ namespace TimingShow.Options
                     bool replaceOpen = BeginCard("Setting_Title", "card_display_replace");
                     if (replaceOpen)
                     {
-                        if (NewUIWidgets.Section("Group_Early", "group_replace_early"))
+                        s.ReplaceTooEarly = NewUIWidgets.Toggle("Toggle_TooEarly", s.ReplaceTooEarly);
+                        s.ReplaceVeryEarly = NewUIWidgets.Toggle("Toggle_VeryEarly", s.ReplaceVeryEarly);
+                        s.ReplaceEarlyPerfect = NewUIWidgets.Toggle("Toggle_EarlyPerfect", s.ReplaceEarlyPerfect);
+
+                        if (HitMarginCompat.IsGame34)
+                            s.ReplacePerfectMinus = NewUIWidgets.Toggle("Toggle_PerfectMinus", s.ReplacePerfectMinus);
+                        else
+                            s.ReplacePerfect = NewUIWidgets.Toggle("Toggle_Perfect", s.ReplacePerfect);
+
+                        if (HitMarginCompat.HasNativeXPerfect)
                         {
-                            s.ReplaceTooEarly = NewUIWidgets.Toggle("Toggle_TooEarly", s.ReplaceTooEarly);
-                            s.ReplaceVeryEarly = NewUIWidgets.Toggle("Toggle_VeryEarly", s.ReplaceVeryEarly);
-                            s.ReplaceEarlyPerfect = NewUIWidgets.Toggle("Toggle_EarlyPerfect", s.ReplaceEarlyPerfect);
+                            s.ReplaceXPerfect = NewUIWidgets.Toggle("Toggle_XPerfect", s.ReplaceXPerfect);
+                            s.ReplacePerfectPlus = NewUIWidgets.Toggle("Toggle_PerfectPlus", s.ReplacePerfectPlus);
                         }
 
-                        if (NewUIWidgets.Section("Group_Hit", "group_replace_hit"))
-                        {
-                            if (HitMarginCompat.IsGame34)
-                                s.ReplacePerfectMinus = NewUIWidgets.Toggle("Toggle_PerfectMinus", s.ReplacePerfectMinus);
-                            else
-                                s.ReplacePerfect = NewUIWidgets.Toggle("Toggle_Perfect", s.ReplacePerfect);
+                        s.ReplaceLatePerfect = NewUIWidgets.Toggle("Toggle_LatePerfect", s.ReplaceLatePerfect);
+                        s.ReplaceVeryLate = NewUIWidgets.Toggle("Toggle_VeryLate", s.ReplaceVeryLate);
+                        s.ReplaceTooLate = NewUIWidgets.Toggle("Toggle_TooLate", s.ReplaceTooLate);
 
-                            if (HitMarginCompat.HasNativeXPerfect)
-                            {
-                                s.ReplaceXPerfect = NewUIWidgets.Toggle("Toggle_XPerfect", s.ReplaceXPerfect);
-                                s.ReplacePerfectPlus = NewUIWidgets.Toggle("Toggle_PerfectPlus", s.ReplacePerfectPlus);
-                            }
-                        }
-
-                        if (NewUIWidgets.Section("Group_Late", "group_replace_late"))
-                        {
-                            s.ReplaceLatePerfect = NewUIWidgets.Toggle("Toggle_LatePerfect", s.ReplaceLatePerfect);
-                            s.ReplaceVeryLate = NewUIWidgets.Toggle("Toggle_VeryLate", s.ReplaceVeryLate);
-                            s.ReplaceTooLate = NewUIWidgets.Toggle("Toggle_TooLate", s.ReplaceTooLate);
-                        }
-
-                        if (NewUIWidgets.Section("Group_Other", "group_replace_other"))
-                        {
-                            s.ReplaceFailOverload = NewUIWidgets.Toggle("Toggle_FailOverload", s.ReplaceFailOverload);
-                            s.ReplaceFailMiss = NewUIWidgets.Toggle("Toggle_FailMiss", s.ReplaceFailMiss);
-                            s.ReplaceMultipress = NewUIWidgets.Toggle("Toggle_Multipress", s.ReplaceMultipress);
-                            s.ReplaceOverPress = NewUIWidgets.Toggle("Toggle_OverPress", s.ReplaceOverPress);
-                            s.ReplaceAuto = NewUIWidgets.Toggle("Toggle_Auto", s.ReplaceAuto);
-                        }
+                        s.ReplaceFailOverload = NewUIWidgets.Toggle("Toggle_FailOverload", s.ReplaceFailOverload);
+                        s.ReplaceFailMiss = NewUIWidgets.Toggle("Toggle_FailMiss", s.ReplaceFailMiss);
+                        s.ReplaceMultipress = NewUIWidgets.Toggle("Toggle_Multipress", s.ReplaceMultipress);
+                        s.ReplaceOverPress = NewUIWidgets.Toggle("Toggle_OverPress", s.ReplaceOverPress);
+                        s.ReplaceAuto = NewUIWidgets.Toggle("Toggle_Auto", s.ReplaceAuto);
                     }
                     EndCard();
                 }
@@ -542,6 +532,10 @@ namespace TimingShow.Options
                 }
                 EndCard();
 
+                GUILayout.Space(4f);
+                OptionLogList.DrawNewUI();
+
+                GUILayout.Space(6f);
                 if (NewUIWidgets.Button(i18n.T("Btn_OpenLogs"), 150f))
                 {
                     try
@@ -555,9 +549,6 @@ namespace TimingShow.Options
                         ModContext.Logger.Error(e.Message);
                     }
                 }
-
-                GUILayout.Space(4f);
-                OptionLogList.DrawNewUI();
             }
         }
 

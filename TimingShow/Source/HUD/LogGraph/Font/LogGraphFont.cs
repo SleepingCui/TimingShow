@@ -130,7 +130,9 @@ namespace TimingShow.HUD
                 "Toggle_ShowBorder", "Label_GridColor", "Label_PointColor", "Label_ZeroLineColor", "Label_AvgLineColor",
                 "Label_AxisTextColor", "Label_BandPerfectColor", "Label_BandElPerfectColor",
                 "Label_BandEarlyLateColor", "Label_BandXpColor", "Btn_ResetColor", "LogGraph_RangeFilter",
-                "LogGraph_RangeMinHint", "LogGraph_RangeMaxHint"
+                "LogGraph_RangeMinHint", "LogGraph_RangeMaxHint",
+                "LogGraph_LegendXPerfect", "LogGraph_LegendPerfect", "LogGraph_LegendEarly",
+                "LogGraph_LegendLate", "LogGraph_LegendMiss", "LogGraph_LegendOther"
             };
 
             System.Text.StringBuilder characters = new System.Text.StringBuilder("0123456789.-+%: ");

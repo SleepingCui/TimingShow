@@ -119,6 +119,7 @@
     <Compile Include="Source\HUD\HUDMan.cs" />
     <Compile Include="Source\HUD\JColors.cs" />
     <Compile Include="Source\HUD\TextUI.cs" />
+    <Compile Include="Source\HUD\StartupHint.cs" />
     <Compile Include="Source\HUD\XACCGraphDrawer.cs" />
     <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.cs" />
     <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Data.cs" />
@@ -129,6 +130,7 @@
     <Compile Include="Source\HUD\ScatterDrawerBase\ScatterDrawerBase.Players.cs" />
     <Compile Include="Source\HUD\TimingScatterDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Scatter\LogScatterDrawer.cs" />
+    <Compile Include="Source\HUD\LogGraph\Charts\Scatter\LogScatterJudgeLegend.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDistributionData.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDistributionDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Xacc\LogXaccData.cs" />
@@ -136,6 +138,7 @@
     <Compile Include="Source\HUD\LogGraph\Charts\Common\LogChartDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\UI\LogChartUi.cs" />
     <Compile Include="Source\HUD\LogGraph\UI\LogRoundedRect.cs" />
+    <Compile Include="Source\HUD\LogGraph\UI\LogJudgeLegendChip.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDeltaData.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Rolling\LogRollingData.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Rolling\LogRollingDrawer.cs" />
@@ -158,6 +161,7 @@
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Diagnostics.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Pane.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Filter.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Legend.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogRangeField.cs" />
     <Compile Include="Source\HUD\ILogGraphSettingsHost.cs" />
     <Compile Include="Source\HUD\LogGraphSettingsUI\LogGraphSettingsUI.cs" />

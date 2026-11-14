@@ -66,6 +66,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MelonEntry.cs" />
+    <Compile Include="MelonEntry.SettingsWindow.cs" />
+    <Compile Include="MelonEntry.Updater.cs" />
     <Compile Include="MelonHotkeys.cs" />
     <Compile Include="MelonLoggerAdapter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

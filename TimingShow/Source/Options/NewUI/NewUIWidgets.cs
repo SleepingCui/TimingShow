@@ -50,9 +50,9 @@ namespace TimingShow.Options
             return FoldHeader(i18n.T(titleKey), id);
         }
 
-        internal static bool FoldHeader(string title, string id)
+        internal static bool FoldHeader(string title, string id, bool defaultOpen = true)
         {
-            bool open = FoldState(id);
+            bool open = FoldState(id, defaultOpen);
             Rect row = Row(24f);
             bool hover = row.Contains(Event.current.mousePosition);
             if (hover) NewUISkin.DrawRounded(new Rect(row.x - 4f, row.y - 1f, row.width + 8f, row.height + 2f), 5f, NewUISkin.Fade(NewUISkin.Element, 0.5f));
@@ -76,12 +76,12 @@ namespace TimingShow.Options
             GUI.DrawTexture(new Rect(centerX - 5f, centerY - 5f, 10f, 10f), arrow, ScaleMode.ScaleToFit, true);
         }
 
-        private static bool FoldState(string id)
+        private static bool FoldState(string id, bool defaultOpen = true)
         {
             bool open;
             if (!SectionStates.TryGetValue(id, out open))
             {
-                open = true;
+                open = defaultOpen;
                 SectionStates[id] = open;
             }
             return open;
@@ -146,12 +146,12 @@ namespace TimingShow.Options
                 : (hover ? NewUISkin.ElementHover : NewUISkin.ElementActive);
             if (!enabled) track = NewUISkin.Fade(track, 0.5f);
 
-            NewUISkin.DrawRounded(rect, rect.height * 0.5f, track);
+            NewUISkin.DrawCapsule(rect, track);
             float size = rect.height - 6f;
             float x = on ? rect.xMax - size - 3f : rect.x + 3f;
             Color knob = on ? Color.white : NewUISkin.TextDim;
             if (!enabled) knob = NewUISkin.Fade(knob, 0.5f);
-            NewUISkin.DrawRounded(new Rect(x, rect.y + 3f, size, size), size * 0.5f, knob);
+            NewUISkin.DrawCapsule(new Rect(x, rect.y + 3f, size, size), knob);
         }
 
         internal static bool Button(string text, float width = 0f, bool selected = false, float height = 28f, bool enabled = true)
@@ -223,7 +223,7 @@ namespace TimingShow.Options
             return Mathf.RoundToInt(Slider(labelKey, value, min, max, "0"));
         }
 
-        private static float SliderCore(Rect track, float value, float min, float max)
+        internal static float SliderCore(Rect track, float value, float min, float max)
         {
             int id = GUIUtility.GetControlID(FocusType.Passive);
             Event current = Event.current;
@@ -325,6 +325,19 @@ namespace TimingShow.Options
 
             NewUISkin.DrawRounded(rect, NewUISkin.ElementRadius, NewUISkin.Field);
             if (focused) NewUISkin.DrawBorder(rect, NewUISkin.ElementRadius, 1f, NewUISkin.Accent, NewUISkin.Field);
+
+            return GUI.TextField(rect, text, NewUISkin.FieldStyle);
+        }
+
+        internal static string SearchField(Rect rect, string text, string placeholder)
+        {
+            string controlName = "TimingShowNewUIField" + _fieldIndex++;
+            GUI.SetNextControlName(controlName);
+            bool focused = GUI.GetNameOfFocusedControl() == controlName;
+
+            NewUISkin.DrawBorder(rect, NewUISkin.ElementRadius, 1f, focused ? NewUISkin.Accent : NewUISkin.Border, NewUISkin.Field);
+            if (!focused && string.IsNullOrEmpty(text) && !string.IsNullOrEmpty(placeholder))
+                GUI.Label(new Rect(rect.x + 10f, rect.y, Mathf.Max(10f, rect.width - 20f), rect.height), placeholder, NewUISkin.MutedLabelStyle);
 
             return GUI.TextField(rect, text, NewUISkin.FieldStyle);
         }

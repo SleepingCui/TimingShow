@@ -183,7 +183,7 @@ namespace TimingShow.Logging
             try
             {
                 if (string.IsNullOrWhiteSpace(logDir))
-                    return Path.GetFullPath(Path.Combine(Application.dataPath, "../Mods/TimingShow/Logs"));
+                    return Settings.DefaultLogDirectory();
                 if (Path.IsPathRooted(logDir))
                     return Path.GetFullPath(logDir);
 

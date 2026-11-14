@@ -13,6 +13,7 @@ namespace TimingShow.Options
         private static readonly Dictionary<int, Texture2D> WhiteTextures = new Dictionary<int, Texture2D>();
         private static readonly Dictionary<long, Texture2D> ColoredTextures = new Dictionary<long, Texture2D>();
         private static readonly Dictionary<long, Texture2D> BorderedTextures = new Dictionary<long, Texture2D>();
+        private static readonly Dictionary<long, Texture2D> CapsuleTextures = new Dictionary<long, Texture2D>();
         private static readonly Dictionary<int, GUIStyle> RoundedStyles = new Dictionary<int, GUIStyle>();
 
         internal static Color Background;
@@ -286,6 +287,53 @@ namespace TimingShow.Options
             style.normal.background = WhiteRounded(radius);
             RoundedStyles[radius] = style;
             return style;
+        }
+
+        internal static void DrawCapsule(Rect rect, Color color)
+        {
+            if (rect.width <= 0.5f || rect.height <= 0.5f || color.a <= 0f) return;
+
+            float scale = Mathf.Max(1f, Mathf.Abs(GUI.matrix.m00));
+            int width = Mathf.Clamp(Mathf.RoundToInt(rect.width * scale), 2, 1024);
+            int height = Mathf.Clamp(Mathf.RoundToInt(rect.height * scale), 2, 512);
+            Texture2D texture = CapsuleTexture(width, height);
+
+            Color previous = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(rect, texture);
+            GUI.color = previous;
+        }
+
+        private static Texture2D CapsuleTexture(int width, int height)
+        {
+            long key = ((long)width << 32) ^ (uint)height;
+            Texture2D texture;
+            if (CapsuleTextures.TryGetValue(key, out texture) && texture != null) return texture;
+
+            texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.hideFlags = HideFlags.DontSave;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
+
+            float radius = height * 0.5f;
+            Color32[] pixels = new Color32[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                float py = y + 0.5f;
+                for (int x = 0; x < width; x++)
+                {
+                    float px = Mathf.Clamp(x + 0.5f, radius, width - radius);
+                    float dx = x + 0.5f - px;
+                    float dy = py - radius;
+                    float coverage = Mathf.Clamp01(radius + 0.5f - Mathf.Sqrt(dx * dx + dy * dy));
+                    pixels[y * width + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(coverage * 255f));
+                }
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            CapsuleTextures[key] = texture;
+            return texture;
         }
 
         internal static void DrawBorder(Rect rect, float radius, float thickness, Color color, Color fill)
