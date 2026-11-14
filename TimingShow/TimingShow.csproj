@@ -101,11 +101,12 @@
     <Compile Include="IModLogger.cs" />
     <Compile Include="ModContext.cs" />
     <Compile Include="Source\Calc.cs" />
-    <Compile Include="Source\GameDifficulty.cs" />
-    <Compile Include="Source\HitWindowScale.cs" />
-    <Compile Include="Source\Coop.cs" />
-    <Compile Include="Source\PlayerSession.cs" />
+    <Compile Include="Source\Game\GameDifficulty.cs" />
+    <Compile Include="Source\Game\HitWindowScale.cs" />
+    <Compile Include="Source\Game\Coop.cs" />
+    <Compile Include="Source\Game\HitMarginCompat.cs" />
     <Compile Include="Source\HitMan.cs" />
+    <Compile Include="Source\PlayerSession.cs" />
     <Compile Include="Source\i18n.cs" />
     <Compile Include="Source\Settings.cs" />
     <Compile Include="Source\Bridge\LogAnalyzerBridge.cs" />
