@@ -853,10 +853,13 @@ namespace TimingShow.Options
 
         private static string GetCacheDirectory()
         {
-            string root;
-            try { root = Path.GetFullPath(Path.Combine(Application.dataPath, "..")); }
-            catch { root = Path.GetTempPath(); }
-            return Path.Combine(root, "Mods", "TimingShow", "Cache");
+            string root = ModContext.DataDirectory;
+            if (string.IsNullOrEmpty(root))
+            {
+                try { root = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Mods", "TimingShow")); }
+                catch { return Path.GetTempPath(); }
+            }
+            return Path.Combine(root, "Cache");
         }
 
         private static void EnsureMetaCacheLoaded()

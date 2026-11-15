@@ -39,6 +39,11 @@ namespace TimingShow
         public static bool IsMelon;
         public static Settings Settings;
 
+        public static string DataDirectory
+        {
+            get { return string.IsNullOrEmpty(DataPath) ? ModPath : DataPath; }
+        }
+
         public static double LastTiming
         {
             get { return Players.Current.LastTiming; }

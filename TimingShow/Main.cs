@@ -64,7 +64,7 @@ namespace TimingShow
                 ModContext.Logger.Error("SaveSettings: Settings is NULL!!!");
                 return;
             }
-            ModContext.Settings.Save(ModContext.ModPath);
+            ModContext.Settings.Save(ModContext.DataDirectory);
         }
     }
 }

@@ -221,6 +221,9 @@ namespace TimingShow.HUD
 
         private static string CacheDirectory()
         {
+            if (ModContext.IsMelon && !string.IsNullOrEmpty(ModContext.DataDirectory))
+                return Path.Combine(ModContext.DataDirectory, "Cache");
+
             string root = null;
             try
             {
@@ -236,8 +239,8 @@ namespace TimingShow.HUD
         }
 
         // Unity's Font API needs a real file path, so the bundled font must live on
-        // disk. Extract into the game's temporary cache and refresh it when the
-        // embedded copy differs from the cached one (mod updates reuse the same name).
+        // disk. Extract it into a cache directory and refresh it when the embedded
+        // copy differs from the cached one (mod updates reuse the same name).
         private static void ExtractIfChanged(string resourceName, string path)
         {
             try

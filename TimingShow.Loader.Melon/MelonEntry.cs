@@ -1,5 +1,6 @@
 using MelonLoader;
 using MelonLoader.Utils;
+using System;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
@@ -15,9 +16,16 @@ namespace TimingShow.Melon
             var logger = new MelonLoggerAdapter();
             ModEntry.Initialize(modPath, logger);
             ModContext.IsMelon = true;
-            ModContext.DataPath = Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow");
-            bool firstRun = !File.Exists(Path.Combine(modPath, "Settings.json"));
-            ModContext.Settings = Settings.Load(modPath);
+
+            string dataPath = Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow");
+            Directory.CreateDirectory(dataPath);
+            ModContext.DataPath = dataPath;
+            MigrateSettings(modPath, dataPath, logger);
+
+            bool firstRun = !File.Exists(Path.Combine(dataPath, "Settings.json"));
+            ModContext.Settings = Settings.Load(dataPath);
+            if (ModContext.Settings != null && Settings.IsLegacyLogDirectory(ModContext.Settings.LogDirectory))
+                ModContext.Settings.LogDirectory = Settings.DefaultLogDirectory();
 
             i18n.LoadLanguages(modPath);
             MelonHotkeys.Initialize(ModContext.Settings);
@@ -29,6 +37,23 @@ namespace TimingShow.Melon
             
             ScheduleStartupHint(firstRun);
             InitializeUpdater(modPath, Info.Version, logger);
+        }
+
+        private static void MigrateSettings(string modPath, string dataPath, IModLogger logger)
+        {
+            string legacy = Path.Combine(modPath, "Settings.json");
+            string target = Path.Combine(dataPath, "Settings.json");
+            if (File.Exists(target) || !File.Exists(legacy)) return;
+
+            try
+            {
+                File.Move(legacy, target);
+                logger.Log("Moved Settings.json to " + target);
+            }
+            catch (Exception e)
+            {
+                logger.Error("Failed to move Settings.json to " + target + ": " + e.Message);
+            }
         }
 
         private static void ScheduleStartupHint(bool firstRun)

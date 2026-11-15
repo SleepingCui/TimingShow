@@ -221,7 +221,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private void SaveWindowSize(Vector2 size)
         {
             Settings settings = ModContext.Settings;
-            if (settings == null || string.IsNullOrEmpty(ModContext.ModPath)) return;
+            if (settings == null || string.IsNullOrEmpty(ModContext.DataDirectory)) return;
 
             if (Mathf.Approximately(settings.LogGraph_WindowWidth, size.x) &&
                 Mathf.Approximately(settings.LogGraph_WindowHeight, size.y))
@@ -231,7 +231,7 @@ namespace TimingShow.HUD.LogGraphWindow
 
             settings.LogGraph_WindowWidth = size.x;
             settings.LogGraph_WindowHeight = size.y;
-            settings.Save(ModContext.ModPath);   
+            settings.Save(ModContext.DataDirectory);   
         }
 
         private bool ScreenToLocal(Vector2 screenPosition, out Vector2 local)

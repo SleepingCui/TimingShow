@@ -454,7 +454,7 @@ namespace TimingShow
             return Path.GetFullPath(Path.Combine(root, "Logs"));
         }
 
-        private static bool IsLegacyLogDirectory(string logDirectory)
+        public static bool IsLegacyLogDirectory(string logDirectory)
         {
             if (string.IsNullOrWhiteSpace(logDirectory)) return true;
             try

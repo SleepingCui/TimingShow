@@ -143,8 +143,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             try
             {
                 Settings settings = S;
-                if (settings != null && !string.IsNullOrEmpty(ModContext.ModPath))
-                    settings.Save(ModContext.ModPath);
+                if (settings != null && !string.IsNullOrEmpty(ModContext.DataDirectory))
+                    settings.Save(ModContext.DataDirectory);
             }
             catch (Exception e)
             {
