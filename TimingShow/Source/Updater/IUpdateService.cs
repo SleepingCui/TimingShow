@@ -2,6 +2,33 @@ using System;
 
 namespace TimingShow.Update
 {
+    public enum UpdateBannerKind
+    {
+        None,
+        Available,
+        Downloading,
+        Verifying,
+        Ready,
+        Failed
+    }
+
+    public interface IUpdateBannerSource
+    {
+        UpdateBannerKind BannerKind { get; }
+
+        string BannerVersion { get; }
+
+        float BannerProgress { get; }
+
+        string BannerError { get; }
+
+        void StartUpdate();
+
+        void CancelDownload();
+
+        void Dismiss();
+    }
+
     public interface IUpdateService
     {
         bool Supported { get; }

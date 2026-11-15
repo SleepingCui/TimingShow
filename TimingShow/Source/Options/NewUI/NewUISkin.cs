@@ -38,6 +38,8 @@ namespace TimingShow.Options
 
         internal static readonly Color Warning = new Color(0.9686f, 0.5647f, 0.0353f, 1f);
         internal static readonly Color WarningBorder = new Color(0.8627f, 0.4078f, 0.0118f, 1f);
+        internal static readonly Color Error = new Color(0.851f, 0.1255f, 0.1255f, 1f);
+        internal static readonly Color ErrorBorder = new Color(0.7059f, 0.0941f, 0.0941f, 1f);
 
         internal static GUIStyle PageStyle;
         internal static GUIStyle CardStyle;
@@ -53,8 +55,11 @@ namespace TimingShow.Options
         internal static GUIStyle WarningStyle;
         internal static GUIStyle WarningBoxStyle;
         internal static Texture2D WarningIcon;
+        internal static Texture2D StatusInfoIcon;
+        internal static Texture2D StatusErrorIcon;
 
         private const int WarningIconResolution = 64;
+        private const int StatusIconResolution = 64;
         private static int _warningIconKey;
         private static Texture2D FoldChevronOpen;
         private static Texture2D FoldChevronClosed;
@@ -181,6 +186,8 @@ namespace TimingShow.Options
             WarningStyle.clipping = TextClipping.Clip;
 
             WarningIcon = EnsureWarningIcon();
+            StatusInfoIcon = BuildStatusIcon(StatusIconResolution, false);
+            StatusErrorIcon = BuildStatusIcon(StatusIconResolution, true);
             FoldChevronOpen = BuildFoldChevron(FoldArrowResolution, true);
             FoldChevronClosed = BuildFoldChevron(FoldArrowResolution, false);
             WarningBoxStyle = new GUIStyle
@@ -533,6 +540,76 @@ namespace TimingShow.Options
                             Vector2 point = new Vector2(x + (sx + 0.5f) / Samples, y + (sy + 0.5f) / Samples);
                             Color32 color;
                             if (IsWarningStroke(point, triangle, barStart, barEnd, dotCenter, dotRadius, stroke)) color = strokeColor;
+                            else if ((point - center).sqrMagnitude <= innerRadius * innerRadius) color = fill;
+                            else if ((point - center).sqrMagnitude <= outerRadius * outerRadius) color = ring;
+                            else continue;
+
+                            r += color.r;
+                            g += color.g;
+                            b += color.b;
+                            hits++;
+                        }
+                    }
+
+                    if (hits == 0) continue;
+
+                    pixels[(size - 1 - y) * size + x] = new Color32(
+                        (byte)Mathf.RoundToInt(r / hits),
+                        (byte)Mathf.RoundToInt(g / hits),
+                        (byte)Mathf.RoundToInt(b / hits),
+                        (byte)Mathf.RoundToInt(hits * 255f / SampleCount));
+                }
+            }
+
+            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            texture.hideFlags = HideFlags.DontSave;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
+        }
+
+        private static Texture2D BuildStatusIcon(int size, bool error)
+        {
+            float unit = size / 20f;
+            float cx = size * 0.5f;
+            float cy = size * 0.5f;
+            float outerRadius = 10f * unit;
+            float innerRadius = 8f * unit;
+            float stroke = 1.5f * unit;
+            float dotRadius = 1.1f * unit;
+
+            Vector2 barStart = new Vector2(cx, cy + (error ? -4.5f : -0.75f) * unit);
+            Vector2 barEnd = new Vector2(cx, cy + (error ? 0.75f : 4.5f) * unit);
+            Vector2 dotCenter = new Vector2(cx, cy + (error ? 4.5f : -4.5f) * unit);
+            Vector2 center = new Vector2(cx, cy);
+
+            Color32 fill = error ? Error : Element;
+            Color32 ring = error ? ErrorBorder : Border;
+            Color32 strokeColor = Text;
+
+            const int Samples = 4;
+            const int SampleCount = Samples * Samples;
+
+            Color32[] pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float r = 0f;
+                    float g = 0f;
+                    float b = 0f;
+                    int hits = 0;
+                    for (int sy = 0; sy < Samples; sy++)
+                    {
+                        for (int sx = 0; sx < Samples; sx++)
+                        {
+                            Vector2 point = new Vector2(x + (sx + 0.5f) / Samples, y + (sy + 0.5f) / Samples);
+                            float halfStroke = stroke * 0.5f;
+                            Color32 color;
+                            if (SegmentDistance(point, barStart, barEnd) <= halfStroke
+                                || (point - dotCenter).sqrMagnitude <= dotRadius * dotRadius) color = strokeColor;
                             else if ((point - center).sqrMagnitude <= innerRadius * innerRadius) color = fill;
                             else if ((point - center).sqrMagnitude <= outerRadius * outerRadius) color = ring;
                             else continue;

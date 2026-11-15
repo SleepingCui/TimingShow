@@ -63,6 +63,11 @@ namespace TimingShow.Update
             }
         }
 
+        public static IUpdateBannerSource Banner
+        {
+            get { return _service as IUpdateBannerSource; }
+        }
+
         public static void DrawBanner()
         {
             if (_service != null) _service.DrawBanner();

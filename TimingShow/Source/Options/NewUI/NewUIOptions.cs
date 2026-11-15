@@ -43,7 +43,7 @@ namespace TimingShow.Options
 
             NewUISkin.Ensure();
             NewUIWidgets.BeginFrame();
-            UpdateBridge.DrawBanner();
+            NewUIUpdateBanner.Draw();
             DrawTabs();
             if (ModContext.Settings.InsecureUpdateDebugEnabled) NewUIWidgets.Warning(i18n.T("Warning_InsecureUpdateDebug"));
             GUILayout.Space(6f);
