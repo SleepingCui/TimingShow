@@ -31,6 +31,9 @@ A hit-timing analysis mod for A Dance of Fire and Ice, supporting MelonLoader an
 - 返回关卡编辑器后可显示上一局的击打点，并支持悬停查看详情或从日志导入击打点
 
   View the previous run's hit markers in the level editor, inspect them on hover, or import hit markers from a log
+- 开启编辑器击打点后，可用悬浮面板按地板、时间、玩家、偏差和判定筛选或搜索，默认按 F6 显示
+
+  When editor hit markers are enabled, a floating panel (F6 by default) filters and searches hits by floor, time, player, offset, and judgement
 - 可通过 F10（默认快捷键）打开上次击打报告；即使未启用日志记录，也能查看本局图表
 
   Press F10 (the default hotkey) to view the last-session report and its charts, even when logging is disabled
@@ -43,6 +46,9 @@ A hit-timing analysis mod for A Dance of Fire and Ice, supporting MelonLoader an
 - 支持本地多人 (co-op)
 
   Supports local co-op: per-player statistics
+- 支持游戏内检查与自动更新，默认关闭；更新在下次启动时生效
+
+  Supports in-game update checks and automatic updates, disabled by default; updates take effect on the next launch
 - 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
 
   Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.
@@ -67,6 +73,7 @@ A hit-timing analysis mod for A Dance of Fire and Ice, supporting MelonLoader an
 - [Oerlayer](https://github.com/c3nb/Overlayer)
 - [ProgressDisplayer](https://github.com/FLOWERs-Modding/ADOFAI_ProgressDisplayer2)
 - [XPerfect](https://github.com/8100print/XPerfect)
+- [YCH](https://github.com/adofaiex/YqlossClientHarmony)
 
 ## LICENSE
 
