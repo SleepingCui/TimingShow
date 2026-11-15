@@ -17,7 +17,7 @@ namespace TimingShow.Options
     {
         private const string Ellipsis = "...";
 
-        private static bool _showLogList;
+        private static bool _showLogList = true;
         private static GUIStyle _deleteButtonStyle;
         private static GUIStyle _deleteArmedButtonStyle;
         private static GUIStyle _warningLabelStyle;
@@ -212,15 +212,19 @@ namespace TimingShow.Options
                 RequestLogScan(logDir);
             }
 
-            if (NewUIWidgets.ButtonAt(new Rect(toolbar.x + 74f, toolbar.y, 120f, toolbar.height), GetSortButtonText()))
+            Rect sortRect = new Rect(toolbar.x + 74f, toolbar.y, 120f, toolbar.height);
+            if (NewUIWidgets.ButtonAt(sortRect, GetSortButtonText()))
             {
                 ModContext.Settings.LogSort = (ModContext.Settings.LogSort + 1) % 3;
                 _logEntries.Sort(CompareLogEntries);
                 RebuildVisibleEntries();
             }
 
+            Rect openRect = new Rect(sortRect.xMax + 8f, toolbar.y, 126f, toolbar.height);
+            if (NewUIWidgets.ButtonAt(openRect, i18n.T("Btn_OpenLogs"))) OpenLogDirectory(logDir);
+
             string summary = string.Format(i18n.T("LogSummary"), _visibleEntries.Count, FormatFileSize(totalBytes));
-            GUI.Label(new Rect(toolbar.x + 198f, toolbar.y, Mathf.Max(10f, toolbar.width - 198f), toolbar.height), summary, NewUISkin.ValueStyle);
+            GUI.Label(new Rect(openRect.xMax + 10f, toolbar.y, Mathf.Max(10f, toolbar.xMax - openRect.xMax - 10f), toolbar.height), summary, NewUISkin.ValueStyle);
 
             Rect searchRow = NewUIWidgets.Row(28f);
             float clearWidth = string.IsNullOrEmpty(_searchQuery) ? 0f : 30f;
@@ -251,7 +255,7 @@ namespace TimingShow.Options
             keepX += keepPrefixWidth + 4f;
 
             string newKeepText = NewUIWidgets.TextField(new Rect(keepX, retentionRow.y + 3f, 56f, retentionRow.height - 6f), _keepFirstText);
-            if (!string.Equals(newKeepText, _keepFirstText, StringComparison.Ordinal))
+            if (!string.Equals(newKeepText, _keepFirstText, StringComparison.Ordinal) && NewUIWidgets.IsNumberDraft(newKeepText, true))
             {
                 _keepFirstText = newKeepText;
                 int parsed;
@@ -296,6 +300,20 @@ namespace TimingShow.Options
             }
 
             DrawVirtualLogList(viewport, ref _logListScroll);
+        }
+
+        private static void OpenLogDirectory(string logDir)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(logDir)) logDir = GetLogDirectory();
+                if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+                Process.Start(new ProcessStartInfo { FileName = logDir, UseShellExecute = true, Verb = "open" });
+            }
+            catch (Exception e)
+            {
+                ModContext.Logger.Error(e.Message);
+            }
         }
 
         private static void Prepare()

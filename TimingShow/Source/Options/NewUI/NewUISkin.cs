@@ -7,6 +7,10 @@ namespace TimingShow.Options
     {
         internal const float CardRadius = 10f;
         internal const float ElementRadius = 6f;
+        internal const float FoldArrowSize = 18f;
+
+        private const float FoldArrowRadius = 5f;
+        private const int FoldArrowResolution = 64;
 
         private const int MaxRadius = 30;
 
@@ -52,8 +56,8 @@ namespace TimingShow.Options
 
         private const int WarningIconResolution = 64;
         private static int _warningIconKey;
-        internal static Texture2D FoldArrowOpen;
-        internal static Texture2D FoldArrowClosed;
+        private static Texture2D FoldChevronOpen;
+        private static Texture2D FoldChevronClosed;
 
         private static bool _built;
         private static GUISkin _skin;
@@ -177,8 +181,8 @@ namespace TimingShow.Options
             WarningStyle.clipping = TextClipping.Clip;
 
             WarningIcon = EnsureWarningIcon();
-            FoldArrowOpen = BuildFoldArrow(16, true, TextMuted);
-            FoldArrowClosed = BuildFoldArrow(16, false, TextMuted);
+            FoldChevronOpen = BuildFoldChevron(FoldArrowResolution, true);
+            FoldChevronClosed = BuildFoldChevron(FoldArrowResolution, false);
             WarningBoxStyle = new GUIStyle
             {
                 normal = { background = BorderedRounded(8, 1, WarningBorder, WarningFill) },
@@ -345,6 +349,25 @@ namespace TimingShow.Options
 
             DrawRounded(rect, radius, color);
             DrawRounded(inner, Mathf.Max(1f, radius - thickness), fill);
+        }
+
+        internal static void DrawFoldArrow(Rect rect, bool open, bool enabled = true)
+        {
+            bool hover = enabled && rect.Contains(Event.current.mousePosition);
+            float alpha = enabled ? 1f : 0.55f;
+            Color fill = hover ? ElementHover : Element;
+            Color border = hover ? Lighten(Border, 0.12f) : Border;
+            Color stroke = hover ? Text : TextDim;
+
+            DrawBorder(rect, FoldArrowRadius, 1f, Fade(border, alpha), Fade(fill, alpha));
+
+            Texture2D chevron = open ? FoldChevronOpen : FoldChevronClosed;
+            if (chevron == null) return;
+
+            Color previous = GUI.color;
+            GUI.color = Fade(stroke, alpha);
+            GUI.DrawTexture(rect, chevron, ScaleMode.ScaleToFit, true);
+            GUI.color = previous;
         }
 
         private static Texture2D WhiteRounded(int radius)
@@ -540,32 +563,27 @@ namespace TimingShow.Options
             return texture;
         }
 
-        private static Texture2D BuildFoldArrow(int size, bool pointDown, Color color)
+        private static Texture2D BuildFoldChevron(int size, bool pointDown)
         {
-            Vector2 a = pointDown ? new Vector2(1.5f, 4f) : new Vector2(4f, 1.5f);
-            Vector2 b = pointDown ? new Vector2(size - 1.5f, 4f) : new Vector2(size - 3f, size * 0.5f);
-            Vector2 c = pointDown ? new Vector2(size * 0.5f, size - 3f) : new Vector2(4f, size - 1.5f);
-            Color32 fill = color;
+            Vector2[] points = pointDown
+                ? new[] { new Vector2(0.75f, 0.40625f), new Vector2(0.5f, 0.65625f), new Vector2(0.25f, 0.40625f) }
+                : new[] { new Vector2(0.40625f, 0.25f), new Vector2(0.65625f, 0.5f), new Vector2(0.40625f, 0.75f) };
 
-            const int Samples = 4;
-            const int SampleCount = Samples * Samples;
+            Vector2 start = points[0] * size;
+            Vector2 vertex = points[1] * size;
+            Vector2 end = points[2] * size;
+            float halfStroke = size * 0.05f;
+
             Color32[] pixels = new Color32[size * size];
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    int hits = 0;
-                    for (int sy = 0; sy < Samples; sy++)
-                    {
-                        for (int sx = 0; sx < Samples; sx++)
-                        {
-                            Vector2 point = new Vector2(x + (sx + 0.5f) / Samples, y + (sy + 0.5f) / Samples);
-                            if (TriangleContains(point, a, b, c)) hits++;
-                        }
-                    }
-
-                    if (hits == 0) continue;
-                    pixels[(size - 1 - y) * size + x] = new Color32(fill.r, fill.g, fill.b, (byte)Mathf.RoundToInt(hits * 255f / SampleCount));
+                    Vector2 point = new Vector2(x + 0.5f, y + 0.5f);
+                    float distance = Mathf.Min(SegmentDistance(point, start, vertex), SegmentDistance(point, vertex, end));
+                    float coverage = Mathf.Clamp01(halfStroke + 0.5f - distance);
+                    if (coverage <= 0f) continue;
+                    pixels[(size - 1 - y) * size + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(coverage * 255f));
                 }
             }
 
@@ -576,16 +594,6 @@ namespace TimingShow.Options
             texture.SetPixels32(pixels);
             texture.Apply(false, true);
             return texture;
-        }
-
-        private static bool TriangleContains(Vector2 point, Vector2 a, Vector2 b, Vector2 c)
-        {
-            float d1 = (point.x - b.x) * (a.y - b.y) - (a.x - b.x) * (point.y - b.y);
-            float d2 = (point.x - c.x) * (b.y - c.y) - (b.x - c.x) * (point.y - c.y);
-            float d3 = (point.x - a.x) * (c.y - a.y) - (c.x - a.x) * (point.y - a.y);
-            bool hasNegative = d1 < 0f || d2 < 0f || d3 < 0f;
-            bool hasPositive = d1 > 0f || d2 > 0f || d3 > 0f;
-            return !(hasNegative && hasPositive);
         }
 
         private static bool IsWarningStroke(Vector2 point, Vector2[] triangle, Vector2 barStart, Vector2 barEnd, Vector2 dotCenter, float dotRadius, float stroke)

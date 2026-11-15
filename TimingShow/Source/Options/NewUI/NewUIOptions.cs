@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using UnityEngine;
 using UnityFileDialog;
@@ -107,6 +106,12 @@ namespace TimingShow.Options
             return NewUIWidgets.Section(titleKey, id);
         }
 
+        private static void BeginCard(string titleKey)
+        {
+            GUILayout.BeginVertical(NewUISkin.CardStyle);
+            NewUIWidgets.CardTitle(titleKey);
+        }
+
         private static bool BeginFeatureCard(string labelKey, string id, ref bool value, string descKey = null, bool enabled = true)
         {
             GUILayout.BeginVertical(NewUISkin.CardStyle);
@@ -127,55 +132,49 @@ namespace TimingShow.Options
             s.NewSettingsUI = NewUIWidgets.Toggle("Toggle_NewSettingsUI", s.NewSettingsUI, "Desc_NewSettingsUI");
             EndCard();
 
-            if (BeginCard("Label_Language", "card_general_language"))
-            {
-                DrawLanguageRow(s);
-                bool autoLanguage = s.AutoLanguage;
-                s.AutoLanguage = NewUIWidgets.Toggle("Toggle_AutoLanguage", s.AutoLanguage);
-                if (!autoLanguage && s.AutoLanguage) i18n.ApplyAutoLanguage();
-            }
+            BeginCard("Label_Language");
+            DrawLanguageRow(s);
+            bool autoLanguage = s.AutoLanguage;
+            s.AutoLanguage = NewUIWidgets.Toggle("Toggle_AutoLanguage", s.AutoLanguage);
+            if (!autoLanguage && s.AutoLanguage) i18n.ApplyAutoLanguage();
             EndCard();
 
-            if (BeginCard("Btn_Other", "card_general_other"))
+            BeginCard("Btn_Other");
+            if (ModContext.IsMelon) s.ShowConfigHintOnStart = NewUIWidgets.Toggle("Toggle_ConfigHintOnStart", s.ShowConfigHintOnStart);
+
+            s.SessionReport_Enabled = NewUIWidgets.Toggle("Toggle_SessionReport", s.SessionReport_Enabled);
+
+            bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
+            bool canToggleWindow = windowOpen || TimingShow.SessionReport.LastSessionReport.HasReport;
+            string windowKey = windowOpen ? "Btn_CloseLogWindow" : "Btn_OpenLogWindow";
+
+            Rect actions = NewUIWidgets.Row(30f);
+            Rect windowButton = new Rect(actions.x, actions.y, 200f, actions.height);
+            Rect resetButton = new Rect(windowButton.xMax + 8f, actions.y, 200f, actions.height);
+            if (NewUIWidgets.ButtonAt(windowButton, i18n.T(windowKey), false, canToggleWindow))
             {
-                if (ModContext.IsMelon) s.ShowConfigHintOnStart = NewUIWidgets.Toggle("Toggle_ConfigHintOnStart", s.ShowConfigHintOnStart);
-
-                s.SessionReport_Enabled = NewUIWidgets.Toggle("Toggle_SessionReport", s.SessionReport_Enabled);
-
-                bool windowOpen = TimingShow.HUD.LogGraphWindow.LogGraphWindow.IsOpen;
-                bool canToggleWindow = windowOpen || TimingShow.SessionReport.LastSessionReport.HasReport;
-                string windowKey = windowOpen ? "Btn_CloseLogWindow" : "Btn_OpenLogWindow";
-
-                Rect actions = NewUIWidgets.Row(30f);
-                Rect windowButton = new Rect(actions.x, actions.y, 200f, actions.height);
-                Rect resetButton = new Rect(windowButton.xMax + 8f, actions.y, 200f, actions.height);
-                if (NewUIWidgets.ButtonAt(windowButton, i18n.T(windowKey), false, canToggleWindow))
-                {
-                    if (windowOpen) TimingShow.SessionReport.LastSessionReport.CloseWindow();
-                    else TimingShow.SessionReport.LastSessionReport.OpenWindow();
-                }
-
-                if (NewUIWidgets.ButtonAt(resetButton, i18n.T("Btn_Reset"))) Players.ResetAll();
-
-                NewUIWidgets.Divider();
-                DrawUpdateRows(s);
+                if (windowOpen) TimingShow.SessionReport.LastSessionReport.CloseWindow();
+                else TimingShow.SessionReport.LastSessionReport.OpenWindow();
             }
+
+            if (NewUIWidgets.ButtonAt(resetButton, i18n.T("Btn_Reset"))) Players.ResetAll();
+
+            NewUIWidgets.Divider();
+            DrawUpdateRows(s);
             EndCard();
 
-            if (BeginCard("Tab_Theme", "card_general_theme"))
+            BeginCard("Tab_Theme");
+            s.Theme_Primary = NewUIWidgets.ColorRow("Label_ThemePrimary", s.Theme_Primary, Settings.Theme_DefaultPrimary);
+            s.Theme_Background = NewUIWidgets.ColorRow("Label_ThemeBackground", s.Theme_Background, Settings.Theme_DefaultBackground);
+            s.Theme_Element = NewUIWidgets.ColorRow("Label_ThemeElement", s.Theme_Element, Settings.Theme_DefaultElement);
+            s.Theme_Text = NewUIWidgets.ColorRow("Label_ThemeText", s.Theme_Text, Settings.Theme_DefaultText);
+            NewUIWidgets.Hint(i18n.T("Hint_ThemeApply"));
+            if (NewUIWidgets.Button(i18n.T("Btn_ThemeReset"), 180f))
             {
-                s.Theme_Primary = NewUIWidgets.ColorRow("Label_ThemePrimary", s.Theme_Primary, Settings.Theme_DefaultPrimary);
-                s.Theme_Background = NewUIWidgets.ColorRow("Label_ThemeBackground", s.Theme_Background, Settings.Theme_DefaultBackground);
-                s.Theme_Element = NewUIWidgets.ColorRow("Label_ThemeElement", s.Theme_Element, Settings.Theme_DefaultElement);
-                s.Theme_Text = NewUIWidgets.ColorRow("Label_ThemeText", s.Theme_Text, Settings.Theme_DefaultText);
-                NewUIWidgets.Hint(i18n.T("Hint_ThemeApply"));
-                if (NewUIWidgets.Button(i18n.T("Btn_ThemeReset"), 180f))
-                {
-                    s.Theme_Primary = Settings.Theme_DefaultPrimary;
-                    s.Theme_Background = Settings.Theme_DefaultBackground;
-                    s.Theme_Element = Settings.Theme_DefaultElement;
-                    s.Theme_Text = Settings.Theme_DefaultText;
-                }
+                s.Theme_Primary = Settings.Theme_DefaultPrimary;
+                s.Theme_Background = Settings.Theme_DefaultBackground;
+                s.Theme_Element = Settings.Theme_DefaultElement;
+                s.Theme_Text = Settings.Theme_DefaultText;
             }
             EndCard();
         }
@@ -527,21 +526,6 @@ namespace TimingShow.Options
 
                 GUILayout.Space(4f);
                 OptionLogList.DrawNewUI();
-
-                GUILayout.Space(6f);
-                if (NewUIWidgets.Button(i18n.T("Btn_OpenLogs"), 150f))
-                {
-                    try
-                    {
-                        string logDir = OptionLogList.GetLogDirectory();
-                        if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
-                        Process.Start(new ProcessStartInfo() { FileName = logDir, UseShellExecute = true, Verb = "open" });
-                    }
-                    catch (Exception e)
-                    {
-                        ModContext.Logger.Error(e.Message);
-                    }
-                }
             }
         }
 
@@ -603,7 +587,7 @@ namespace TimingShow.Options
                 EndCard();
 
                 BeginCard();
-                if (NewUIWidgets.Section("Btn_Debug", "newui_debug"))
+                if (NewUIWidgets.Section("Btn_Debug", "newui_debug", false))
                 {
                     NewUIWidgets.Hint(i18n.T("Desc_DebugWarning"));
                     s.Diag_PerfLogEnabled = NewUIWidgets.Toggle("Toggle_DiagPerfLog", s.Diag_PerfLogEnabled);

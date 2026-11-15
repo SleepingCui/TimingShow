@@ -15,17 +15,25 @@ namespace TimingShow.Options
 
         private static readonly Dictionary<string, bool> SectionStates = new Dictionary<string, bool>();
         private static readonly Dictionary<int, string> HexTexts = new Dictionary<int, string>();
+        private static readonly Dictionary<string, string> ChannelTexts = new Dictionary<string, string>();
+        private static readonly Dictionary<string, string> SliderTexts = new Dictionary<string, string>();
 
         private static int _colorIndex;
         private static int _fieldIndex;
+        private static int _sliderIndex;
         private static int _expandedColor = -1;
         private static bool _capturingKey;
         private static int _keySuppressFrame = -1;
+        private static string _activeField;
 
         internal static void BeginFrame()
         {
             _colorIndex = 0;
             _fieldIndex = 0;
+            _sliderIndex = 0;
+
+            Event current = Event.current;
+            if (current != null && current.type == EventType.MouseDown) _activeField = null;
         }
 
         internal static bool IsCapturingKey
@@ -45,9 +53,9 @@ namespace TimingShow.Options
             GUILayout.Space(height);
         }
 
-        internal static bool Section(string titleKey, string id)
+        internal static bool Section(string titleKey, string id, bool defaultOpen = true)
         {
-            return FoldHeader(i18n.T(titleKey), id);
+            return FoldHeader(i18n.T(titleKey), id, defaultOpen);
         }
 
         internal static bool FoldHeader(string title, string id, bool defaultOpen = true)
@@ -58,8 +66,9 @@ namespace TimingShow.Options
             if (hover) NewUISkin.DrawRounded(new Rect(row.x - 4f, row.y - 1f, row.width + 8f, row.height + 2f), 5f, NewUISkin.Fade(NewUISkin.Element, 0.5f));
 
             NewUISkin.DrawRounded(new Rect(row.x + 2f, row.y + 4f, 3f, row.height - 8f), 1.5f, NewUISkin.Accent);
-            GUI.Label(new Rect(row.x + 12f, row.y, row.width - 40f, row.height), title, NewUISkin.SectionStyle);
-            DrawFoldArrow(row.xMax - 12f, row.y + RowHeight * 0.5f, open);
+            Rect arrow = new Rect(row.x + 10f, row.y + (row.height - NewUISkin.FoldArrowSize) * 0.5f, NewUISkin.FoldArrowSize, NewUISkin.FoldArrowSize);
+            NewUISkin.DrawFoldArrow(arrow, open);
+            GUI.Label(new Rect(arrow.xMax + 8f, row.y, row.xMax - arrow.xMax - 16f, row.height), title, NewUISkin.SectionStyle);
 
             if (GUI.Button(row, GUIContent.none, GUIStyle.none))
             {
@@ -67,13 +76,6 @@ namespace TimingShow.Options
                 SectionStates[id] = open;
             }
             return open;
-        }
-
-        private static void DrawFoldArrow(float centerX, float centerY, bool open)
-        {
-            Texture2D arrow = open ? NewUISkin.FoldArrowOpen : NewUISkin.FoldArrowClosed;
-            if (arrow == null) return;
-            GUI.DrawTexture(new Rect(centerX - 5f, centerY - 5f, 10f, 10f), arrow, ScaleMode.ScaleToFit, true);
         }
 
         private static bool FoldState(string id, bool defaultOpen = true)
@@ -116,18 +118,19 @@ namespace TimingShow.Options
             bool hover = enabled && row.Contains(Event.current.mousePosition);
             if (hover) NewUISkin.DrawRounded(new Rect(row.x - 4f, row.y - 1f, row.width + 8f, row.height + 2f), 5f, NewUISkin.Fade(NewUISkin.Element, 0.45f));
 
-            const float ArrowWidth = 22f;
-            Rect arrowRect = new Rect(row.xMax - ArrowWidth, row.y, ArrowWidth, row.height);
-            float switchX = row.xMax - ArrowWidth - SwitchWidth - 2f;
-            float textWidth = Mathf.Max(10f, switchX - row.x - 16f);
+            Rect arrowRect = new Rect(row.x + 6f, row.y + (RowHeight - NewUISkin.FoldArrowSize) * 0.5f, NewUISkin.FoldArrowSize, NewUISkin.FoldArrowSize);
+            float switchX = row.xMax - SwitchWidth - 2f;
+            float textX = arrowRect.xMax + 8f;
+            float textWidth = Mathf.Max(10f, switchX - textX - 8f);
             GUIStyle labelStyle = !enabled ? NewUISkin.MutedLabelStyle : (value ? NewUISkin.LabelStyle : NewUISkin.DimLabelStyle);
-            GUI.Label(new Rect(row.x + 8f, row.y, textWidth, hasDesc ? 18f : RowHeight), i18n.T(labelKey), labelStyle);
-            if (hasDesc) GUI.Label(new Rect(row.x + 8f, row.y + 17f, textWidth, 15f), i18n.T(descKey), NewUISkin.MutedLabelStyle);
+            GUI.Label(new Rect(textX, row.y, textWidth, hasDesc ? 18f : RowHeight), i18n.T(labelKey), labelStyle);
+            if (hasDesc) GUI.Label(new Rect(textX, row.y + 17f, textWidth, 15f), i18n.T(descKey), NewUISkin.MutedLabelStyle);
 
             DrawSwitch(new Rect(switchX, row.y + (RowHeight - SwitchHeight) * 0.5f, SwitchWidth, SwitchHeight), value, hover, enabled);
-            DrawFoldArrow(arrowRect.center.x, arrowRect.y + RowHeight * 0.5f, open);
+            bool foldable = enabled && value;
+            NewUISkin.DrawFoldArrow(arrowRect, foldable && open, foldable);
 
-            if (GUI.Button(arrowRect, GUIContent.none, GUIStyle.none))
+            if (foldable && GUI.Button(arrowRect, GUIContent.none, GUIStyle.none))
             {
                 open = !open;
                 SectionStates[id] = open;
@@ -210,12 +213,35 @@ namespace TimingShow.Options
         {
             Rect row = Row(RowHeight);
             GUI.Label(new Rect(row.x + 8f, row.y, LabelWidth, row.height), i18n.T(labelKey), NewUISkin.LabelStyle);
-            GUI.Label(new Rect(row.xMax - 66f, row.y, 58f, row.height), value.ToString(format, CultureInfo.InvariantCulture), NewUISkin.ValueStyle);
 
             float trackX = row.x + LabelWidth + 16f;
-            float trackWidth = Mathf.Max(40f, row.xMax - 72f - trackX);
+            float trackWidth = Mathf.Max(40f, row.xMax - 78f - trackX);
             Rect track = new Rect(trackX, row.center.y - 8f, trackWidth, 16f);
-            return SliderCore(track, value, min, max);
+            float dragged = SliderCore(track, value, min, max);
+
+            Rect fieldRect = new Rect(row.xMax - 72f, row.y + 2f, 64f, RowHeight - 4f);
+            return SliderValueField(fieldRect, labelKey, dragged, min, max, format, dragged != value);
+        }
+
+        private static float SliderValueField(Rect rect, string labelKey, float value, float min, float max, string format, bool forceText)
+        {
+            string key = labelKey + "#" + _sliderIndex++.ToString(CultureInfo.InvariantCulture);
+            bool focused = FieldFocused(key, rect);
+            string fallback = value.ToString(format, CultureInfo.InvariantCulture);
+            string text;
+            if (!focused || forceText || !SliderTexts.TryGetValue(key, out text) || text == null) text = fallback;
+
+            DrawFieldFrame(rect, focused);
+            GUI.SetNextControlName(key);
+            string edited = GUI.TextField(rect, text, NewUISkin.FieldStyle);
+            if (focused && !forceText && !IsNumberDraft(edited, format == "0")) edited = fallback;
+            SliderTexts[key] = edited;
+
+            if (!focused || forceText) return value;
+
+            float parsed;
+            if (float.TryParse(edited, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed) && parsed >= min && parsed <= max) return parsed;
+            return value;
         }
 
         internal static int IntSlider(string labelKey, int value, int min, int max)
@@ -282,12 +308,18 @@ namespace TimingShow.Options
 
             if (text == null) text = value.ToString(CultureInfo.InvariantCulture);
             Rect fieldRect = new Rect(row.xMax - 92f, row.y + 3f, 86f, RowHeight - 6f);
-            string edited = TextField(fieldRect, text);
-            if (edited != text)
+            bool focused;
+            string edited = TextField(fieldRect, text, out focused);
+            if (edited != text && IsNumberDraft(edited, true))
             {
                 text = edited;
                 int parsed;
-                if (int.TryParse(edited, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed)) value = Mathf.Clamp(parsed, min, max);
+                if (int.TryParse(edited, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) && parsed >= min && parsed <= max) value = parsed;
+            }
+            if (!focused && text != null)
+            {
+                string canonical = value.ToString(CultureInfo.InvariantCulture);
+                if (text != canonical) text = canonical;
             }
             return value;
         }
@@ -299,12 +331,18 @@ namespace TimingShow.Options
 
             if (text == null) text = value.ToString("0.###", CultureInfo.InvariantCulture);
             Rect fieldRect = new Rect(row.xMax - 92f, row.y + 3f, 86f, RowHeight - 6f);
-            string edited = TextField(fieldRect, text);
-            if (edited != text)
+            bool focused;
+            string edited = TextField(fieldRect, text, out focused);
+            if (edited != text && IsNumberDraft(edited, false))
             {
                 text = edited;
                 float parsed;
-                if (float.TryParse(edited, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed)) value = Mathf.Clamp(parsed, min, max);
+                if (float.TryParse(edited, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed) && parsed >= min && parsed <= max) value = parsed;
+            }
+            if (!focused && text != null)
+            {
+                string canonical = value.ToString("0.###", CultureInfo.InvariantCulture);
+                if (text != canonical) text = canonical;
             }
             return value;
         }
@@ -317,28 +355,83 @@ namespace TimingShow.Options
             return TextField(fieldRect, text);
         }
 
-        internal static string TextField(Rect rect, string text, bool focusedStyle = true)
+        internal static string TextField(Rect rect, string text)
         {
-            string controlName = "TimingShowNewUIField" + _fieldIndex++;
-            GUI.SetNextControlName(controlName);
-            bool focused = focusedStyle && GUI.GetNameOfFocusedControl() == controlName;
+            bool focused;
+            return TextField(rect, text, out focused);
+        }
 
-            NewUISkin.DrawRounded(rect, NewUISkin.ElementRadius, NewUISkin.Field);
-            if (focused) NewUISkin.DrawBorder(rect, NewUISkin.ElementRadius, 1f, NewUISkin.Accent, NewUISkin.Field);
+        internal static string TextField(Rect rect, string text, out bool focused)
+        {
+            string key = "TimingShowNewUIField" + _fieldIndex++;
+            focused = FieldFocused(key, rect);
 
+            DrawFieldFrame(rect, focused);
+
+            GUI.SetNextControlName(key);
             return GUI.TextField(rect, text, NewUISkin.FieldStyle);
+        }
+
+        private static bool FieldFocused(string key, Rect rect)
+        {
+            Event current = Event.current;
+            if (current != null && current.type == EventType.MouseDown && current.button == 0 && rect.Contains(current.mousePosition)) _activeField = key;
+            return _activeField == key;
+        }
+
+        internal static bool IsNumberDraft(string text, bool integer)
+        {
+            if (string.IsNullOrEmpty(text)) return true;
+
+            int start = text[0] == '-' || text[0] == '+' ? 1 : 0;
+            if (text.Length == start) return true;
+
+            bool dot = false;
+            for (int i = start; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (c == '.')
+                {
+                    if (integer || dot) return false;
+                    dot = true;
+                    continue;
+                }
+                if (c < '0' || c > '9') return false;
+            }
+            return true;
+        }
+
+        private static bool IsHexDraft(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return true;
+
+            int start = text[0] == '#' ? 1 : 0;
+            if (text.Length - start > 8) return false;
+
+            for (int i = start; i < text.Length; i++)
+            {
+                char c = text[i];
+                bool hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+                if (!hex) return false;
+            }
+            return true;
+        }
+
+        private static void DrawFieldFrame(Rect rect, bool focused)
+        {
+            NewUISkin.DrawBorder(rect, NewUISkin.ElementRadius, 1f, focused ? NewUISkin.Accent : NewUISkin.Border, NewUISkin.Field);
         }
 
         internal static string SearchField(Rect rect, string text, string placeholder)
         {
-            string controlName = "TimingShowNewUIField" + _fieldIndex++;
-            GUI.SetNextControlName(controlName);
-            bool focused = GUI.GetNameOfFocusedControl() == controlName;
+            string key = "TimingShowNewUIField" + _fieldIndex++;
+            bool focused = FieldFocused(key, rect);
 
-            NewUISkin.DrawBorder(rect, NewUISkin.ElementRadius, 1f, focused ? NewUISkin.Accent : NewUISkin.Border, NewUISkin.Field);
+            DrawFieldFrame(rect, focused);
             if (!focused && string.IsNullOrEmpty(text) && !string.IsNullOrEmpty(placeholder))
                 GUI.Label(new Rect(rect.x + 10f, rect.y, Mathf.Max(10f, rect.width - 20f), rect.height), placeholder, NewUISkin.MutedLabelStyle);
 
+            GUI.SetNextControlName(key);
             return GUI.TextField(rect, text, NewUISkin.FieldStyle);
         }
 
@@ -377,7 +470,8 @@ namespace TimingShow.Options
         internal static void CardTitle(string titleKey)
         {
             Rect row = Row(24f);
-            GUI.Label(new Rect(row.x + 6f, row.y, row.width - 12f, row.height), i18n.T(titleKey), NewUISkin.SectionStyle);
+            NewUISkin.DrawRounded(new Rect(row.x + 2f, row.y + 4f, 3f, row.height - 8f), 1.5f, NewUISkin.Accent);
+            GUI.Label(new Rect(row.x + 12f, row.y, row.width - 12f, row.height), i18n.T(titleKey), NewUISkin.SectionStyle);
         }
 
         internal static void Hint(string text, Color color)
@@ -412,39 +506,67 @@ namespace TimingShow.Options
 
             if (expanded)
             {
-                color.r = ChannelSlider("R", color.r);
-                color.g = ChannelSlider("G", color.g);
-                color.b = ChannelSlider("B", color.b);
-                color.a = ChannelSlider("A", color.a);
+                color.r = ChannelSlider(index, "R", color.r);
+                color.g = ChannelSlider(index, "G", color.g);
+                color.b = ChannelSlider(index, "B", color.b);
+                color.a = ChannelSlider(index, "A", color.a);
             }
             return color;
         }
 
-        private static float ChannelSlider(string channel, float value)
+        private static float ChannelSlider(int index, string channel, float value)
         {
             Rect row = Row(RowHeight - 4f);
             GUI.Label(new Rect(row.x + 24f, row.y, 20f, row.height), channel, NewUISkin.MutedLabelStyle);
-            GUI.Label(new Rect(row.xMax - 56f, row.y, 46f, row.height), Mathf.RoundToInt(value * 255f).ToString(CultureInfo.InvariantCulture), NewUISkin.ValueStyle);
 
-            Rect track = new Rect(row.x + 48f, row.center.y - 8f, Mathf.Max(30f, row.width - 48f - 64f), 16f);
-            return Mathf.Clamp01(SliderCore(track, value, 0f, 1f));
+            string key = "TimingShowNewUIChannel" + channel + index.ToString(CultureInfo.InvariantCulture);
+            string storeKey = channel + index.ToString(CultureInfo.InvariantCulture);
+            Rect fieldRect = new Rect(row.x + 48f, row.y + 2f, 46f, row.height - 4f);
+            bool focused = FieldFocused(key, fieldRect);
+            string text;
+            if (!focused || !ChannelTexts.TryGetValue(storeKey, out text) || text == null) text = ChannelText(value);
+
+            DrawFieldFrame(fieldRect, focused);
+            GUI.SetNextControlName(key);
+            string edited = GUI.TextField(fieldRect, text, NewUISkin.FieldStyle);
+            if (focused && !IsNumberDraft(edited, true)) edited = ChannelText(value);
+            ChannelTexts[storeKey] = edited;
+
+            if (focused)
+            {
+                int parsed;
+                if (int.TryParse(edited, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) && parsed >= 0 && parsed <= 255)
+                    value = parsed / 255f;
+            }
+
+            Rect track = new Rect(row.x + 102f, row.center.y - 8f, Mathf.Max(30f, row.width - 102f - 10f), 16f);
+            float dragged = Mathf.Clamp01(SliderCore(track, value, 0f, 1f));
+            if (dragged != value)
+            {
+                value = dragged;
+                if (!focused) ChannelTexts[storeKey] = ChannelText(value);
+            }
+            return value;
+        }
+
+        private static string ChannelText(float value)
+        {
+            return Mathf.RoundToInt(value * 255f).ToString(CultureInfo.InvariantCulture);
         }
 
         private static Color HexField(Rect rect, int index, Color color)
         {
             string derived = OptionsWidgets.ColorToHex(color);
+            string key = "TimingShowNewUIHex" + index.ToString(CultureInfo.InvariantCulture);
+            bool focused = FieldFocused(key, rect);
             string text;
-            if (!HexTexts.TryGetValue(index, out text) || text == null) text = derived;
+            if (!focused || !HexTexts.TryGetValue(index, out text) || text == null) text = derived;
 
-            string controlName = "TimingShowNewUIHex" + index;
-            GUI.SetNextControlName(controlName);
-            bool focused = GUI.GetNameOfFocusedControl() == controlName;
-            if (!focused) text = derived;
+            DrawFieldFrame(rect, focused);
 
-            NewUISkin.DrawRounded(rect, NewUISkin.ElementRadius, NewUISkin.Field);
-            if (focused) NewUISkin.DrawBorder(rect, NewUISkin.ElementRadius, 1f, NewUISkin.Accent, NewUISkin.Field);
-
+            GUI.SetNextControlName(key);
             string edited = GUI.TextField(rect, text, NewUISkin.FieldStyle);
+            if (focused && !IsHexDraft(edited)) edited = derived;
             HexTexts[index] = edited;
             if (focused)
             {
