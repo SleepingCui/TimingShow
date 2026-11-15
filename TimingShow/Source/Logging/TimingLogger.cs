@@ -175,7 +175,7 @@ namespace TimingShow.Logging
         {
             int judgeCode = (int)judge;
 
-            bool logXP = isXP && (HitMarginCompat.IsGame34 || ModContext.Settings.Logger_EnableXPerfect);
+            bool logXP = isXP && (HitMarginCompat.IsR150 || ModContext.Settings.Logger_EnableXPerfect);
 
             int playerId = Players.Current.PlayerId;
             if (playerId < 0) playerId = 0;

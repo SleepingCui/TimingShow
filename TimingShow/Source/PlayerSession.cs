@@ -70,7 +70,7 @@ namespace TimingShow
 
         public bool IsXPerfect(HitMan judge)
         {
-            if (HitMarginCompat.IsGame34) return judge == HitMan.XPerfect;
+            if (HitMarginCompat.IsR150) return judge == HitMan.XPerfect;
             return LastIsXP;
         }
 

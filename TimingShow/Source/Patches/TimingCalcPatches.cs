@@ -218,7 +218,7 @@ namespace TimingShow.Patches
                 ModContext.UIDirty = true;
 
 
-                if (!HitMarginCompat.IsGame34)
+                if (!HitMarginCompat.IsR150)
                 {
                     player.LastIsXP = CalcXP.IsLegacyXPerfect(diff, bpm, speed, pitch);
                     RecordSample(diff, player.LastAngle);
@@ -235,37 +235,43 @@ namespace TimingShow.Patches
         [HarmonyPatch(typeof(scrMisc), "GetHitMarginInDeg")]
         public static class ScrMiscGetHitMarginInDegPatch
         {
-            public static bool Prepare() => HitMarginCompat.IsGame34;
+            public static bool Prepare()
+            {
+                return AccessTools.Method(typeof(scrMisc), "GetHitMarginInDeg", new[] { typeof(float), typeof(float), typeof(bool), typeof(float), typeof(float) }) != null;
+            }
 
             public static void Postfix(float hitAngle, float refAngle, bool clockwise, float floorBpm, float conductorPitch)
             {
-                if (!ModContext.IsEnabled) return;
+                if (!ModContext.IsEnabled || !HitMarginCompat.IsR150) return;
                 if (floorBpm == 0f || conductorPitch == 0f) return;
 
                 double deg = (hitAngle - refAngle) * (clockwise ? 1.0 : -1.0) * 57.29578;
                 double timing = deg / 180.0 / floorBpm / conductorPitch * 60000.0;
-                OnGame34Timing(timing, deg);
+                OnR150Timing(timing, deg);
             }
         }
         
         [HarmonyPatch(typeof(scrMisc), "GetHitMarginInSec")]
         public static class ScrMiscGetHitMarginInSecPatch
         {
-            public static bool Prepare() => HitMarginCompat.IsGame34;
+            public static bool Prepare()
+            {
+                return AccessTools.Method(typeof(scrMisc), "GetHitMarginInSec", new[] { typeof(double), typeof(float), typeof(float) }) != null;
+            }
 
             public static void Postfix(double timeDiff, float floorBpm, float conductorPitch)
             {
-                if (!ModContext.IsEnabled) return;
+                if (!ModContext.IsEnabled || !HitMarginCompat.IsR150) return;
                 if (floorBpm == 0f || conductorPitch == 0f) return;
 
                 double timing = timeDiff * 1000.0;
                 double deg = timeDiff * 3.0 * floorBpm * conductorPitch;
-                OnGame34Timing(timing, deg);
+                OnR150Timing(timing, deg);
             }
         }
 
 
-        private static void OnGame34Timing(double timing, double angle)
+        private static void OnR150Timing(double timing, double angle)
         {
             PlayerSession player = Players.Current;
             player.HasHit = true;
@@ -403,7 +409,7 @@ namespace TimingShow.Patches
 
                 if (!HitMarginCompat.IsPerfectFamily(judge)) return false;
 
-                if (HitMarginCompat.IsGame34) return judge == HitMan.XPerfect;
+                if (HitMarginCompat.IsR150) return judge == HitMan.XPerfect;
                 if (HitMarginCompat.IsLegacy) return CalcXP.IsLegacyXPerfect(player.LastTiming, player.LastBpm, player.LastSpeed, player.LastPitch);
                 return false;
             }
@@ -436,7 +442,7 @@ namespace TimingShow.Patches
                     player.PerfectFamilyCount = perfectFamily;
                     player.TotalHitsCount = (int)tracker.GetTotalHits();
 
-                    if (HitMarginCompat.IsGame34 && HitMarginCompat.RawXPerfectCode >= 0)
+                    if (HitMarginCompat.IsR150 && HitMarginCompat.RawXPerfectCode >= 0)
                         player.XPerfectCount = tracker.GetHits(HitMarginCompat.FromRawCode(HitMarginCompat.RawXPerfectCode));
                 }
                 catch (Exception e)

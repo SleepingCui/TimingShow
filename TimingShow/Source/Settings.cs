@@ -279,6 +279,13 @@ namespace TimingShow
         public int AnalyzerBridgePort;
         public int AnalyzerBridgeTimeoutSec = LogAnalyzerBridge.DefaultTimeoutSeconds;
 
+        public int Judge_Version;
+        public bool Judge_AutoFallback = true;
+
+        public bool LowOverheadMode;
+        public int Graph_RedrawIntervalMs;
+        public bool PatchExceptionGuard = true;
+
         public int LogSort = 0;
 
         public int LogListDrawBudget = 60;
@@ -335,7 +342,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 9;
+        public const int CurrentSettingsVersion = 10;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -516,6 +523,9 @@ namespace TimingShow
             EditorHits_MarkerShape = Mathf.Clamp(EditorHits_MarkerShape, 0, 2);
             EditorHits_PanelScale = Mathf.Clamp(EditorHits_PanelScale, 0.75f, 2.5f);
             EditorHits_PanelWidth = Mathf.Clamp(EditorHits_PanelWidth, 240f, 460f);
+
+            Judge_Version = Mathf.Clamp(Judge_Version, 0, 2);
+            Graph_RedrawIntervalMs = Mathf.Clamp(Graph_RedrawIntervalMs, 0, 1000);
 
             WindowScale = Mathf.Clamp(WindowScale, MinWindowScale, MaxWindowScale);
             LogGraph_MaxRenderPoints = Mathf.Clamp(LogGraph_MaxRenderPoints, 20, 8000);

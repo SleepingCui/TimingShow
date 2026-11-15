@@ -39,25 +39,26 @@ namespace TimingShow.HUD
         public static void Update()
         {
             bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && (!scrController.instance.paused || ModContext.IsConfigOpen);
-            
+            bool applyFont = ModContext.UIDirty || !ModContext.Settings.LowOverheadMode;
+
             bool isTimingPlay = isPlayBase && ModContext.Settings.ShowTimingHUD;
-            EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
-            if (_hudInstance != null)
+            bool created = EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);
+            if ((applyFont || created) && _hudInstance != null)
                 _hudInstance.ApplyFont(ModContext.Settings.HUD_UseCustomFont, ModContext.Settings.HUD_FontPath);
 
             bool isAvgPlay = isPlayBase && ModContext.Settings.ShowAvgHUD;
-            EnsureUI(ref _avghudObj, ref _avgHudInstance, "TimingShow_AvgHUD", isAvgPlay);
-            if (_avgHudInstance != null)
+            created = EnsureUI(ref _avghudObj, ref _avgHudInstance, "TimingShow_AvgHUD", isAvgPlay);
+            if ((applyFont || created) && _avgHudInstance != null)
                 _avgHudInstance.ApplyFont(ModContext.Settings.AvgHUD_UseCustomFont, ModContext.Settings.AvgHUD_FontPath);
 
             bool isURPlay = isPlayBase && ModContext.Settings.ShowURHUD;
-            EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
-            if (_urHudInstance != null)
+            created = EnsureUI(ref _urhudObj, ref _urHudInstance, "TimingShow_URHUD", isURPlay);
+            if ((applyFont || created) && _urHudInstance != null)
                 _urHudInstance.ApplyFont(ModContext.Settings.URHUD_UseCustomFont, ModContext.Settings.URHUD_FontPath);
 
             bool isRatioPlay = isPlayBase && ModContext.Settings.ShowRatioHUD;
-            EnsureUI(ref _ratiohudObj, ref _ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
-            if (_ratioHudInstance != null)
+            created = EnsureUI(ref _ratiohudObj, ref _ratioHudInstance, "TimingShow_RatioHUD", isRatioPlay);
+            if ((applyFont || created) && _ratioHudInstance != null)
                 _ratioHudInstance.ApplyFont(ModContext.Settings.RatioHUD_UseCustomFont, ModContext.Settings.RatioHUD_FontPath);
 
             bool isXACCPlay = isPlayBase && ModContext.Settings.ShowXACCGraph;
@@ -176,15 +177,18 @@ namespace TimingShow.HUD
         }
 
 
-        private static void EnsureUI<T>(ref GameObject obj, ref T instance, string name, bool active) where T : Component
+        private static bool EnsureUI<T>(ref GameObject obj, ref T instance, string name, bool active) where T : Component
         {
             if (obj == null)
             {
-                if (!active) return;
+                if (!active) return false;
                 obj = new GameObject(name);
                 instance = obj.AddComponent<T>();
+                return true;
             }
+
             if (obj.activeSelf != active) obj.SetActive(active);
+            return false;
         }
 
         private static void UpdateTextHUD(TextUI instance, string format, string value, float x, float y, float scale, int align, bool bold)

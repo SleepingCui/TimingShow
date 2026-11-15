@@ -39,7 +39,7 @@ namespace TimingShow.HUD
             if (judge == HitMan.XPerfect) return XPerfect;
 
             if (HitMarginCompat.IsPerfectFamily(judge))
-                return !HitMarginCompat.IsGame34 && isXPerfect ? XPerfect : Perfect;
+                return !HitMarginCompat.IsR150 && isXPerfect ? XPerfect : Perfect;
 
             switch (judge)
             {

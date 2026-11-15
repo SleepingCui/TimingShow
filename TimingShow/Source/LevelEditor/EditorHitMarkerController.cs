@@ -600,7 +600,7 @@ namespace TimingShow.LevelEditor
 
         private static string JudgeText(TimingScatterSample sample)
         {
-            if (sample.IsXPerfect && !HitMarginCompat.IsGame34 && HitMarginCompat.IsPerfectFamily(sample.Judge))
+            if (sample.IsXPerfect && !HitMarginCompat.IsR150 && HitMarginCompat.IsPerfectFamily(sample.Judge))
                 return i18n.T("Toggle_XPerfect");
 
             switch (sample.Judge)

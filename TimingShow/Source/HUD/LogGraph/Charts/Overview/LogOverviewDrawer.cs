@@ -12,7 +12,7 @@ namespace TimingShow.HUD
 {
     public class LogOverviewDrawer : LogChartDrawer
     {
-        private static readonly int[] Game34Order = { 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15 };
+        private static readonly int[] R150Order = { 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15 };
         private static readonly int[] LegacyOrder = { 9, 0, 1, 2, 4, 3, 6, 7, 8, 10, 11, 12, 13 };
         private static readonly string[] MarginLabels =
         {
@@ -422,7 +422,7 @@ namespace TimingShow.HUD
             _marginCodes.Clear();
             if (_data == null) return;
 
-            int[] order = IsGame34Log() ? Game34Order : LegacyOrder;
+            int[] order = IsR150Log() ? R150Order : LegacyOrder;
             for (int i = 0; i < order.Length && _marginCodes.Count < MaxMargins; i++)
             {
                 int code = order[i];
@@ -432,16 +432,17 @@ namespace TimingShow.HUD
             }
         }
 
-        private bool IsGame34Log()
+        private bool IsR150Log()
         {
             if (_log != null && !string.IsNullOrEmpty(_log.HitMarginVersionText))
-                return _log.HitMarginVersionText.IndexOf("Game34", StringComparison.OrdinalIgnoreCase) >= 0;
-            return HitMarginCompat.IsGame34;
+                return _log.HitMarginVersionText.IndexOf("r150", StringComparison.OrdinalIgnoreCase) >= 0
+                    || _log.HitMarginVersionText.IndexOf("Game34", StringComparison.OrdinalIgnoreCase) >= 0;
+            return HitMarginCompat.IsR150;
         }
 
         private string MarginLabel(int code)
         {
-            if (code == 3 && IsGame34Log()) return "PerfectMinus";
+            if (code == 3 && IsR150Log()) return "PerfectMinus";
             return MarginLabels[code];
         }
 

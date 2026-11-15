@@ -21,7 +21,7 @@ namespace TimingShow.Bridge
         public static HookState CurrentState { get; private set; } = HookState.Disabled;
         public static string LastErrorMessage { get; private set; } = string.Empty;
         
-        public static bool IsSupported => !HitMarginCompat.IsGame34;
+        public static bool IsSupported => !HitMarginCompat.IsR150;
 
         public static bool IsAvailable => IsSupported && ProtInitialize() && CurrentState == HookState.Success && _getLastJudgeDelegate != null;
 

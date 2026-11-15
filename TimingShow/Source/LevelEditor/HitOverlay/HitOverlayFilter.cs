@@ -87,7 +87,7 @@ namespace TimingShow.LevelEditor
 
         internal static string LabelKey(HitMan judge, bool isXp)
         {
-            if (isXp && !HitMarginCompat.IsGame34 && HitMarginCompat.IsPerfectFamily(judge))
+            if (isXp && !HitMarginCompat.IsR150 && HitMarginCompat.IsPerfectFamily(judge))
                 return "Toggle_XPerfect";
 
             switch (judge)
@@ -134,11 +134,11 @@ namespace TimingShow.LevelEditor
             if (rawValues == null || rawValues.Length == 0 || !HasAny(present))
             {
                 for (int i = 0; i < DisplayOrder.Length; i++)
-                    present[i] = !HitMarginCompat.IsGame34 ? IsLegacyJudge(DisplayOrder[i]) : true;
+                    present[i] = !HitMarginCompat.IsR150 ? IsLegacyJudge(DisplayOrder[i]) : true;
             }
 
             List<HitJudgeChip> chips = new List<HitJudgeChip>(DisplayOrder.Length + 1);
-            bool legacy = !HitMarginCompat.IsGame34;
+            bool legacy = !HitMarginCompat.IsR150;
             for (int i = 0; i < DisplayOrder.Length; i++)
             {
                 if (!present[i]) continue;

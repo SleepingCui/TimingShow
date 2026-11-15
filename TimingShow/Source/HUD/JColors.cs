@@ -48,7 +48,7 @@ namespace TimingShow.HUD
 
             if (HitMarginCompat.IsPerfectFamily(judge))
             {
-                if (!HitMarginCompat.IsGame34 && enableXP && isXP)
+                if (!HitMarginCompat.IsR150 && enableXP && isXP)
                     return GetXPerfectColor();
                 return GetPerfectFamilyColor(judge);
             }
@@ -80,7 +80,7 @@ namespace TimingShow.HUD
             switch (judge)
             {
                 case HitMan.PerfectMinus:
-                    return HitMarginCompat.IsGame34
+                    return HitMarginCompat.IsR150
                         ? GetGameColor("colourPerfectMinus", "colourPerfect")
                         : GetGameColor("colourPerfect");
                 case HitMan.PerfectPlus:

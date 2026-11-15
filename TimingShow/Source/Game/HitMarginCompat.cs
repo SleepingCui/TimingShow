@@ -16,17 +16,19 @@ namespace TimingShow
         private static int[] _perfectFamilyRaw = EmptyInts;
         private static int[] _normalPerfectRaw = EmptyInts;
         private static string _signature = string.Empty;
+        private static Dictionary<string, int> _namesToRaw = new Dictionary<string, int>(0);
 
         public static HitMarginVersion Version { get; private set; } = HitMarginVersion.Unknown;
+        public static HitMarginVersion DetectedVersion { get; private set; } = HitMarginVersion.Unknown;
         public static bool IsInitialized { get; private set; }
 
-        public static bool IsGame34 => Version == HitMarginVersion.Game34;
+        public static bool IsR150 => Version == HitMarginVersion.r150;
         public static bool IsLegacy => Version == HitMarginVersion.Legacy;
         public static int RawAutoCode { get; private set; } = -1;
         public static int RawXPerfectCode { get; private set; } = -1;
         public static int[] AllRawValues { get; private set; } = EmptyInts;
         public static int[] PerfectFamilyRawValues => _perfectFamilyRaw;
-        public static bool HasNativeXPerfect => IsGame34;
+        public static bool HasNativeXPerfect => IsR150;
 
         public static void Initialize(bool force = false)
         {
@@ -53,6 +55,7 @@ namespace TimingShow
             }
             catch
             {
+                DetectedVersion = HitMarginVersion.Unknown;
                 Version = HitMarginVersion.Unknown;
                 _rawToJudge = EmptyMap;
                 _perfectFamilyRaw = EmptyInts;
@@ -68,7 +71,9 @@ namespace TimingShow
             if (IsInitialized && !force && signature == _signature) return;
 
             _signature = signature;
-            Version = DetectVersion(namesToRaw);
+            _namesToRaw = namesToRaw;
+            DetectedVersion = DetectVersion(namesToRaw);
+            Version = ResolveVersion();
             RawAutoCode = namesToRaw.TryGetValue("Auto", out int autoRaw) ? autoRaw : -1;
             RawXPerfectCode = namesToRaw.TryGetValue("XPerfect", out int xpRaw) ? xpRaw : -1;
 
@@ -107,13 +112,13 @@ namespace TimingShow
 
         private static HitMarginVersion DetectVersion(Dictionary<string, int> namesToRaw)
         {
-            // 3.4
+            // r150
             if (namesToRaw.ContainsKey("XPerfect") ||
                 namesToRaw.ContainsKey("PerfectMinus") ||
                 namesToRaw.ContainsKey("PerfectPlus") ||
                 namesToRaw.ContainsKey("Midspin") ||
                 namesToRaw.ContainsKey("FailedFloor"))
-                return HitMarginVersion.Game34;
+                return HitMarginVersion.r150;
 
             if (namesToRaw.ContainsKey("Perfect") &&
                 namesToRaw.ContainsKey("LatePerfect") &&
@@ -122,6 +127,46 @@ namespace TimingShow
                 return HitMarginVersion.Legacy;
 
             return HitMarginVersion.Unknown;
+        }
+
+        public static void ApplyPolicy()
+        {
+            if (!IsInitialized) Initialize();
+            Version = ResolveVersion();
+            ModContext.Logger?.Log($"Judge version: detected {DetectedVersion}, using {Version}");
+        }
+
+        private static HitMarginVersion ResolveVersion()
+        {
+            Settings settings = ModContext.Settings;
+            if (settings == null) return DetectedVersion;
+
+            switch (settings.Judge_Version)
+            {
+                case 1: return HitMarginVersion.Legacy;
+                case 2: return HitMarginVersion.r150;
+            }
+
+            if (DetectedVersion != HitMarginVersion.Unknown) return DetectedVersion;
+            return settings.Judge_AutoFallback ? GuessVersion() : DetectedVersion;
+        }
+
+        private static HitMarginVersion GuessVersion()
+        {
+            if (_namesToRaw.Count == 0) return HitMarginVersion.Unknown;
+
+            int r150 = CountPresent("XPerfect", "PerfectMinus", "PerfectPlus", "Midspin", "FailedFloor");
+            int legacy = CountPresent("Perfect", "LatePerfect", "Auto", "OverPress");
+            if (r150 == 0 && legacy == 0) return HitMarginVersion.Unknown;
+            return r150 >= legacy ? HitMarginVersion.r150 : HitMarginVersion.Legacy;
+        }
+
+        private static int CountPresent(params string[] names)
+        {
+            int count = 0;
+            for (int i = 0; i < names.Length; i++)
+                if (_namesToRaw.ContainsKey(names[i])) count++;
+            return count;
         }
 
         private static HitMan FromName(string name)
@@ -193,7 +238,7 @@ namespace TimingShow
         public static bool IsNormalPerfect(HitMan kind)
         {
             if (kind == HitMan.LegacyPerfect) return true;
-            return IsGame34 && kind == HitMan.PerfectPlus;
+            return IsR150 && kind == HitMan.PerfectPlus;
         }
     }
 }

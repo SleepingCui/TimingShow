@@ -26,6 +26,6 @@ namespace TimingShow
     {
         Unknown = 0,
         Legacy = 1,
-        Game34 = 2
+        r150 = 2
     }
 }

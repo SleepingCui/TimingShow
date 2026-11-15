@@ -24,6 +24,7 @@ namespace TimingShow.Options
         private static string _diagBoundsRepeatText;
         private static string _scatterWarningLimitText;
         private static string _logListDrawBudgetText;
+        private static string _graphRedrawIntervalText;
         private static bool _capturingPanelKey;
         private static int _panelKeySuppressFrame = -1;
         private static GUIStyle _warningLabelStyle;
@@ -124,7 +125,7 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.Title_UseJudgeColor, "HUD_UseJudgeColor");
                 if (ModContext.Settings.Title_UseJudgeColor)
                 {
-                    if (!HitMarginCompat.IsGame34)
+                    if (!HitMarginCompat.IsR150)
                         Toggle(ref ModContext.Settings.Title_EnableXPerfect, "Enable_XP", OptionsWidgets.ContentIndent + 20f);
                 }
                 Toggle(ref ModContext.Settings.Title_ShowAngle, "Toggle_ShowAngle");
@@ -141,7 +142,7 @@ namespace TimingShow.Options
                 SliderInt("Label_Precision", ref ModContext.Settings.Perc2, 0, 5);
                 SliderInt("Label_FontSize", ref ModContext.Settings.Planet_FontSize, 20, 200);
                 Toggle(ref ModContext.Settings.Planet_ShowAngle, "Toggle_ShowAngle");
-                if (!HitMarginCompat.IsGame34)
+                if (!HitMarginCompat.IsR150)
                     Toggle(ref ModContext.Settings.Planet_EnableXPerfect, "Enable_XP");
 
                 string replaceArrow = _foldoutReplaceSettings ? "▲" : "▼";
@@ -166,7 +167,7 @@ namespace TimingShow.Options
                         Toggle(ref ModContext.Settings.ReplaceEarlyPerfect, "Toggle_EarlyPerfect", 0);
 
 
-                        if (HitMarginCompat.IsGame34)
+                        if (HitMarginCompat.IsR150)
                             Toggle(ref ModContext.Settings.ReplacePerfectMinus, "Toggle_PerfectMinus", 0);
                         else
                             Toggle(ref ModContext.Settings.ReplacePerfect, "Toggle_Perfect", 0);
@@ -230,7 +231,7 @@ namespace TimingShow.Options
                 Toggle(ref ModContext.Settings.HUD_UseJudgeColor, "HUD_UseJudgeColor");
                 if (ModContext.Settings.HUD_UseJudgeColor)
                 {
-                    if (!HitMarginCompat.IsGame34)
+                    if (!HitMarginCompat.IsR150)
                         Toggle(ref ModContext.Settings.HUD_EnableXPerfect, "Enable_XP", OptionsWidgets.ContentIndent + 20f);
                 }
                 Toggle(ref ModContext.Settings.HUD_ShowAngle, "Toggle_ShowAngle");
@@ -468,7 +469,7 @@ namespace TimingShow.Options
                 if (ModContext.Settings.EnableLogging && _foldoutLogging)
                 {
                 SliderInt("Label_Precision", ref ModContext.Settings.PercLog, 0, 5);
-                if (!HitMarginCompat.IsGame34)
+                if (!HitMarginCompat.IsR150)
                     Toggle(ref ModContext.Settings.Logger_EnableXPerfect, "Enable_XP");
                 Toggle(ref ModContext.Settings.Logger_ShowAngle, "Toggle_ShowAngle");
                 Toggle(ref ModContext.Settings.LogAutoplay, "Toggle_LogAutoplay");
@@ -679,6 +680,39 @@ namespace TimingShow.Options
                 IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, ref ModContext.Settings.AnalyzerBridgeTimeoutSec,
                     LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds, LogAnalyzerBridge.DefaultTimeoutSeconds, 160, 0f);
                 }
+                GUILayout.Space(8);
+
+                IndentedLabel($"<color=#888888>{i18n.T("Btn_JudgeCompat")}</color>", 0f);
+                IndentedLabel($"{i18n.T("Label_DetectedVersion")}{OptionsWidgets.JudgeVersionName(HitMarginCompat.DetectedVersion)}  {i18n.T("Label_ActiveVersion")}{OptionsWidgets.JudgeVersionName(HitMarginCompat.Version)}", 0f);
+                int judgeVersion = ModContext.Settings.Judge_Version;
+                ChoiceRow("Label_JudgeVersion", ref judgeVersion, new[] { "Btn_JudgeAuto", "Btn_JudgeLegacy", "Btn_JudgeR150" }, 120f);
+                if (judgeVersion != ModContext.Settings.Judge_Version)
+                {
+                ModContext.Settings.Judge_Version = judgeVersion;
+                HitMarginCompat.ApplyPolicy();
+                }
+
+                bool judgeAutoFallback = ToggleWithDescription(
+                ModContext.Settings.Judge_AutoFallback,
+                "Toggle_JudgeAutoFallback",
+                "Desc_JudgeAutoFallback",
+                indent: 0f
+                );
+                if (judgeAutoFallback != ModContext.Settings.Judge_AutoFallback)
+                {
+                ModContext.Settings.Judge_AutoFallback = judgeAutoFallback;
+                HitMarginCompat.ApplyPolicy();
+                }
+
+                GUILayout.Space(8);
+
+                IndentedLabel($"<color=#888888>{i18n.T("Btn_PerfStability")}</color>", 0f);
+                bool lowOverhead = ToggleWithDescription(ModContext.Settings.LowOverheadMode, "Toggle_LowOverhead", "Desc_LowOverhead", "", 0f);
+                ModContext.Settings.LowOverheadMode = lowOverhead;
+                IntField("Label_GraphRedrawInterval", ref _graphRedrawIntervalText, ref ModContext.Settings.Graph_RedrawIntervalMs, 0, 1000, 0, 190, 0f);
+                bool patchExceptionGuard = ToggleWithDescription(ModContext.Settings.PatchExceptionGuard, "Toggle_PatchExceptionGuard", "Desc_PatchExceptionGuard", "", 0f);
+                ModContext.Settings.PatchExceptionGuard = patchExceptionGuard;
+
                 GUILayout.Space(8);
 
                 DrawDebugSettings();

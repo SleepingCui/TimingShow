@@ -38,6 +38,19 @@ namespace TimingShow.Patches
         {
             public static void Postfix(scrHitTextMesh __instance)
             {
+                try
+                {
+                    Apply(__instance);
+                }
+                catch (Exception e)
+                {
+                    if (!PatchGuard.Enabled) throw;
+                    PatchGuard.Report("scrHitTextMesh.Show", e);
+                }
+            }
+
+            private static void Apply(scrHitTextMesh __instance)
+            {
                 if (__instance.text == null) return;
 
                 if (!ModContext.IsEnabled || !ModContext.IsPlaying)
@@ -158,7 +171,7 @@ namespace TimingShow.Patches
                     case HitMan.TooEarly: return s.ReplaceTooEarly;
                     case HitMan.VeryEarly: return s.ReplaceVeryEarly;
                     case HitMan.EarlyPerfect: return s.ReplaceEarlyPerfect;
-                    case HitMan.PerfectMinus: return HitMarginCompat.IsGame34 ? s.ReplacePerfectMinus : s.ReplacePerfect;
+                    case HitMan.PerfectMinus: return HitMarginCompat.IsR150 ? s.ReplacePerfectMinus : s.ReplacePerfect;
                     case HitMan.XPerfect: return s.ReplaceXPerfect;
                     case HitMan.PerfectPlus: return s.ReplacePerfectPlus;
                     case HitMan.LatePerfect: return s.ReplaceLatePerfect;
@@ -359,6 +372,19 @@ namespace TimingShow.Patches
             private static int _titleAppliedSize = -1;
 
             public static void Postfix(scrUIController __instance)
+            {
+                try
+                {
+                    UpdateHud(__instance);
+                }
+                catch (Exception e)
+                {
+                    if (!PatchGuard.Enabled) throw;
+                    PatchGuard.Report("scrUIController.Update", e);
+                }
+            }
+
+            private static void UpdateHud(scrUIController __instance)
             {
                 if (!ModContext.IsEnabled) return;
 

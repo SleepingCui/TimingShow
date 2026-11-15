@@ -971,7 +971,7 @@ namespace TimingShow.Logging
             switch (value)
             {
                 case 1: return "Legacy";
-                case 2: return "Game34";
+                case 2: return "r150";
                 default: return "Unknown";
             }
         }

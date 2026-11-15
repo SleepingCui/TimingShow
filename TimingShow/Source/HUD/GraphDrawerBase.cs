@@ -69,6 +69,7 @@ namespace TimingShow.HUD
         private int _lastSettingsHash = int.MinValue;
         private float _lastRectWidth = -1f;
         private float _lastRectHeight = -1f;
+        private float _lastRedrawTime;
 
         protected override void Awake()
         {
@@ -267,6 +268,12 @@ namespace TimingShow.HUD
             bool needsRedraw = dataChanged || rectChanged || settingsChanged || continuousRedraw;
             bool frameAnimation = UpdateFrameAnimation();
 
+            if (needsRedraw && !frameAnimation && !rectChanged && !settingsChanged && RedrawIntervalBlocked())
+            {
+                if (ShowPerfInfo) UpdatePerfText();
+                return;
+            }
+
             if (needsRedraw)
             {
                 _lastDataVersion = DataVersion;
@@ -320,6 +327,19 @@ namespace TimingShow.HUD
         protected virtual bool UpdateFrameAnimation() => false;
 
         protected virtual bool NeedsContinuousRedraw() => false;
+
+        private bool RedrawIntervalBlocked()
+        {
+            Settings settings = ModContext.Settings;
+            int intervalMs = settings != null ? settings.Graph_RedrawIntervalMs : 0;
+            if (intervalMs <= 0) return false;
+
+            float now = Time.unscaledTime;
+            if (now - _lastRedrawTime < intervalMs * 0.001f) return true;
+
+            _lastRedrawTime = now;
+            return false;
+        }
 
         protected virtual int ComputeSettingsHash()
         {

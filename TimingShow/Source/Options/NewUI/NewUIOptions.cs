@@ -36,6 +36,7 @@ namespace TimingShow.Options
         private static string _scatterWarningLimitText;
         private static string _logListDrawBudgetText;
         private static string _bufferSizeText;
+        private static string _graphRedrawIntervalText;
 
         internal static void Draw()
         {
@@ -235,7 +236,7 @@ namespace TimingShow.Options
                     s.Perc1 = NewUIWidgets.IntSlider("Label_Precision", s.Perc1, 0, 5);
                     s.Title_FontSize = NewUIWidgets.IntSlider("Label_FontSize", s.Title_FontSize, 20, 200);
                     s.Title_UseJudgeColor = NewUIWidgets.Toggle("HUD_UseJudgeColor", s.Title_UseJudgeColor);
-                    if (s.Title_UseJudgeColor && !HitMarginCompat.IsGame34)
+                    if (s.Title_UseJudgeColor && !HitMarginCompat.IsR150)
                         s.Title_EnableXPerfect = NewUIWidgets.Toggle("Enable_XP", s.Title_EnableXPerfect, null, 16f);
                     s.Title_ShowAngle = NewUIWidgets.Toggle("Toggle_ShowAngle", s.Title_ShowAngle);
                     s.Title_Bump = NewUIWidgets.Toggle("Toggle_Bump", s.Title_Bump);
@@ -249,7 +250,7 @@ namespace TimingShow.Options
                     s.Perc2 = NewUIWidgets.IntSlider("Label_Precision", s.Perc2, 0, 5);
                     s.Planet_FontSize = NewUIWidgets.IntSlider("Label_FontSize", s.Planet_FontSize, 20, 200);
                     s.Planet_ShowAngle = NewUIWidgets.Toggle("Toggle_ShowAngle", s.Planet_ShowAngle);
-                    if (!HitMarginCompat.IsGame34)
+                    if (!HitMarginCompat.IsR150)
                         s.Planet_EnableXPerfect = NewUIWidgets.Toggle("Enable_XP", s.Planet_EnableXPerfect);
                 }
                 EndCard();
@@ -263,7 +264,7 @@ namespace TimingShow.Options
                         s.ReplaceVeryEarly = NewUIWidgets.Toggle("Toggle_VeryEarly", s.ReplaceVeryEarly);
                         s.ReplaceEarlyPerfect = NewUIWidgets.Toggle("Toggle_EarlyPerfect", s.ReplaceEarlyPerfect);
 
-                        if (HitMarginCompat.IsGame34)
+                        if (HitMarginCompat.IsR150)
                             s.ReplacePerfectMinus = NewUIWidgets.Toggle("Toggle_PerfectMinus", s.ReplacePerfectMinus);
                         else
                             s.ReplacePerfect = NewUIWidgets.Toggle("Toggle_Perfect", s.ReplacePerfect);
@@ -369,7 +370,7 @@ namespace TimingShow.Options
                     DrawHudRows(ref s.HUD_x, ref s.HUD_y, ref s.HUD_scale, ref s.HUD_bold, ref s.HUD_align, ref s.HUD_Format, ref s.PercHUD);
                     DrawHudFontRow(ref s.HUD_UseCustomFont, ref s.HUD_FontPath);
                     s.HUD_UseJudgeColor = NewUIWidgets.Toggle("HUD_UseJudgeColor", s.HUD_UseJudgeColor);
-                    if (s.HUD_UseJudgeColor && !HitMarginCompat.IsGame34)
+                    if (s.HUD_UseJudgeColor && !HitMarginCompat.IsR150)
                         s.HUD_EnableXPerfect = NewUIWidgets.Toggle("Enable_XP", s.HUD_EnableXPerfect, null, 16f);
                     s.HUD_ShowAngle = NewUIWidgets.Toggle("Toggle_ShowAngle", s.HUD_ShowAngle);
                     s.HUD_Bump = NewUIWidgets.Toggle("Toggle_Bump", s.HUD_Bump);
@@ -502,7 +503,7 @@ namespace TimingShow.Options
                 if (loggingOpen && s.EnableLogging)
                 {
                     s.PercLog = NewUIWidgets.IntSlider("Label_Precision", s.PercLog, 0, 5);
-                    if (!HitMarginCompat.IsGame34)
+                    if (!HitMarginCompat.IsR150)
                         s.Logger_EnableXPerfect = NewUIWidgets.Toggle("Enable_XP", s.Logger_EnableXPerfect);
                     s.Logger_ShowAngle = NewUIWidgets.Toggle("Toggle_ShowAngle", s.Logger_ShowAngle);
                     s.LogAutoplay = NewUIWidgets.Toggle("Toggle_LogAutoplay", s.LogAutoplay);
@@ -583,6 +584,29 @@ namespace TimingShow.Options
                         s.AnalyzerBridgePort = NewUIWidgets.IntField("Label_AnalyzerPort", ref _analyzerPortText, s.AnalyzerBridgePort, 0, 65535);
                         s.AnalyzerBridgeTimeoutSec = NewUIWidgets.IntField("Label_AnalyzerTimeout", ref _analyzerTimeoutText, s.AnalyzerBridgeTimeoutSec, LogAnalyzerBridge.MinTimeoutSeconds, LogAnalyzerBridge.MaxTimeoutSeconds);
                     }
+
+                    NewUIWidgets.Divider();
+                    NewUIWidgets.CardTitle("Btn_JudgeCompat");
+                    NewUIWidgets.Hint(i18n.T("Label_DetectedVersion") + OptionsWidgets.JudgeVersionName(HitMarginCompat.DetectedVersion) + "  " + i18n.T("Label_ActiveVersion") + OptionsWidgets.JudgeVersionName(HitMarginCompat.Version));
+                    int judgeVersion = NewUIWidgets.Choice("Label_JudgeVersion", s.Judge_Version, new[] { i18n.T("Btn_JudgeAuto"), i18n.T("Btn_JudgeLegacy"), i18n.T("Btn_JudgeR150") });
+                    if (judgeVersion != s.Judge_Version)
+                    {
+                        s.Judge_Version = judgeVersion;
+                        HitMarginCompat.ApplyPolicy();
+                    }
+
+                    bool autoFallback = NewUIWidgets.Toggle("Toggle_JudgeAutoFallback", s.Judge_AutoFallback, "Desc_JudgeAutoFallback");
+                    if (autoFallback != s.Judge_AutoFallback)
+                    {
+                        s.Judge_AutoFallback = autoFallback;
+                        HitMarginCompat.ApplyPolicy();
+                    }
+
+                    NewUIWidgets.Divider();
+                    NewUIWidgets.CardTitle("Btn_PerfStability");
+                    s.LowOverheadMode = NewUIWidgets.Toggle("Toggle_LowOverhead", s.LowOverheadMode, "Desc_LowOverhead");
+                    s.Graph_RedrawIntervalMs = NewUIWidgets.IntField("Label_GraphRedrawInterval", ref _graphRedrawIntervalText, s.Graph_RedrawIntervalMs, 0, 1000);
+                    s.PatchExceptionGuard = NewUIWidgets.Toggle("Toggle_PatchExceptionGuard", s.PatchExceptionGuard, "Desc_PatchExceptionGuard");
                 }
                 EndCard();
 

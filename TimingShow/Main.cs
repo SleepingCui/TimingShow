@@ -17,9 +17,9 @@ namespace TimingShow
         public static void InitializeJudgeCompat()
         {
             HitMarginCompat.Initialize();
-            ModContext.Logger.Log($"Detected version: {HitMarginCompat.Version}");
-            if (HitMarginCompat.Version == HitMarginVersion.Unknown)
-                ModContext.Logger.Error("Unrecognized HitMargin enum version");
+            ModContext.Logger.Log($"Detected version: {HitMarginCompat.DetectedVersion}, using: {HitMarginCompat.Version}");
+            if (HitMarginCompat.DetectedVersion == HitMarginVersion.Unknown)
+                ModContext.Logger.Error($"Unrecognized HitMargin enum version, using {HitMarginCompat.Version}");
         }
 
         public static void Enable()

@@ -78,7 +78,7 @@ namespace TimingShow
     {
         public static bool IsLegacyXPerfect(double diff, double bpm, double speed, double pitch)
         {
-            if (HitMarginCompat.IsGame34) return false;
+            if (HitMarginCompat.IsR150) return false;
             if (XPerfectBridge.IsXPerfect()) return true;
 
             return Compute(diff, bpm, speed, pitch);

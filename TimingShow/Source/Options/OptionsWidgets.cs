@@ -42,6 +42,16 @@ namespace TimingShow.Options
             return GUILayout.Button(label, style, GUILayout.Width(width));
         }
 
+        public static string JudgeVersionName(HitMarginVersion version)
+        {
+            switch (version)
+            {
+            case HitMarginVersion.r150: return i18n.T("Btn_JudgeR150");
+            case HitMarginVersion.Legacy: return i18n.T("Btn_JudgeLegacy");
+            default: return i18n.T("Label_Unknown");
+            }
+        }
+
         public static void ChoiceRow(string labelKey, ref int value, string[] optionKeys, float labelWidth = 120f)
         {
             GUILayout.BeginHorizontal();
