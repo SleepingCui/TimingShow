@@ -452,9 +452,9 @@ namespace TimingShow.Options
                     s.TimingScatter_Width = NewUIWidgets.Slider("Label_GraphWidth", s.TimingScatter_Width, 80f, 1200f, "0");
                     s.TimingScatter_Height = NewUIWidgets.Slider("Label_GraphHeight", s.TimingScatter_Height, 40f, 600f, "0");
                     s.TimingScatter_Scale = NewUIWidgets.Slider("Label_Scale", s.TimingScatter_Scale, 0.2f, 3f);
+                    s.TimingScatter_PointSize = NewUIWidgets.Slider("Label_PointSize", s.TimingScatter_PointSize, 1f, 12f);
                     s.TimingScatter_SampleCount = NewUIWidgets.IntField("Label_SampleCount", ref _scatterSampleCountText, s.TimingScatter_SampleCount, 10, 20000);
                     s.TimingScatter_MaxRenderPoints = NewUIWidgets.IntField("Label_MaxRenderPoints", ref _scatterMaxPointsText, s.TimingScatter_MaxRenderPoints, 20, 8000);
-                    s.TimingScatter_PointSize = NewUIWidgets.Slider("Label_PointSize", s.TimingScatter_PointSize, 1f, 12f);
 
                     s.TimingScatter_UseHitAxis = NewUIWidgets.Toggle("Toggle_UseHitAxis", s.TimingScatter_UseHitAxis);
                     if (!s.TimingScatter_UseHitAxis)
@@ -463,6 +463,8 @@ namespace TimingShow.Options
                     s.TimingScatter_ShowZeroLine = NewUIWidgets.Toggle("Toggle_ShowZeroLine", s.TimingScatter_ShowZeroLine);
                     s.TimingScatter_ShowAvgLine = NewUIWidgets.Toggle("Toggle_ShowAvgLine", s.TimingScatter_ShowAvgLine);
                     s.TimingScatter_ShowBorder = NewUIWidgets.Toggle("Toggle_ShowBorder", s.TimingScatter_ShowBorder);
+                    s.TimingScatter_ShowXpBand = NewUIWidgets.Toggle("Toggle_ShowXpBand", s.TimingScatter_ShowXpBand);
+
                     s.TimingScatter_ShowJudgeBands = NewUIWidgets.Toggle("Toggle_ShowJudgeBands", s.TimingScatter_ShowJudgeBands);
                     if (s.TimingScatter_ShowJudgeBands)
                     {
@@ -475,7 +477,6 @@ namespace TimingShow.Options
                         s.TimingScatter_BandEarlyLateColor = NewUIWidgets.ColorRow("Label_BandEarlyLateColor", s.TimingScatter_BandEarlyLateColor, Settings.TimingScatter_DefaultBandEarlyLateColor);
                     }
 
-                    s.TimingScatter_ShowXpBand = NewUIWidgets.Toggle("Toggle_ShowXpBand", s.TimingScatter_ShowXpBand);
                     if (s.TimingScatter_ShowXpBand)
                         s.TimingScatter_BandXpColor = NewUIWidgets.ColorRow("Label_BandXpColor", s.TimingScatter_BandXpColor, Settings.TimingScatter_DefaultBandXpColor);
 

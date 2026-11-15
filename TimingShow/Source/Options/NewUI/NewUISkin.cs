@@ -46,6 +46,7 @@ namespace TimingShow.Options
         internal static GUIStyle LabelStyle;
         internal static GUIStyle DimLabelStyle;
         internal static GUIStyle MutedLabelStyle;
+        internal static GUIStyle StatusLabelStyle;
         internal static GUIStyle ValueStyle;
         internal static GUIStyle SectionStyle;
         internal static GUIStyle CenterStyle;
@@ -175,6 +176,7 @@ namespace TimingShow.Options
             LabelStyle = TextStyle(_fontSize, Text, TextAnchor.MiddleLeft);
             DimLabelStyle = TextStyle(_fontSize, TextDim, TextAnchor.MiddleLeft);
             MutedLabelStyle = TextStyle(_fontSize - 1, TextMuted, TextAnchor.MiddleLeft);
+            StatusLabelStyle = TextStyle(_fontSize - 1, Color.white, TextAnchor.MiddleLeft);
             ValueStyle = TextStyle(_fontSize, Text, TextAnchor.MiddleRight);
             SectionStyle = TextStyle(_fontSize + 2, Text, TextAnchor.MiddleLeft, FontStyle.Bold);
             CenterStyle = TextStyle(_fontSize, Text, TextAnchor.MiddleCenter);

@@ -307,7 +307,7 @@ namespace TimingShow.Options
             GUI.Label(new Rect(row.x + 8f, row.y, LabelWidth, row.height), i18n.T(labelKey), NewUISkin.LabelStyle);
 
             if (text == null) text = value.ToString(CultureInfo.InvariantCulture);
-            Rect fieldRect = new Rect(row.xMax - 92f, row.y + 3f, 86f, RowHeight - 6f);
+            Rect fieldRect = new Rect(row.xMax - 72f, row.y + 2f, 64f, RowHeight - 4f);
             bool focused;
             string edited = TextField(fieldRect, text, out focused);
             if (edited != text && IsNumberDraft(edited, true))
@@ -330,7 +330,7 @@ namespace TimingShow.Options
             GUI.Label(new Rect(row.x + 8f, row.y, LabelWidth, row.height), i18n.T(labelKey), NewUISkin.LabelStyle);
 
             if (text == null) text = value.ToString("0.###", CultureInfo.InvariantCulture);
-            Rect fieldRect = new Rect(row.xMax - 92f, row.y + 3f, 86f, RowHeight - 6f);
+            Rect fieldRect = new Rect(row.xMax - 72f, row.y + 2f, 64f, RowHeight - 4f);
             bool focused;
             string edited = TextField(fieldRect, text, out focused);
             if (edited != text && IsNumberDraft(edited, false))
@@ -479,7 +479,7 @@ namespace TimingShow.Options
             Rect row = Row(RowHeight - 6f);
             Color previous = GUI.color;
             GUI.color = color;
-            GUI.Label(new Rect(row.x + 8f, row.y, row.width - 16f, row.height), text, NewUISkin.MutedLabelStyle);
+            GUI.Label(new Rect(row.x + 8f, row.y, row.width - 16f, row.height), text, NewUISkin.StatusLabelStyle);
             GUI.color = previous;
         }
 
