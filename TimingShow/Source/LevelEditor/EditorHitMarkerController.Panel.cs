@@ -19,6 +19,12 @@ namespace TimingShow.LevelEditor
         private int _validCount;
         private int _xPerfectCount;
         private int[] _judgeCounts = new int[17];
+        private bool _focusing;
+        private Vector3 _focusFrom;
+        private Vector3 _focusTo;
+        private float _focusStart;
+        private float _focusDuration;
+        private int _focusStartFrame;
         private bool _forceRebuild;
         private bool _clearRequested;
         private bool _importRequested;
@@ -145,6 +151,74 @@ namespace TimingShow.LevelEditor
                 && Mathf.Approximately(a.MinAbsOffset, b.MinAbsOffset)
                 && Mathf.Approximately(a.MaxAbsOffset, b.MaxAbsOffset)
                 && a.PlayerMask == b.PlayerMask;
+        }
+
+        internal void FocusSample(int index)
+        {
+            if (_snapshot == null || _valid == null || index < 0 || index >= _valid.Length || !_valid[index]) return;
+
+            scnEditor editor = scnEditor.instance;
+            Camera camera = editor != null ? editor.camera : null;
+            if (camera == null) return;
+
+            TimingScatterSample sample = _snapshot.Samples[index];
+            scrFloor floor;
+            try
+            {
+                if (editor.floors == null || sample.FloorId < 0 || sample.FloorId >= editor.floors.Count) return;
+                floor = editor.floors[sample.FloorId];
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            if (floor == null || floor.seqID != sample.FloorId) return;
+
+            Settings settings = ModContext.Settings;
+            float angleScale = settings != null ? settings.EditorHits_AngleScale : 1f;
+            Vector3 world = AngleOffsetPosition(floor, sample, angleScale);
+
+            _focusFrom = camera.transform.position;
+            _focusTo = new Vector3(world.x, world.y, -10f);
+            _focusDuration = Mathf.Clamp(editor.cameraSelectDuration, 0.15f, 1f);
+            _focusStart = Time.unscaledTime;
+            _focusStartFrame = Time.frameCount;
+            _focusing = true;
+        }
+
+        private void UpdateCameraFocus(scnEditor editor)
+        {
+            if (!_focusing) return;
+
+            Camera camera = editor != null ? editor.camera : null;
+            if (camera == null)
+            {
+                _focusing = false;
+                return;
+            }
+
+            if (Time.frameCount > _focusStartFrame && FocusCanceled())
+            {
+                _focusing = false;
+                return;
+            }
+
+            float t = _focusDuration > 0.0001f ? Mathf.Clamp01((Time.unscaledTime - _focusStart) / _focusDuration) : 1f;
+            if (t >= 1f)
+            {
+                camera.transform.position = _focusTo;
+                _focusing = false;
+                return;
+            }
+
+            camera.transform.position = Vector3.Lerp(_focusFrom, _focusTo, 1f - Mathf.Pow(1f - t, 3f));
+        }
+
+        private bool FocusCanceled()
+        {
+            if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(2)) return true;
+            return Input.GetMouseButton(0) && !PanelContainsMouse(Input.mousePosition);
         }
 
         internal bool PanelContainsMouse(Vector2 screenPoint)

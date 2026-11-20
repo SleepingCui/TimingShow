@@ -52,6 +52,7 @@ namespace TimingShow.HUD.LogGraphWindow
         private int _maxLength = MaxLength;
         private bool _textMode;
         private bool _editing;
+        private static int _editingCount;
         private bool _hover;
         private bool _caretVisible;
         private bool _dragSelecting;
@@ -70,6 +71,8 @@ namespace TimingShow.HUD.LogGraphWindow
         private float _holdTimer;
 
         public bool IsEditing { get { return _editing; } }
+
+        internal static bool AnyEditing { get { return _editingCount > 0; } }
 
         public string Value { get { return _value; } }
 
@@ -203,6 +206,7 @@ namespace TimingShow.HUD.LogGraphWindow
             if (_editing) return;
 
             _editing = true;
+            _editingCount++;
             _valueAtFocus = _value;
             _caret = _value.Length;
             _selectionAnchor = _caret;
@@ -224,6 +228,7 @@ namespace TimingShow.HUD.LogGraphWindow
             if (!_editing) return;
 
             _editing = false;
+            if (_editingCount > 0) _editingCount--;
             _dragSelecting = false;
             _selectionAnchor = _caret;
             SetVerticesDirty();
@@ -372,7 +377,7 @@ namespace TimingShow.HUD.LogGraphWindow
 
         private void CancelEdit()
         {
-            _editing = false;
+            EndEdit();
             _dragSelecting = false;
             _value = _valueAtFocus;
             _caret = _value.Length;

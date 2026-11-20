@@ -38,7 +38,9 @@ namespace TimingShow.LevelEditor
         private string _searchText = string.Empty;
         private bool _searchFocused;
         private bool _searchDirty;
-        private int _resultCount;
+        private bool _openSearchHelp;
+        private int _resultOffset;
+        private int _selectedResult = -1;
 
         private bool _openFilters = true;
         private bool _openDisplay = false;
@@ -366,12 +368,15 @@ namespace TimingShow.LevelEditor
             {
                 _searchMask = null;
                 _results.Clear();
-                _resultCount = 0;
+                _selectedResult = -1;
+                _resultOffset = 0;
                 return;
             }
 
             _searchMask = HitOverlaySearch.BuildMask(_owner.Snapshot.Samples, _owner.ValidMask, _query);
-            _resultCount = HitOverlaySearch.Collect(_owner.Snapshot.Samples, _owner.ValidMask, _query, _results, MaxResultRows);
+            HitOverlaySearch.Collect(_owner.Snapshot.Samples, _owner.ValidMask, _query, _results, int.MaxValue);
+            _selectedResult = -1;
+            _resultOffset = 0;
         }
 
         private void Layout()
@@ -532,9 +537,16 @@ namespace TimingShow.LevelEditor
         {
             if (!SectionHeader("HitPanel_Search", ref _openSearch)) return;
 
-            Rect field = R(HitOverlaySkin.Padding, _y + 2f, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight);
+            float helpSize = HitOverlaySkin.RowHeight;
+            Rect field = R(HitOverlaySkin.Padding, _y + 2f, _width - HitOverlaySkin.Padding * 2f - helpSize - HitOverlaySkin.ChipGap, HitOverlaySkin.RowHeight);
             Fill(field, HitOverlaySkin.FieldBackground);
             Outline(field, _searchFocused ? HitOverlaySkin.Accent : HitOverlaySkin.Border);
+
+            Rect help = R(_width - HitOverlaySkin.Padding - helpSize, _y + 2f, helpSize, helpSize);
+            Fill(help, _openSearchHelp ? HitOverlaySkin.Accent : HitOverlaySkin.ChipBackground);
+            Outline(help, _openSearchHelp ? HitOverlaySkin.Accent : HitOverlaySkin.ChipBorder);
+            Label(help, "?", _openSearchHelp ? HitOverlaySkin.TextPrimary : HitOverlaySkin.TextSecondary, TextAlignmentOptions.Center, HitOverlaySkin.FontSize - 1f);
+            if (Pressed(HitRect(help))) _openSearchHelp = !_openSearchHelp;
 
             Rect textRect = new Rect(field.xMin + 5f * _scale, field.yMin, field.width - 10f * _scale, field.height);
             string display = string.IsNullOrEmpty(_searchText) ? i18n.T("HitPanel_SearchHint") : _searchText;
@@ -548,36 +560,56 @@ namespace TimingShow.LevelEditor
 
             if (Pressed(field)) _searchFocused = true;
             if (_inputPass && _searchFocused) ReadInput();
-            if (_inputPass && _down && !field.Contains(_mouse)) _searchFocused = false;
+            if (_inputPass && _down && !field.Contains(_mouse) && !help.Contains(_mouse)) _searchFocused = false;
 
             _y += HitOverlaySkin.RowHeight + 4f;
 
+            if (_openSearchHelp) SearchHelp();
+
             CheckRow("HitPanel_OnlyMatches", ref _onlyMatches, true);
 
-            for (int i = 0; i < _results.Count; i++)
+            int total = _results.Count;
+            if (_inputPass && total > 0 && (_searchFocused || ContainsMouse(_mouse))) HandleSearchKeys(total);
+
+            if (total > 0)
             {
-                int index = _results[i];
-                TimingScatterSample sample = _owner.Snapshot.Samples[index];
-                Rect row = R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight - 2f);
+                int visible = Mathf.Min(MaxResultRows, total);
+                _resultOffset = Mathf.Clamp(_resultOffset, 0, total - visible);
 
-                if (index == _pinnedIndex) Fill(row, HitOverlaySkin.Accent);
-                else if (Hovered(row)) Fill(row, HitOverlaySkin.RowHover);
+                for (int row = 0; row < visible; row++)
+                {
+                    int resultIndex = _resultOffset + row;
+                    int index = _results[resultIndex];
+                    TimingScatterSample sample = _owner.Snapshot.Samples[index];
+                    Rect rect = R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight - 2f);
 
-                string text = DescribeSample(sample);
-                Label(new Rect(row.xMin + 4f * _scale, row.yMin, row.width - 8f * _scale, row.height), text, HitOverlaySkin.TextPrimary, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1f);
+                    if (index == _pinnedIndex) Fill(rect, HitOverlaySkin.Accent);
+                    else if (Hovered(rect)) Fill(rect, HitOverlaySkin.RowHover);
 
-                if (Pressed(row)) _pinnedIndex = index;
-                _y += HitOverlaySkin.RowHeight - 2f;
+                    string text = DescribeSample(sample);
+                    Label(new Rect(rect.xMin + 4f * _scale, rect.yMin, rect.width - 8f * _scale, rect.height), text, HitOverlaySkin.TextPrimary, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1f);
+
+                    if (Pressed(rect))
+                    {
+                        _selectedResult = resultIndex;
+                        _pinnedIndex = index;
+                        if (_owner != null) _owner.FocusSample(index);
+                    }
+                    _y += HitOverlaySkin.RowHeight - 2f;
+                }
             }
 
-            if (_resultCount == 0 && !_query.IsEmpty)
+            if (total == 0 && !_query.IsEmpty)
             {
                 Label(R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight), i18n.T("HitPanel_NoResults"), HitOverlaySkin.TextDisabled, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1f);
                 _y += HitOverlaySkin.RowHeight;
             }
-            else if (_resultCount > 0)
+            else if (total > 0)
             {
-                Label(R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight), i18n.T("HitPanel_Matches") + " " + _resultCount.ToString(CultureInfo.InvariantCulture), HitOverlaySkin.TextSecondary, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1f);
+                string position = _selectedResult >= 0
+                    ? (_selectedResult + 1).ToString(CultureInfo.InvariantCulture) + " / " + total.ToString(CultureInfo.InvariantCulture)
+                    : total.ToString(CultureInfo.InvariantCulture);
+                Label(R(HitOverlaySkin.Padding, _y, _width - HitOverlaySkin.Padding * 2f, HitOverlaySkin.RowHeight), i18n.T("HitPanel_Matches") + " " + position, HitOverlaySkin.TextSecondary, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 1f);
                 _y += HitOverlaySkin.RowHeight;
             }
 
@@ -585,6 +617,44 @@ namespace TimingShow.LevelEditor
                 PinnedDetails(_owner.Snapshot.Samples[_pinnedIndex]);
 
             _y += HitOverlaySkin.GroupGap;
+        }
+
+        private void SearchHelp()
+        {
+            string[] keys = { "HitPanel_HelpFloor", "HitPanel_HelpTime", "HitPanel_HelpOffset", "HitPanel_HelpJudge", "HitPanel_HelpPlayer", "HitPanel_HelpKeys" };
+            float width = _width - HitOverlaySkin.Padding * 2f - 4f;
+
+            for (int i = 0; i < keys.Length; i++)
+            {
+                Label(R(HitOverlaySkin.Padding + 4f, _y, width, HitOverlaySkin.RowHeight - 2f), i18n.T(keys[i]), HitOverlaySkin.TextSecondary, TextAlignmentOptions.MidlineLeft, HitOverlaySkin.FontSize - 2f);
+                _y += HitOverlaySkin.RowHeight - 2f;
+            }
+
+            _y += 6f;
+        }
+
+        private void HandleSearchKeys(int total)
+        {
+            int selected = Mathf.Max(0, _selectedResult);
+            if (Input.GetKeyDown(KeyCode.DownArrow)) SelectResult(_selectedResult < 0 ? 0 : Mathf.Min(total - 1, _selectedResult + 1), total);
+            else if (Input.GetKeyDown(KeyCode.UpArrow)) SelectResult(Mathf.Min(_selectedResult < 0 ? 0 : _selectedResult - 1, total - 1), total);
+            else if (Input.GetKeyDown(KeyCode.PageDown)) SelectResult(Mathf.Min(total - 1, selected + MaxResultRows), total);
+            else if (Input.GetKeyDown(KeyCode.PageUp)) SelectResult(Mathf.Max(0, selected - MaxResultRows), total);
+
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                SelectResult(selected, total);
+                if (_owner != null) _owner.FocusSample(_pinnedIndex);
+            }
+        }
+
+        private void SelectResult(int index, int total)
+        {
+            _selectedResult = Mathf.Clamp(index, 0, Mathf.Max(0, total - 1));
+            _pinnedIndex = _results[_selectedResult];
+
+            if (_selectedResult < _resultOffset) _resultOffset = _selectedResult;
+            else if (_selectedResult >= _resultOffset + MaxResultRows) _resultOffset = _selectedResult - MaxResultRows + 1;
         }
 
         private void PinnedDetails(TimingScatterSample sample)

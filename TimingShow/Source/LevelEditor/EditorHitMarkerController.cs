@@ -159,6 +159,7 @@ namespace TimingShow.LevelEditor
                 _canvasObject.SetActive(true);
 
             TickPanel();
+            UpdateCameraFocus(editor);
 
             if (_phase == Phase.Preparing)
             {
@@ -840,6 +841,7 @@ namespace TimingShow.LevelEditor
         private void Teardown(bool keepPanel)
         {
             if (!keepPanel) DisposePanel();
+            _focusing = false;
 
             if (_phase == Phase.Idle && _snapshot == null) return;
 

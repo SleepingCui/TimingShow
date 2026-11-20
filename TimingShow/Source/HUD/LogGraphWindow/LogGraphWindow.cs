@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 using TimingShow.Logging;
+using TimingShow.LevelEditor;
 using GraphSettingsUI = TimingShow.HUD.LogGraphSettingsUI.LogGraphSettingsUI;
 
 namespace TimingShow.HUD.LogGraphWindow
@@ -399,6 +400,8 @@ namespace TimingShow.HUD.LogGraphWindow
             _hoverProxy = null;
             _exitProxy = null;
 
+            InputGate.ClearWindowArea();
+
             if (root != null) Destroy(root);
         }
         
@@ -634,6 +637,7 @@ namespace TimingShow.HUD.LogGraphWindow
             }
 
             UpdateOpenAnimation();
+            InputGate.SetWindowArea(new Rect(_windowRect.anchoredPosition, _windowRect.sizeDelta), WindowCapturesKeys());
             TickRangeFilter();
 
             if ((_chartMenuOpen || _playerMenuOpen) && Input.GetKeyDown(KeyCode.Escape))
@@ -643,6 +647,13 @@ namespace TimingShow.HUD.LogGraphWindow
             UpdateBoundsDiagnostics();
             if (!_dragging) RefreshButtonHover(Input.mousePosition);
             UpdateInputFallback();
+        }
+
+        private bool WindowCapturesKeys()
+        {
+            if (_chartMenuOpen || _playerMenuOpen) return true;
+            if (_settingsUI != null && _settingsUI.IsOpen) return true;
+            return LogRangeField.AnyEditing;
         }
 
         private void RefreshAllTextMeshes()
@@ -680,6 +691,8 @@ namespace TimingShow.HUD.LogGraphWindow
 
         private void OnDestroy()
         {
+            InputGate.ClearWindowArea();
+
             if (_instance == this) _instance = null;
             _closed = true;
 

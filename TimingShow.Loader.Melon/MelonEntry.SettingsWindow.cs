@@ -35,7 +35,14 @@ namespace TimingShow.Melon
                 _settingsWindowRect.x = Mathf.Clamp(_settingsWindowRect.x, 0f, Mathf.Max(0f, availableWidth - _settingsWindowRect.width));
                 _settingsWindowRect.y = Mathf.Clamp(_settingsWindowRect.y, 0f, Mathf.Max(0f, availableHeight - _settingsWindowRect.height));
 
-                _settingsWindowRect = GUI.Window(GetHashCode(), _settingsWindowRect, DrawSettingsWindow, GUIContent.none, SettingsWindow.WindowStyle);
+                if (ModContext.Settings != null && ModContext.Settings.NewSettingsUI)
+                {
+                    _settingsWindowRect = GUI.Window(GetHashCode(), _settingsWindowRect, DrawSettingsWindow, GUIContent.none, SettingsWindow.WindowStyle);
+                }
+                else
+                {
+                    _settingsWindowRect = GUILayout.Window(GetHashCode(), _settingsWindowRect, DrawDefaultSettingsWindow, $"TimingShow v{Info.Version}", GUILayout.Width(WindowWidth), GUILayout.Height(WindowHeight));
+                }
             }
             finally
             {
@@ -82,6 +89,35 @@ namespace TimingShow.Melon
             if (!close) return;
 
             CloseSettings();
+        }
+
+        private void DrawDefaultSettingsWindow(int id)
+        {
+            _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUILayout.Width(WindowWidth - 20f), GUILayout.Height(WindowHeight - 60f));
+            OptionsPage.OnGUI();
+            GUILayout.EndScrollView();
+
+            GUILayout.Space(4f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(i18n.T("Label_ConfigKey"), GUILayout.Width(100f));
+            if (_isRebinding)
+            {
+                GUILayout.Button(i18n.T("Btn_PressKey"), GUILayout.Width(140f));
+                CaptureConfigKey();
+            }
+            else
+            {
+                KeyCode key = ModContext.Settings.ConfigKey;
+                string keyText = key == KeyCode.None ? i18n.T("Status_Disabled") : key.ToString();
+                if (GUILayout.Button(keyText, GUILayout.Width(140f))) _isRebinding = true;
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(i18n.T("Btn_SaveAndClose"), GUILayout.Width(120f))) CloseSettings();
+            GUILayout.EndHorizontal();
+
+            GUI.DragWindow(new Rect(0f, 0f, WindowWidth, 20f));
         }
 
         private void DrawFooter(Rect rect)
