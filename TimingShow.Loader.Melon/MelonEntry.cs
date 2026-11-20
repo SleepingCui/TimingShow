@@ -68,7 +68,8 @@ namespace TimingShow.Melon
 
         public override void OnUpdate()
         {
-            if (_isRebinding) return;
+            // IMGUI key events reach OnGUI before OnUpdate in the same frame, so the key that finishes rebinding must not toggle the window.
+            if (_isRebinding || _suppressHotkeyFrame == Time.frameCount) return;
             var key = ModContext.Settings.ConfigKey;
             if (key == KeyCode.None) key = KeyCode.F9;
             if (!Input.GetKeyDown(key)) return;

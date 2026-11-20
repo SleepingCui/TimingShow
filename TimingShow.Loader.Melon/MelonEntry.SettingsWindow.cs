@@ -13,6 +13,7 @@ namespace TimingShow.Melon
 
         private bool _showSettings;
         private bool _isRebinding;
+        private int _suppressHotkeyFrame = -1;
         private float _renderScale = 1f;
         private float _pendingScale = 1f;
         private Rect _settingsWindowRect = new Rect(20f, 20f, WindowWidth, WindowHeight);
@@ -132,6 +133,7 @@ namespace TimingShow.Melon
             }
 
             _isRebinding = false;
+            _suppressHotkeyFrame = Time.frameCount;
             evt.Use();
         }
     }
