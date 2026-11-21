@@ -99,9 +99,7 @@ namespace TimingShow.Update
 
             try
             {
-                JsonCursor cursor = new JsonCursor(text);
-                plan = ParsePlan(cursor);
-                cursor.EnsureEnd();
+                plan = ParsePlan(JsonText.ParseObject(text));
                 error = string.Empty;
                 return true;
             }
@@ -224,98 +222,61 @@ namespace TimingShow.Update
             return builder.ToString();
         }
 
-        private static PendingUpdatePlan ParsePlan(JsonCursor cursor)
+        private static PendingUpdatePlan ParsePlan(Dictionary<string, object> root)
         {
             PendingUpdatePlan plan = new PendingUpdatePlan();
-            cursor.Expect('{');
-            bool first = true;
-            while (true)
-            {
-                if (cursor.TryConsume('}')) break;
-                if (!first) cursor.Expect(',');
-                first = false;
-
-                string key = cursor.ReadString();
-                cursor.Expect(':');
-                switch (key)
-                {
-                    case "schema":
-                        plan.Schema = (int)cursor.ReadLong();
-                        break;
-                    case "id":
-                        plan.Id = cursor.ReadString();
-                        break;
-                    case "version":
-                        plan.Version = cursor.ReadString();
-                        break;
-                    case "from":
-                        plan.FromVersion = cursor.ReadString();
-                        break;
-                    case "target":
-                        plan.Target = cursor.ReadString();
-                        break;
-                    case "mod":
-                        plan.ModPath = cursor.ReadString();
-                        break;
-                    case "created":
-                        plan.Created = cursor.ReadString();
-                        break;
-                    case "files":
-                        plan.Files = ParseFiles(cursor);
-                        break;
-                    default:
-                        cursor.SkipValue();
-                        break;
-                }
-            }
+            plan.Schema = (int)ReadLong(root, "schema");
+            plan.Id = ReadString(root, "id");
+            plan.Version = ReadString(root, "version");
+            plan.FromVersion = ReadString(root, "from");
+            plan.Target = ReadString(root, "target");
+            plan.ModPath = ReadString(root, "mod");
+            plan.Created = ReadString(root, "created");
+            plan.Files = ParseFiles(root);
             return plan;
         }
 
-        private static List<PendingFileEntry> ParseFiles(JsonCursor cursor)
+        private static List<PendingFileEntry> ParseFiles(Dictionary<string, object> root)
         {
-            List<PendingFileEntry> files = new List<PendingFileEntry>();
-            cursor.Expect('[');
-            bool first = true;
-            while (true)
+            object value;
+            if (!root.TryGetValue("files", out value) || value == null) return null;
+            List<object> items = value as List<object>;
+            if (items == null) throw new FormatException("'files' is not an array.");
+
+            List<PendingFileEntry> files = new List<PendingFileEntry>(items.Count);
+            foreach (object item in items)
             {
-                if (cursor.TryConsume(']')) break;
-                if (!first) cursor.Expect(',');
-                first = false;
-                files.Add(ParseFile(cursor));
+                Dictionary<string, object> values = item as Dictionary<string, object>;
+                if (values == null) throw new FormatException("'files' contains a value that is not an object.");
+                files.Add(ParseFile(values));
             }
             return files;
         }
 
-        private static PendingFileEntry ParseFile(JsonCursor cursor)
+        private static PendingFileEntry ParseFile(Dictionary<string, object> values)
         {
             PendingFileEntry entry = new PendingFileEntry();
-            cursor.Expect('{');
-            bool first = true;
-            while (true)
-            {
-                if (cursor.TryConsume('}')) break;
-                if (!first) cursor.Expect(',');
-                first = false;
-
-                string key = cursor.ReadString();
-                cursor.Expect(':');
-                switch (key)
-                {
-                    case "path":
-                        entry.RelativePath = cursor.ReadString();
-                        break;
-                    case "size":
-                        entry.Size = cursor.ReadLong();
-                        break;
-                    case "sha256":
-                        entry.Sha256 = cursor.ReadString();
-                        break;
-                    default:
-                        cursor.SkipValue();
-                        break;
-                }
-            }
+            entry.RelativePath = ReadString(values, "path");
+            entry.Size = ReadLong(values, "size");
+            entry.Sha256 = ReadString(values, "sha256");
             return entry;
+        }
+
+        private static string ReadString(Dictionary<string, object> values, string key)
+        {
+            object value;
+            if (!values.TryGetValue(key, out value) || value == null) return null;
+            string text = value as string;
+            if (text == null) throw new FormatException("'" + key + "' is not a string.");
+            return text;
+        }
+
+        private static long ReadLong(Dictionary<string, object> values, string key)
+        {
+            object value;
+            if (!values.TryGetValue(key, out value) || value == null) return 0L;
+            if (value is long) return (long)value;
+            throw new FormatException("'" + key + "' is not a number.");
         }
 
         private static string Escape(string value)
@@ -400,188 +361,6 @@ namespace TimingShow.Update
             StringBuilder builder = new StringBuilder(bytes.Length * 2);
             for (int i = 0; i < bytes.Length; i++) builder.Append(bytes[i].ToString("X2"));
             return builder.ToString();
-        }
-
-        private sealed class JsonCursor
-        {
-            private readonly string _text;
-            private int _index;
-
-            public JsonCursor(string text)
-            {
-                _text = text ?? string.Empty;
-            }
-
-            public void EnsureEnd()
-            {
-                SkipWhiteSpace();
-                if (_index < _text.Length) throw Error("unexpected trailing content");
-            }
-
-            public void Expect(char expected)
-            {
-                SkipWhiteSpace();
-                if (_index >= _text.Length || _text[_index] != expected) throw Error("expected '" + expected + "'");
-                _index++;
-            }
-
-            public bool TryConsume(char value)
-            {
-                SkipWhiteSpace();
-                if (_index >= _text.Length || _text[_index] != value) return false;
-                _index++;
-                return true;
-            }
-
-            public string ReadString()
-            {
-                SkipWhiteSpace();
-                if (_index >= _text.Length || _text[_index] != '"') throw Error("expected a string");
-                _index++;
-
-                StringBuilder builder = new StringBuilder();
-                while (true)
-                {
-                    if (_index >= _text.Length) throw Error("unterminated string");
-
-                    char current = _text[_index++];
-                    if (current == '"') return builder.ToString();
-                    if (current != '\\')
-                    {
-                        if (current < ' ') throw Error("control character in a string");
-                        builder.Append(current);
-                        continue;
-                    }
-
-                    if (_index >= _text.Length) throw Error("unterminated escape sequence");
-                    char escape = _text[_index++];
-                    switch (escape)
-                    {
-                        case '"':
-                            builder.Append('"');
-                            break;
-                        case '\\':
-                            builder.Append('\\');
-                            break;
-                        case '/':
-                            builder.Append('/');
-                            break;
-                        case 'b':
-                            builder.Append('\b');
-                            break;
-                        case 'f':
-                            builder.Append('\f');
-                            break;
-                        case 'n':
-                            builder.Append('\n');
-                            break;
-                        case 'r':
-                            builder.Append('\r');
-                            break;
-                        case 't':
-                            builder.Append('\t');
-                            break;
-                        case 'u':
-                            if (_index + 4 > _text.Length) throw Error("truncated unicode escape");
-                            int code = int.Parse(_text.Substring(_index, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-                            _index += 4;
-                            builder.Append((char)code);
-                            break;
-                        default:
-                            throw Error("invalid escape sequence");
-                    }
-                }
-            }
-
-            public long ReadLong()
-            {
-                SkipWhiteSpace();
-                int start = _index;
-                if (_index < _text.Length && _text[_index] == '-') _index++;
-
-                int digits = 0;
-                while (_index < _text.Length && _text[_index] >= '0' && _text[_index] <= '9')
-                {
-                    _index++;
-                    digits++;
-                }
-                if (digits == 0) throw Error("expected a number");
-
-                long value;
-                if (!long.TryParse(_text.Substring(start, _index - start), NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
-                    throw Error("number is out of range");
-                return value;
-            }
-
-            public void SkipValue()
-            {
-                SkipWhiteSpace();
-                if (_index >= _text.Length) throw Error("unexpected end");
-
-                char current = _text[_index];
-                if (current == '"')
-                {
-                    ReadString();
-                    return;
-                }
-                if (current == '{')
-                {
-                    _index++;
-                    bool first = true;
-                    while (true)
-                    {
-                        if (TryConsume('}')) return;
-                        if (!first) Expect(',');
-                        first = false;
-                        ReadString();
-                        Expect(':');
-                        SkipValue();
-                    }
-                }
-                if (current == '[')
-                {
-                    _index++;
-                    bool first = true;
-                    while (true)
-                    {
-                        if (TryConsume(']')) return;
-                        if (!first) Expect(',');
-                        first = false;
-                        SkipValue();
-                    }
-                }
-                if (current == 't' || current == 'f' || current == 'n')
-                {
-                    SkipLiteral();
-                    return;
-                }
-
-                ReadLong();
-            }
-
-            private void SkipLiteral()
-            {
-                foreach (string literal in Literals)
-                {
-                    if (_index + literal.Length > _text.Length) continue;
-                    if (string.CompareOrdinal(_text, _index, literal, 0, literal.Length) != 0) continue;
-                    _index += literal.Length;
-                    return;
-                }
-                throw Error("invalid literal");
-            }
-
-            public FormatException Error(string message)
-            {
-                return new FormatException(message + " at offset " + _index + ".");
-            }
-
-            private void SkipWhiteSpace()
-            {
-                while (_index < _text.Length && char.IsWhiteSpace(_text[_index])) _index++;
-            }
-
-            private static readonly string[] Literals = { "true", "false", "null" };
         }
     }
 }

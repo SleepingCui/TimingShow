@@ -436,20 +436,12 @@ namespace TimingShow.Options
             string digits = text.Trim().TrimStart('#');
             if (digits.Length != 6 && digits.Length != 8) return false;
 
-            if (!TryParseHexByte(digits, 0, out byte r) || !TryParseHexByte(digits, 2, out byte g) || !TryParseHexByte(digits, 4, out byte b))
-                return false;
+            Color parsed;
+            if (!ColorUtility.TryParseHtmlString("#" + digits, out parsed)) return false;
 
-            byte a = 255;
-            if (digits.Length == 8 && !TryParseHexByte(digits, 6, out a)) return false;
-
-            float alpha = digits.Length == 8 ? a / 255f : current.a;
-            color = new Color(r / 255f, g / 255f, b / 255f, alpha);
+            if (digits.Length == 6) parsed.a = current.a;
+            color = parsed;
             return true;
-        }
-
-        private static bool TryParseHexByte(string digits, int start, out byte value)
-        {
-            return byte.TryParse(digits.Substring(start, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value);
         }
     }
 }

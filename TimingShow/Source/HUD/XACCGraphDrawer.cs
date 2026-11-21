@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -303,7 +302,7 @@ namespace TimingShow.HUD
             {
                 if (i > 0) _legendBuilder.Append("  ");
                 _legendBuilder.Append("<color=#");
-                _legendBuilder.Append(ColorToHex(LineColorFor(i)));
+                _legendBuilder.Append(ColorUtility.ToHtmlStringRGB(LineColorFor(i)));
                 _legendBuilder.Append('>');
                 _legendBuilder.Append(Coop.Label(i));
                 _legendBuilder.Append("</color>");
@@ -320,14 +319,6 @@ namespace TimingShow.HUD
             rt.pivot = new Vector2(1f, 1f);
             rt.anchoredPosition = new Vector2(-6f * scale, h - 2f * scale);
             rt.sizeDelta = new Vector2(Mathf.Max(1f, w * 0.8f), Mathf.Max(1f, h * 0.3f));
-        }
-
-        private static string ColorToHex(Color color)
-        {
-            Color32 c = color;
-            return c.r.ToString("X2", CultureInfo.InvariantCulture)
-                 + c.g.ToString("X2", CultureInfo.InvariantCulture)
-                 + c.b.ToString("X2", CultureInfo.InvariantCulture);
         }
     }
 }

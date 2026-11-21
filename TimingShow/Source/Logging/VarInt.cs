@@ -38,5 +38,32 @@ namespace TimingShow.Logging
 
             return UnZigZag(result);
         }
+
+        /// <summary>与 <see cref="Read"/> 相同的解码，数据不足或编码超过 5 字节时返回 false</summary>
+        public static bool TryRead(BinaryReader reader, out int value)
+        {
+            value = 0;
+            uint result = 0;
+            for (int shift = 0; shift < 35; shift += 7)
+            {
+                byte b;
+                try
+                {
+                    b = reader.ReadByte();
+                }
+                catch (EndOfStreamException)
+                {
+                    return false;
+                }
+
+                result |= (uint)(b & 0x7F) << shift;
+                if ((b & 0x80) == 0)
+                {
+                    value = UnZigZag(result);
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

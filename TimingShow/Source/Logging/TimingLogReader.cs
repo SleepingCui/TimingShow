@@ -265,31 +265,31 @@ namespace TimingShow.Logging
                     data.LevelPath = TokenToString(reader.Value);
                     return true;
                 case "timestamp":
-                    data.Timestamp = TokenToInt64(reader.Value);
+                    data.Timestamp = TokenValue(reader.Value, 0L);
                     return true;
                 case "bpm":
-                    data.Bpm = TokenToDouble(reader.Value);
+                    data.Bpm = TokenValue(reader.Value, 0.0);
                     return true;
                 case "speed":
-                    data.Speed = TokenToDouble(reader.Value);
+                    data.Speed = TokenValue(reader.Value, 0.0);
                     return true;
                 case "pitch":
-                    data.Pitch = TokenToDouble(reader.Value);
+                    data.Pitch = TokenValue(reader.Value, 0.0);
                     return true;
                 case "isAngle":
-                    data.IsAngle = TokenToBoolean(reader.Value);
+                    data.IsAngle = TokenValue(reader.Value, false);
                     return true;
                 case "formatVersion":
-                    data.FormatVersion = TokenToInt32(reader.Value);
+                    data.FormatVersion = TokenValue(reader.Value, 0);
                     return true;
                 case "hitMarginVersion":
                     data.HitMarginVersionText = TokenToString(reader.Value);
                     return true;
                 case "judgeCodeVersion":
-                    data.JudgeCodeVersion = TokenToInt32(reader.Value);
+                    data.JudgeCodeVersion = TokenValue(reader.Value, 0);
                     return true;
                 case "difficulty":
-                    data.Difficulty = TokenToInt32(reader.Value);
+                    data.Difficulty = TokenValue(reader.Value, 0);
                     return true;
                 default:
                     return false;
@@ -403,41 +403,41 @@ namespace TimingShow.Logging
                     switch (index)
                     {
                         case 0:
-                            if (inner != JsonToken.Null) timeMs = TokenToDouble(reader.Value);
+                            if (inner != JsonToken.Null) timeMs = TokenValue(reader.Value, 0.0);
                             break;
                         case 1:
-                            value = TokenToDouble(reader.Value);
+                            value = TokenValue(reader.Value, 0.0);
                             break;
                         case 2:
 
                             break;
                         case 3:
-                            judgeCode = TokenToInt32(reader.Value);
+                            judgeCode = TokenValue(reader.Value, 0);
                             break;
                         case 4:
-                            isXp = TokenToInt32(reader.Value) != 0;
+                            isXp = TokenValue(reader.Value, 0) != 0;
                             break;
                         case 5:
-                            if (inner != JsonToken.Null) angleDeg = TokenToDouble(reader.Value);
+                            if (inner != JsonToken.Null) angleDeg = TokenValue(reader.Value, 0.0);
                             break;
                         case 6:
-                            if (inner != JsonToken.Null) hitBpm = TokenToDouble(reader.Value);
+                            if (inner != JsonToken.Null) hitBpm = TokenValue(reader.Value, 0.0);
                             break;
                         case 7:
-                            if (inner != JsonToken.Null) hitSpeed = TokenToDouble(reader.Value);
+                            if (inner != JsonToken.Null) hitSpeed = TokenValue(reader.Value, 0.0);
                             break;
                         case 8:
-                            if (inner != JsonToken.Null) hitPitch = TokenToDouble(reader.Value);
+                            if (inner != JsonToken.Null) hitPitch = TokenValue(reader.Value, 0.0);
                             break;
                         case 9:
                             if (inner != JsonToken.Null)
                             {
-                                floorId = TokenToInt32(reader.Value);
+                                floorId = TokenValue(reader.Value, 0);
                                 hasFloorField = true;
                             }
                             break;
                         case 10:
-                            if (inner != JsonToken.Null) hitMarginScale = TokenToDouble(reader.Value);
+                            if (inner != JsonToken.Null) hitMarginScale = TokenValue(reader.Value, 0.0);
                             break;
                         default:
                             break;
@@ -620,14 +620,14 @@ namespace TimingShow.Logging
                         }
 
                         int rawMarginCode;
-                        if (!TryReadVarInt(reader, out rawMarginCode))
+                        if (!VarInt.TryRead(reader, out rawMarginCode))
                         {
                             result.Truncated = true;
                             break;
                         }
 
                         int judgeCode;
-                        if (!TryReadVarInt(reader, out judgeCode))
+                        if (!VarInt.TryRead(reader, out judgeCode))
                         {
                             result.Truncated = true;
                             break;
@@ -661,7 +661,7 @@ namespace TimingShow.Logging
                                 hitPitch = reader.ReadSingle();
 
                                 int decodedFloorId;
-                                if (!TryReadVarInt(reader, out decodedFloorId))
+                                if (!VarInt.TryRead(reader, out decodedFloorId))
                                 {
                                     result.Truncated = true;
                                     break;
@@ -761,28 +761,6 @@ namespace TimingShow.Logging
             long currentBits = previousBits ^ unchecked((long)xor);
             previousBits = currentBits;
             value = BitConverter.Int64BitsToDouble(currentBits);
-            return true;
-        }
-
-        private static bool TryReadVarInt(BinaryReader reader, out int value)
-        {
-            value = 0;
-
-            uint raw = 0;
-            int bytesRead = 0;
-
-            while (true)
-            {
-                if (bytesRead >= 5) return false;
-
-                byte b = reader.ReadByte();
-                raw |= (uint)(b & 0x7F) << (7 * bytesRead);
-                bytesRead++;
-
-                if ((b & 0x80) == 0) break;
-            }
-
-            value = VarInt.UnZigZag(raw);
             return true;
         }
 
@@ -995,103 +973,28 @@ namespace TimingShow.Logging
             return s ?? Convert.ToString(value, CultureInfo.InvariantCulture);
         }
 
-        private static double TokenToDouble(object value)
+        private static T TokenValue<T>(object value, T fallback)
         {
-            if (value == null) return 0.0;
+            if (value == null) return fallback;
 
-            double d;
-            if (value is double) return (double)value;
-
-            IConvertible convertible = value as IConvertible;
-            if (convertible != null)
+            string text = value as string;
+            if (text != null && typeof(T) == typeof(bool))
             {
-                try
-                {
-                    return convertible.ToDouble(CultureInfo.InvariantCulture);
-                }
-                catch
-                {
-
-                }
+                int number;
+                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out number))
+                    return (T)(object)(number != 0);
             }
 
-            return double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture),
-                NumberStyles.Float, CultureInfo.InvariantCulture, out d) ? d : 0.0;
+            try
+            {
+                if (typeof(T) == typeof(bool)) return (T)(object)Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+                return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return fallback;
+            }
         }
 
-        private static int TokenToInt32(object value)
-        {
-            if (value == null) return 0;
-
-            IConvertible convertible = value as IConvertible;
-            if (convertible != null)
-            {
-                try
-                {
-                    return convertible.ToInt32(CultureInfo.InvariantCulture);
-                }
-                catch
-                {
-
-                }
-            }
-
-            int i;
-            return int.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture),
-                NumberStyles.Integer, CultureInfo.InvariantCulture, out i) ? i : 0;
-        }
-
-        private static long TokenToInt64(object value)
-        {
-            if (value == null) return 0L;
-
-            IConvertible convertible = value as IConvertible;
-            if (convertible != null)
-            {
-                try
-                {
-                    return convertible.ToInt64(CultureInfo.InvariantCulture);
-                }
-                catch
-                {
-
-                }
-            }
-
-            long l;
-            return long.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture),
-                NumberStyles.Integer, CultureInfo.InvariantCulture, out l) ? l : 0L;
-        }
-
-        private static bool TokenToBoolean(object value)
-        {
-            if (value == null) return false;
-
-            if (value is bool) return (bool)value;
-
-            string s = value as string;
-            if (s != null)
-            {
-                bool b;
-                if (bool.TryParse(s, out b)) return b;
-                int i;
-                if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out i)) return i != 0;
-                return false;
-            }
-
-            IConvertible convertible = value as IConvertible;
-            if (convertible != null)
-            {
-                try
-                {
-                    return convertible.ToBoolean(CultureInfo.InvariantCulture);
-                }
-                catch
-                {
-                }
-            }
-
-            return false;
-        }
     }
 }

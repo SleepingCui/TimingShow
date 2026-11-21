@@ -318,10 +318,9 @@ namespace TimingShow.HUD
             }
         }
 
-        protected static string ColorToHex(Color color)
+        internal static string ColorToHex(Color color)
         {
-            Color32 c = color;
-            return c.r.ToString("X2") + c.g.ToString("X2") + c.b.ToString("X2");
+            return ColorUtility.ToHtmlStringRGB(color);
         }
     }
 }

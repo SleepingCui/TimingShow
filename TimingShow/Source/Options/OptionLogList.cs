@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Threading;
+using Newtonsoft.Json;
 using UnityEngine;
 using TimingShow.Bridge;
 using TimingShow.Logging;
@@ -749,9 +750,7 @@ namespace TimingShow.Options
                 }
 
                 string text = new UTF8Encoding(false).GetString(probe, 0, read);
-                entry.Timestamp = ReadJsonLongField(text, "timestamp", entry.Timestamp);
-                string song = ReadJsonStringField(text, "songName");
-                if (!string.IsNullOrEmpty(song)) entry.SongName = song;
+                ReadJsonHeader(text, entry);
 
                 if (read >= probe.Length && entry.Timestamp < 0 && string.IsNullOrEmpty(entry.SongName))
                 {
@@ -774,62 +773,31 @@ namespace TimingShow.Options
             return total;
         }
 
-        private static string ReadJsonStringField(string text, string key)
+        private static void ReadJsonHeader(string text, LogListEntry entry)
         {
-            int at = FindField(text, key);
-            if (at < 0) return null;
+            if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
 
-            int colon = text.IndexOf(':', at);
-            if (colon < 0) return null;
-
-            int start = text.IndexOf('"', colon + 1);
-            if (start < 0) return null;
-
-            var sb = new System.Text.StringBuilder();
-            for (int i = start + 1; i < text.Length; i++)
+            try
             {
-                char c = text[i];
-                if (c == '\\') { if (i + 1 < text.Length) { sb.Append(text[++i]); } continue; }
-                if (c == '"') return sb.ToString();
-                sb.Append(c);
+                using (var input = new StringReader(text))
+                using (var reader = new JsonTextReader(input))
+                {
+                    reader.DateParseHandling = DateParseHandling.None;
+                    while (reader.Read())
+                    {
+                        if (reader.TokenType != JsonToken.PropertyName) continue;
+
+                        string key = (string)reader.Value;
+                        if (!reader.Read()) break;
+                        if (key == "timestamp" && reader.Value is long timestamp) entry.Timestamp = timestamp;
+                        else if (key == "songName" && reader.Value is string songName && songName.Length > 0) entry.SongName = songName;
+                        else if (reader.TokenType == JsonToken.StartObject || reader.TokenType == JsonToken.StartArray) reader.Skip();
+                    }
+                }
             }
-            return null;
-        }
-
-        private static long ReadJsonLongField(string text, string key, long fallback)
-        {
-            int at = FindField(text, key);
-            if (at < 0) return fallback;
-
-            int colon = text.IndexOf(':', at);
-            if (colon < 0) return fallback;
-
-            int i = colon + 1;
-            while (i < text.Length && (text[i] == ' ' || text[i] == '\t')) i++;
-
-            int start = i;
-            if (i < text.Length && (text[i] == '-' || text[i] == '+')) i++;
-            while (i < text.Length && char.IsDigit(text[i])) i++;
-            if (i == start) return fallback;
-
-            long value;
-            return long.TryParse(text.Substring(start, i - start), out value) ? value : fallback;
-        }
-
-        private static int FindField(string text, string key)
-        {
-            string needle = "\"" + key + "\"";
-            int index = text.IndexOf(needle, StringComparison.Ordinal);
-            while (index >= 0)
+            catch (JsonException)
             {
-                int after = index + needle.Length;
-                int colon = text.IndexOf(':', after);
-                if (colon < 0) return -1;
-                int quote = text.IndexOf('"', after);
-                if (quote < 0 || quote > colon) return index;
-                index = text.IndexOf(needle, index + 1, StringComparison.Ordinal);
             }
-            return -1;
         }
 
         private static long TimestampFromFileName(string fileName)
