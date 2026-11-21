@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using HarmonyLib;
 using UnityModManagerNet;
+using TimingShow.Bootstrap;
 using TimingShow.Bridge;
 using TimingShow.Update;
 
@@ -13,8 +14,7 @@ namespace TimingShow.UMM
 
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
-            var logger = new UmmLogger(modEntry.Logger);
-            ModEntry.Initialize(modEntry.Path, logger);
+            ModEntry.Initialize(modEntry.Path, message => modEntry.Logger.Log(message), message => modEntry.Logger.Error(message));
             ModContext.Settings = Settings.Load(modEntry.Path);
 
             i18n.LoadLanguages(ModContext.ModPath);
@@ -26,7 +26,7 @@ namespace TimingShow.UMM
 
             _displayName = modEntry.Info.DisplayName;
             UpdateBridge.Changed += () => ApplyDisplayName(modEntry);
-            UpdateBridge.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version, UpdateTarget.Umm, true, logger);
+            UpdateBridge.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version, UpdateTarget.Umm, true, ModContext.Logger);
 
             modEntry.OnToggle = (entry, value) =>
             {

@@ -41,6 +41,8 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="UnityEngine">
       <HintPath>..\libs\UnityEngine.dll</HintPath>
       <Private>False</Private>
@@ -53,8 +55,24 @@
       <HintPath>..\libs\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\libs\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>..\libs\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>..\libs\UnityEngine.UIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -67,9 +85,18 @@
   <ItemGroup>
     <Compile Include="MelonEntry.cs" />
     <Compile Include="MelonEntry.SettingsWindow.cs" />
-    <Compile Include="MelonEntry.Updater.cs" />
+    <Compile Include="MelonCoreSetup.cs" />
     <Compile Include="MelonHotkeys.cs" />
-    <Compile Include="MelonLoggerAdapter.cs" />
+    <Compile Include="MissingCoreFallback.cs" />
+    <Compile Include="..\TimingShow.Loader.Shared\MissingCoreInstaller.cs">
+      <Link>MissingCoreInstaller.cs</Link>
+    </Compile>
+    <Compile Include="..\TimingShow.Loader.Shared\PendingUpdateApplier.cs">
+      <Link>PendingUpdateApplier.cs</Link>
+    </Compile>
+    <Compile Include="..\TimingShow.Loader.Shared\PendingUpdateFile.cs">
+      <Link>PendingUpdateFile.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

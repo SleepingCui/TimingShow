@@ -1,26 +1,61 @@
-using MelonLoader;
-using MelonLoader.Utils;
 using System;
 using System.IO;
 using System.Reflection;
-using UnityEngine;
+using System.Runtime.CompilerServices;
+using MelonLoader;
+using MelonLoader.Utils;
+using TimingShow.Bootstrap;
 using TimingShow.Bridge;
+using UnityEngine;
 
 namespace TimingShow.Melon
 {
     public partial class MelonEntry : MelonMod
     {
+        private string _modPath;
+        private bool _coreReady;
+        private bool _coreLoadAttempted;
+        private MissingCoreFallback _missingCore;
+
         public override void OnInitializeMelon()
         {
-            string modPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            var logger = new MelonLoggerAdapter();
-            ModEntry.Initialize(modPath, logger);
+            _modPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            if (!File.Exists(Path.Combine(_modPath, MissingCoreInstaller.CoreFileName)))
+            {
+                BeginMissingCoreDownload("TimingShow.dll is missing; starting the missing-core downloader.");
+                return;
+            }
+
+            try
+            {
+                InitializeCore(_modPath);
+            }
+            catch (TypeLoadException e)
+            {
+                BeginMissingCoreDownload("The installed TimingShow core is incompatible with this loader; starting the missing-core downloader. " + e.Message);
+            }
+            catch (BadImageFormatException e)
+            {
+                BeginMissingCoreDownload("The installed TimingShow core is corrupted; starting the missing-core downloader. " + e.Message);
+            }
+        }
+
+        private void BeginMissingCoreDownload(string message)
+        {
+            MelonLogger.Warning("[TimingShow] " + message);
+            _missingCore = new MissingCoreFallback(_modPath, MelonEnvironment.UserDataDirectory, MelonEnvironment.PluginsDirectory);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void InitializeCore(string modPath)
+        {
+            ModEntry.Initialize(modPath, MelonLogger.Msg, MelonLogger.Error);
             ModContext.IsMelon = true;
 
             string dataPath = Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow");
             Directory.CreateDirectory(dataPath);
             ModContext.DataPath = dataPath;
-            MigrateSettings(modPath, dataPath, logger);
+            MelonCoreSetup.MigrateSettings(modPath, dataPath, message => ModContext.Logger.Log(message), message => ModContext.Logger.Error(message));
 
             bool firstRun = !File.Exists(Path.Combine(dataPath, "Settings.json"));
             ModContext.Settings = Settings.Load(dataPath);
@@ -34,39 +69,69 @@ namespace TimingShow.Melon
             var harmony = new HarmonyLib.Harmony("TimingShow.Loader.Melon");
             ModContext.HarmonyInstance = harmony;
             ModEntry.Enable();
-            
-            ScheduleStartupHint(firstRun);
-            InitializeUpdater(modPath, Info.Version, logger);
-        }
 
-        private static void MigrateSettings(string modPath, string dataPath, IModLogger logger)
-        {
-            string legacy = Path.Combine(modPath, "Settings.json");
-            string target = Path.Combine(dataPath, "Settings.json");
-            if (File.Exists(target) || !File.Exists(legacy)) return;
-
-            try
-            {
-                File.Move(legacy, target);
-                logger.Log("Moved Settings.json to " + target);
-            }
-            catch (Exception e)
-            {
-                logger.Error("Failed to move Settings.json to " + target + ": " + e.Message);
-            }
-        }
-
-        private static void ScheduleStartupHint(bool firstRun)
-        {
-            Settings settings = ModContext.Settings;
-            if (settings == null) return;
-            if (!firstRun && !settings.ShowConfigHintOnStart) return;
-
-            KeyCode key = settings.ConfigKey == KeyCode.None ? KeyCode.F9 : settings.ConfigKey;
-            HUD.StartupHint.Schedule(string.Format(i18n.T("Hint_ConfigMenu"), key));
+            MelonCoreSetup.ScheduleStartupHint(firstRun);
+            MelonCoreSetup.InitializeUpdater(modPath, Info.Version);
+            _coreReady = true;
         }
 
         public override void OnUpdate()
+        {
+            if (_missingCore != null)
+            {
+                _missingCore.Tick();
+                if (_missingCore.IsReadyToLoad && !_coreLoadAttempted)
+                {
+                    _coreLoadAttempted = true;
+                    TryLoadCore();
+                }
+                return;
+            }
+
+            if (!_coreReady) return;
+            UpdateCore();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void TryLoadCore()
+        {
+            string corePath = Path.Combine(_modPath, MissingCoreInstaller.CoreFileName);
+            Assembly core = null;
+            ResolveEventHandler resolve = null;
+            try
+            {
+                core = Assembly.LoadFrom(corePath);
+                string name = core.GetName().Name;
+                if (!string.Equals(name, "TimingShow", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Unexpected core assembly " + name + ".");
+
+                resolve = (sender, args) =>
+                {
+                    try
+                    {
+                        return string.Equals(new AssemblyName(args.Name).Name, name, StringComparison.OrdinalIgnoreCase) ? core : null;
+                    }
+                    catch (Exception)
+                    {
+                        return null;
+                    }
+                };
+                AppDomain.CurrentDomain.AssemblyResolve += resolve;
+
+                InitializeCore(_modPath);
+                _missingCore.Dispose();
+                _missingCore = null;
+                MelonLogger.Msg("[TimingShow] Loaded after the core download.");
+            }
+            catch (Exception e)
+            {
+                if (resolve != null) AppDomain.CurrentDomain.AssemblyResolve -= resolve;
+                MelonLogger.Error("[TimingShow] Failed to load the downloaded core: " + e);
+                _missingCore?.MarkLoadFailed(e.Message);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void UpdateCore()
         {
             // IMGUI key events reach OnGUI before OnUpdate in the same frame, so the key that finishes rebinding must not toggle the window.
             if (_isRebinding || _suppressHotkeyFrame == Time.frameCount) return;
@@ -77,7 +142,22 @@ namespace TimingShow.Melon
             else OpenSettings();
         }
 
+        public override void OnGUI()
+        {
+            if (_missingCore != null) return;
+
+            if (!_coreReady) return;
+            DrawCoreSettings();
+        }
+
         public override void OnApplicationQuit()
+        {
+            if (!_coreReady) return;
+            QuitCore();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void QuitCore()
         {
             ModEntry.SaveSettings();
             ModEntry.Disable();

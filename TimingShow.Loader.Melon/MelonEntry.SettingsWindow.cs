@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using TimingShow.Options;
 using OptionsPage = TimingShow.Options.Options;
@@ -19,7 +20,8 @@ namespace TimingShow.Melon
         private Rect _settingsWindowRect = new Rect(20f, 20f, WindowWidth, WindowHeight);
         private Vector2 _scrollPos;
 
-        public override void OnGUI()
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void DrawCoreSettings()
         {
             if (!_showSettings) return;
 

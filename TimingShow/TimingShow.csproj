@@ -99,6 +99,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IModLogger.cs" />
+    <Compile Include="DelegateLogger.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Source\Calc.cs" />
     <Compile Include="Source\ModContext.cs" />

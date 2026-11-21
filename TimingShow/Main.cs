@@ -14,6 +14,11 @@ namespace TimingShow
             Patches.PlayStatePatches.RegisterSceneHook();
         }
 
+        public static void Initialize(string modPath, Action<string> log, Action<string> error)
+        {
+            Initialize(modPath, new DelegateLogger(log, error));
+        }
+
         public static void InitializeJudgeCompat()
         {
             HitMarginCompat.Initialize();

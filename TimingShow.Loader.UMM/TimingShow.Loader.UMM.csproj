@@ -37,6 +37,8 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="UnityModManager">
       <HintPath>..\libs\UnityModManager.dll</HintPath>
       <Private>False</Private>
@@ -49,6 +51,14 @@
       <HintPath>..\libs\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\libs\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\libs\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TimingShow\TimingShow.csproj">
@@ -58,9 +68,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ModBootstrap.cs" />
+    <Compile Include="MissingCoreFallback.cs" />
     <Compile Include="PendingUpdate.cs" />
     <Compile Include="UMMEntry.cs" />
-    <Compile Include="UmmLogger.cs" />
+    <Compile Include="..\TimingShow.Loader.Shared\MissingCoreInstaller.cs">
+      <Link>MissingCoreInstaller.cs</Link>
+    </Compile>
     <Compile Include="..\TimingShow.Loader.Shared\PendingUpdateApplier.cs">
       <Link>PendingUpdateApplier.cs</Link>
     </Compile>
