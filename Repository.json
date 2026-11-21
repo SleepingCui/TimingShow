@@ -2,21 +2,21 @@
   "Releases": [
     {
       "Id": "TimingShow",
-      "Version": "1.9.3",
+      "Version": "1.9.4",
       "GameVersion": "*",
-      "DownloadUrl": "https://github.com/SleepingCui/TimingShow/releases/download/1.9.3/TimingShow.zip",
+      "DownloadUrl": "https://github.com/SleepingCui/TimingShow/releases/download/1.9.4/TimingShow.UMM.zip",
       "Changes": "",
-      "Sha256": "66843C75DEBE93B0F17499F3E20F983C57609C9E79C7EE14B221A9F3F09ADD3C",
-      "Size": 14464314
+      "Sha256": "F165B6792B690AA3ADD0D42C709E2DA03ACBE2861146FD8FB789796DAEA25D89",
+      "Size": 14558993
     },
     {
       "Id": "TimingShow.Melon",
-      "Version": "1.9.3",
+      "Version": "1.9.4",
       "GameVersion": "*",
-      "DownloadUrl": "https://github.com/SleepingCui/TimingShow/releases/download/1.9.3/TimingShow.zip",
+      "DownloadUrl": "https://github.com/SleepingCui/TimingShow/releases/download/1.9.4/TimingShow.Melon.zip",
       "Changes": "",
-      "Sha256": "66843C75DEBE93B0F17499F3E20F983C57609C9E79C7EE14B221A9F3F09ADD3C",
-      "Size": 14464314
+      "Sha256": "4C3B06078BC687B984CE4E8CF50733F513531E9535DBEF9368AC788A9E4C30EC",
+      "Size": 14564089
     }
   ]
 }
