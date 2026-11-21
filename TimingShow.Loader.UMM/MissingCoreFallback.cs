@@ -31,6 +31,7 @@ namespace TimingShow.UMM
                 false,
                 "TimingShow",
                 repository,
+                Path.Combine(modEntry.Path, "Settings.json"),
                 Path.Combine(modEntry.Path, "Update"),
                 "TimingShow.Loader.UMM.dll",
                 message => modEntry.Logger.Log("[MissingCore] " + message),

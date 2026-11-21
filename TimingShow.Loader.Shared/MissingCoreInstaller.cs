@@ -48,6 +48,9 @@ namespace TimingShow.Bootstrap
         private readonly string _updateRoot;
         private readonly string _releaseId;
         private readonly string _repositoryUrl;
+        private readonly bool _customRepository;
+        private readonly bool _skipChecksum;
+        private readonly bool _skipTlsValidation;
         private readonly string _loaderFileName;
         private readonly string _runningLoaderPath;
         private readonly string _runningLoaderHash;
@@ -63,19 +66,55 @@ namespace TimingShow.Bootstrap
         private string _version = string.Empty;
         private bool _loaderChanged;
 
-        public MissingCoreInstaller(string modPath, string pluginsPath, bool melonLayout, string releaseId, string repositoryUrl, string updateRoot, string loaderFileName, Action<string> log, Action<string> error)
+        public MissingCoreInstaller(string modPath, string pluginsPath, bool melonLayout, string releaseId, string repositoryUrl, string settingsPath, string updateRoot, string loaderFileName, Action<string> log, Action<string> error)
         {
             _modPath = PendingUpdateApplier.NormalizeDirectory(modPath);
             _pluginsPath = string.IsNullOrEmpty(pluginsPath) ? null : PendingUpdateApplier.NormalizeDirectory(pluginsPath);
             _melonLayout = melonLayout;
             _releaseId = releaseId;
-            _repositoryUrl = string.IsNullOrEmpty(repositoryUrl) ? DefaultRepositoryUrl : repositoryUrl.Trim();
+            _log = log ?? delegate { };
+            _error = error ?? delegate { };
+            string defaultRepository = string.IsNullOrEmpty(repositoryUrl) ? DefaultRepositoryUrl : repositoryUrl.Trim();
+            UpdateDebugSettings debug = LoadUpdateDebugSettings(settingsPath);
+            bool useCustomRepository = debug.CustomRepository && !string.IsNullOrEmpty(debug.RepositoryUrl);
+            _repositoryUrl = useCustomRepository ? debug.RepositoryUrl.Trim() : defaultRepository;
+            _customRepository = useCustomRepository;
+            _skipChecksum = debug.SkipChecksum;
+            _skipTlsValidation = debug.SkipTlsValidation;
             _updateRoot = PendingUpdateApplier.NormalizeDirectory(updateRoot);
             _loaderFileName = loaderFileName;
             _runningLoaderPath = ResolveRunningLoaderPath();
             _runningLoaderHash = TryComputeHash(_runningLoaderPath);
-            _log = log ?? delegate { };
-            _error = error ?? delegate { };
+            if (_customRepository) _log("Using the custom update source from Settings.json: " + _repositoryUrl);
+            if (_skipChecksum) _log("Debug_SkipUpdateChecksum is enabled; the package checksum will not be verified.");
+            if (_skipTlsValidation) _log("Debug_SkipTlsValidation is enabled; HTTPS certificate validation is disabled.");
+        }
+
+        private sealed class UpdateDebugSettings
+        {
+            public bool CustomRepository;
+            public string RepositoryUrl = string.Empty;
+            public bool SkipChecksum;
+            public bool SkipTlsValidation;
+        }
+
+        private UpdateDebugSettings LoadUpdateDebugSettings(string settingsPath)
+        {
+            UpdateDebugSettings settings = new UpdateDebugSettings();
+            if (string.IsNullOrEmpty(settingsPath) || !File.Exists(settingsPath)) return settings;
+            try
+            {
+                Dictionary<string, object> values = MiniJson.ParseObject(File.ReadAllText(settingsPath));
+                settings.CustomRepository = GetBool(values, "Debug_CustomUpdateUrl");
+                settings.RepositoryUrl = GetString(values, "Debug_UpdateUrl").Trim();
+                settings.SkipChecksum = GetBool(values, "Debug_SkipUpdateChecksum");
+                settings.SkipTlsValidation = GetBool(values, "Debug_SkipTlsValidation");
+            }
+            catch (Exception e)
+            {
+                _log("Settings.json could not be read for update debug options: " + e.Message);
+            }
+            return settings;
         }
 
         public MissingCoreState State
@@ -167,7 +206,8 @@ namespace TimingShow.Bootstrap
 
                 ReleaseInfo release = SelectRelease(manifest);
                 lock (_sync) _version = release.Version;
-                _log("Downloading TimingShow " + release.Version + " (" + FormatSize(release.Size) + ").");
+                string sizeText = release.Size > 0 ? " (" + FormatSize(release.Size) + ")" : string.Empty;
+                _log("Downloading TimingShow " + release.Version + sizeText + ".");
 
                 Directory.CreateDirectory(downloadDirectory);
                 zipPath = Path.Combine(downloadDirectory, "TimingShow-" + Sanitize(release.Version) + ".zip");
@@ -257,7 +297,8 @@ namespace TimingShow.Bootstrap
                 string downloadUrl = GetString(release, "DownloadUrl");
                 string sha256 = GetString(release, "Sha256");
                 long size = GetLong(release, "Size");
-                if (string.IsNullOrEmpty(downloadUrl) || string.IsNullOrEmpty(sha256) || sha256.Length != 64 || size <= 0) continue;
+                if (string.IsNullOrEmpty(downloadUrl)) continue;
+                if (!_skipChecksum && (sha256.Length != 64 || size <= 0)) continue;
                 if (bestVersion != null && version <= bestVersion) continue;
 
                 best = new ReleaseInfo { Version = versionText.Trim(), DownloadUrl = downloadUrl.Trim(), Sha256 = sha256.Trim(), Size = size };
@@ -277,7 +318,7 @@ namespace TimingShow.Bootstrap
             using (WebResponse response = request.GetResponse())
             {
                 ValidateResponse(response);
-                long total = release.Size;
+                long total = release.Size > 0 ? release.Size : response.ContentLength;
                 long received = 0;
                 byte[] buffer = new byte[81920];
                 using (Stream input = response.GetResponseStream())
@@ -289,19 +330,25 @@ namespace TimingShow.Bootstrap
                         ThrowIfCancelled();
                         output.Write(buffer, 0, read);
                         received += read;
-                        if (received > total) throw new InvalidDataException("The downloaded package is larger than expected.");
-                        SetProgress((float)received / total);
+                        if (total > 0 && received > total) throw new InvalidDataException("The downloaded package is larger than expected.");
+                        if (total > 0) SetProgress((float)received / total);
                     }
                 }
 
-                if (received != total) throw new InvalidDataException("The downloaded package is incomplete.");
+                if (total > 0 && received != total) throw new InvalidDataException("The downloaded package is incomplete.");
             }
         }
 
-        private static void VerifyDownload(ReleaseInfo release, string path)
+        private void VerifyDownload(ReleaseInfo release, string path)
         {
             FileInfo file = new FileInfo(path);
-            if (!file.Exists || file.Length != release.Size) throw new InvalidDataException("The downloaded package has an unexpected size.");
+            if (!file.Exists) throw new FileNotFoundException("The downloaded package is missing.", path);
+            if (release.Size > 0 && file.Length != release.Size) throw new InvalidDataException("The downloaded package has an unexpected size.");
+            if (_skipChecksum)
+            {
+                _log("Skipping the download checksum (Debug_SkipUpdateChecksum is enabled).");
+                return;
+            }
             if (!string.Equals(PendingUpdateFile.ComputeHash(path), release.Sha256, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("The downloaded package failed its checksum.");
         }
 
@@ -372,16 +419,18 @@ namespace TimingShow.Bootstrap
         {
             string stagedLoader = Path.Combine(staging, _loaderFileName);
             string stagedHash = PendingUpdateFile.ComputeHash(stagedLoader);
-            bool canLoadNow = _runningLoaderHash.Length > 0 && string.Equals(stagedHash, _runningLoaderHash, StringComparison.OrdinalIgnoreCase);
-            if (!FilesEqual(stagedLoader, _runningLoaderPath))
+            bool canLoadNow = _runningLoaderHash.Length > 0
+                ? string.Equals(stagedHash, _runningLoaderHash, StringComparison.OrdinalIgnoreCase)
+                : FilesEqual(stagedLoader, _runningLoaderPath);
+            
+            if (!canLoadNow)
             {
-                _log("Updating " + _loaderFileName + " on disk.");
+                _log("The downloaded loader differs from the installed loader; updating it on disk and requiring a restart.");
                 ReplaceLoadedFile(stagedLoader, _runningLoaderPath);
             }
 
             lock (_sync) _loaderChanged = !canLoadNow;
-            if (canLoadNow) _log("The downloaded loader matches the running loader; TimingShow will start without a restart.");
-            else _log("game must be restarted.");
+            if (canLoadNow) _log("The downloaded loader matches the installed loader; TimingShow will start without a restart.");
 
             string stagingRoot = Path.GetFullPath(staging);
             if (!stagingRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) stagingRoot += Path.DirectorySeparatorChar;
@@ -575,11 +624,13 @@ namespace TimingShow.Bootstrap
             if (_cancelRequested) throw new OperationCanceledException();
         }
 
-        private static Uri CreateUri(string url)
+        private Uri CreateUri(string url)
         {
             Uri uri;
-            if (!Uri.TryCreate(url, UriKind.Absolute, out uri) || uri.Scheme != Uri.UriSchemeHttps) throw new InvalidDataException("The update source is not an HTTPS address: " + url);
-            if (!IsTrustedHost(uri.Host)) throw new InvalidDataException("The update source is not trusted: " + uri.Host);
+            if (!Uri.TryCreate(url, UriKind.Absolute, out uri)) throw new InvalidDataException("The update source is not a valid address: " + url);
+            bool https = uri.Scheme == Uri.UriSchemeHttps;
+            if (!https && !(_skipTlsValidation && uri.Scheme == Uri.UriSchemeHttp)) throw new InvalidDataException("The update source is not an HTTPS address: " + url);
+            if (!_customRepository && !IsTrustedHost(uri.Host)) throw new InvalidDataException("The update source is not trusted: " + uri.Host);
             return uri;
         }
 
@@ -594,7 +645,7 @@ namespace TimingShow.Bootstrap
             return false;
         }
 
-        private static void ConfigureRequest(HttpWebRequest request, int timeout)
+        private void ConfigureRequest(HttpWebRequest request, int timeout)
         {
             request.UserAgent = UserAgent;
             request.Timeout = timeout;
@@ -602,13 +653,33 @@ namespace TimingShow.Bootstrap
             request.AllowAutoRedirect = true;
             request.KeepAlive = false;
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+            if (_skipTlsValidation) ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => true;
         }
 
-        private static void ValidateResponse(WebResponse response)
+        private void ValidateResponse(WebResponse response)
         {
             Uri responseUri = response.ResponseUri;
-            if (responseUri == null || responseUri.Scheme != Uri.UriSchemeHttps || !IsTrustedHost(responseUri.Host))
-                throw new InvalidDataException("The update server redirected to an untrusted address.");
+            if (responseUri == null) throw new InvalidDataException("The update server redirected to an untrusted address.");
+            bool https = responseUri.Scheme == Uri.UriSchemeHttps;
+            if (!https && !(_skipTlsValidation && responseUri.Scheme == Uri.UriSchemeHttp)) throw new InvalidDataException("The update server redirected to an untrusted address.");
+            if (!_customRepository && !IsTrustedHost(responseUri.Host)) throw new InvalidDataException("The update server redirected to an untrusted address.");
+        }
+
+        private static bool GetBool(Dictionary<string, object> values, string key)
+        {
+            object value;
+            if (!values.TryGetValue(key, out value) || value == null) return false;
+            if (value is bool) return (bool)value;
+            string text = value as string;
+            if (text != null) return string.Equals(text.Trim(), "true", StringComparison.OrdinalIgnoreCase) || text.Trim() == "1";
+            try
+            {
+                return Convert.ToInt64(value, CultureInfo.InvariantCulture) != 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private static string GetString(Dictionary<string, object> values, string key)

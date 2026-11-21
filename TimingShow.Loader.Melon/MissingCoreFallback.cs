@@ -39,6 +39,7 @@ namespace TimingShow.Melon
                 true,
                 ReleaseId,
                 null,
+                Path.Combine(userDataDirectory, "TimingShow", "Settings.json"),
                 updateRoot,
                 LoaderFileName,
                 message => MelonLogger.Msg("[TimingShow] " + message),
