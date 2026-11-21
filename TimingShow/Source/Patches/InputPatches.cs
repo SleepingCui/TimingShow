@@ -36,6 +36,7 @@ namespace TimingShow.Patches
         };
 
         private static readonly List<MethodInfo> Installed = new List<MethodInfo>();
+        private static MethodInfo _uiDispatchUpdate;
 
         internal static void Install(Harmony harmony)
         {
@@ -75,6 +76,8 @@ namespace TimingShow.Patches
                     failed.Add(target.Name + ":" + e.GetType().Name);
                 }
             }
+            HookUiDispatch(harmony, failed);
+
             string summary = "Input hooks " + installed + "/" + Targets.Length;
             if (native.Count > 0) summary += ", no body: " + string.Join(", ", native.ToArray());
             if (failed.Count > 0) summary += ", failed: " + string.Join(", ", failed.ToArray());
@@ -98,9 +101,55 @@ namespace TimingShow.Patches
                         if (ModContext.Logger != null) ModContext.Logger.Error("Failed to unpatch " + original.Name + ": " + e.GetType().Name);
                     }
                 }
+                if (_uiDispatchUpdate != null)
+                {
+                    try
+                    {
+                        harmony.Unpatch(_uiDispatchUpdate, HarmonyPatchType.All, harmony.Id);
+                    }
+                    catch (Exception e)
+                    {
+                        if (ModContext.Logger != null) ModContext.Logger.Error("Failed to unpatch EventSystem.Update: " + e.GetType().Name);
+                    }
+                }
             }
             Installed.Clear();
+            _uiDispatchUpdate = null;
             if (uninstalled > 0 && ModContext.Logger != null) ModContext.Logger.Log("Input hooks unloaded: " + uninstalled);
+        }
+
+        // Flags uGUI input dispatch so InputGate can tell its callers apart without walking the stack.
+        private static void HookUiDispatch(Harmony harmony, List<string> failed)
+        {
+            try
+            {
+                MethodInfo update = AccessTools.Method(typeof(UnityEngine.EventSystems.EventSystem), "Update", Type.EmptyTypes);
+                if (update == null)
+                {
+                    failed.Add("EventSystem.Update");
+                    return;
+                }
+
+                MethodInfo prefix = typeof(InputPatches).GetMethod("BeginUiDispatch", BindingFlags.Static | BindingFlags.NonPublic);
+                MethodInfo postfix = typeof(InputPatches).GetMethod("EndUiDispatch", BindingFlags.Static | BindingFlags.NonPublic);
+                harmony.Patch(update, prefix: new HarmonyMethod(prefix), postfix: new HarmonyMethod(postfix));
+                _uiDispatchUpdate = update;
+                if (ModContext.Logger != null) ModContext.Logger.Log("Input dispatch hook: EventSystem.Update");
+            }
+            catch (Exception e)
+            {
+                failed.Add("EventSystem.Update:" + e.GetType().Name);
+            }
+        }
+
+        private static void BeginUiDispatch()
+        {
+            InputGate.BeginUiDispatch();
+        }
+
+        private static void EndUiDispatch()
+        {
+            InputGate.EndUiDispatch();
         }
 
         private static bool HasBody(MethodInfo method)

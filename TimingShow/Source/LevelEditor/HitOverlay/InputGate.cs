@@ -17,6 +17,8 @@ namespace TimingShow.LevelEditor
         private static Rect _windowArea;
         private static bool _windowCaptureKeys;
         private static float _windowUpdatedAt;
+        private static bool _uiDispatching;
+        private static int _uiDispatchFrame = int.MinValue;
 
         internal static void SetArea(bool active, Rect area, bool captureKeys)
         {
@@ -80,6 +82,17 @@ namespace TimingShow.LevelEditor
             if (_bypass > 0) _bypass--;
         }
 
+        internal static void BeginUiDispatch()
+        {
+            _uiDispatching = true;
+            _uiDispatchFrame = Time.frameCount;
+        }
+
+        internal static void EndUiDispatch()
+        {
+            _uiDispatching = false;
+        }
+
         private static bool PanelEngaged
         {
             get { return _panelActive && Fresh(_panelUpdatedAt); }
@@ -102,7 +115,17 @@ namespace TimingShow.LevelEditor
 
         // uGUI and this mod's own views read Input directly, so the game only loses
         // input over the log graph window when the caller is outside those assemblies.
+        // EventSystem.Update is the entry point of every uGUI read and is flagged by
+        // InputPatches; the stack walk remains for a missing hook or a disabled event system.
         private static bool ComesFromUi()
+        {
+            int frame = Time.frameCount;
+            if (_uiDispatching && _uiDispatchFrame >= frame - 1) return true;
+            if (_uiDispatchFrame >= frame - 2) return false;
+            return ComesFromStackTrace();
+        }
+
+        private static bool ComesFromStackTrace()
         {
             try
             {

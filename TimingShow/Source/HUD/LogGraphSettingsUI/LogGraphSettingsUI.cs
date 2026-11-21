@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using TimingShow.HUD.LogGraphWindow;
+using TimingShow.LevelEditor;
 
 namespace TimingShow.HUD.LogGraphSettingsUI
 {
@@ -197,6 +198,19 @@ namespace TimingShow.HUD.LogGraphSettingsUI
         {
             if (!_open) return;
 
+            InputGate.BeginBypass();
+            try
+            {
+                UpdateCore();
+            }
+            finally
+            {
+                InputGate.EndBypass();
+            }
+        }
+
+        private void UpdateCore()
+        {
             Vector2 mouse = Input.mousePosition;
             Vector2 local;
             bool inside = RectTransformUtility.ScreenPointToLocalPointInRectangle(

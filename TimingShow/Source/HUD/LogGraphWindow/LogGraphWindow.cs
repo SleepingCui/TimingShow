@@ -607,6 +607,19 @@ namespace TimingShow.HUD.LogGraphWindow
         
         private void Update()
         {
+            InputGate.BeginBypass();
+            try
+            {
+                UpdateCore();
+            }
+            finally
+            {
+                InputGate.EndBypass();
+            }
+        }
+
+        private void UpdateCore()
+        {
             if (_root == null)
             {
                 if (!_closed)

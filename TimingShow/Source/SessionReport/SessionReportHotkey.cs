@@ -1,4 +1,5 @@
 using UnityEngine;
+using TimingShow.LevelEditor;
 
 namespace TimingShow.SessionReport
 {
@@ -34,6 +35,19 @@ namespace TimingShow.SessionReport
         }
 
         private void Update()
+        {
+            InputGate.BeginBypass();
+            try
+            {
+                UpdateCore();
+            }
+            finally
+            {
+                InputGate.EndBypass();
+            }
+        }
+
+        private void UpdateCore()
         {
             if (!ModContext.IsEnabled) return;
 

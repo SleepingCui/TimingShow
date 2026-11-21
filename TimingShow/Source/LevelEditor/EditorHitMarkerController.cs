@@ -104,6 +104,7 @@ namespace TimingShow.LevelEditor
 
         private void Update()
         {
+            InputGate.BeginBypass();
             try
             {
                 UpdateCore();
@@ -113,6 +114,10 @@ namespace TimingShow.LevelEditor
                 ModContext.Logger?.Error("Editor hit markers: " + e.Message);
                 EditorHitSnapshot.ClearPending();
                 Teardown();
+            }
+            finally
+            {
+                InputGate.EndBypass();
             }
         }
 
