@@ -14,15 +14,17 @@ namespace TimingShow.UMM
 
         private readonly UnityModManager.ModEntry _modEntry;
         private readonly MissingCoreInstaller _installer;
+        private readonly StartupIntegrityReport _integrity;
         private readonly string _baseDisplayName;
         private bool _loadAttempted;
         private bool _loaded;
         private bool _restartRequired;
         private string _failureMessage;
 
-        private MissingCoreFallback(UnityModManager.ModEntry modEntry)
+        private MissingCoreFallback(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity)
         {
             _modEntry = modEntry;
+            _integrity = integrity;
             _baseDisplayName = string.IsNullOrEmpty(modEntry.Info.DisplayName) ? CoreAssemblyName : modEntry.Info.DisplayName;
             string repository = string.IsNullOrEmpty(modEntry.Info.Repository) ? MissingCoreInstaller.DefaultRepositoryUrl : modEntry.Info.Repository;
             _installer = new MissingCoreInstaller(
@@ -38,15 +40,16 @@ namespace TimingShow.UMM
                 message => modEntry.Logger.Error("[MissingCore] " + message));
         }
 
-        public static bool Start(UnityModManager.ModEntry modEntry)
+        public static bool Start(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity)
         {
-            MissingCoreFallback fallback = new MissingCoreFallback(modEntry);
+            MissingCoreFallback fallback = new MissingCoreFallback(modEntry, integrity);
             fallback.Begin();
             return true;
         }
 
         private void Begin()
         {
+            if (_integrity != null) _modEntry.Logger.Warning("[Integrity] Repairing TimingShow: " + _integrity.Summary);
             _modEntry.Info.DisplayName = ColoredDisplayName() + " " + ProgressSuffix();
             _modEntry.OnToggle = (entry, value) => true;
             _modEntry.OnGUI = entry => Draw();
@@ -60,13 +63,19 @@ namespace TimingShow.UMM
             if (_loaded || _restartRequired) return;
 
             MissingCoreState state = _installer.State;
-            if (state == MissingCoreState.ReadyToLoad && !_loadAttempted)
+            if ((state == MissingCoreState.ReadyToLoad || CanLoadUsableCore(state)) && !_loadAttempted)
             {
                 _loadAttempted = true;
+                if (state != MissingCoreState.ReadyToLoad) _modEntry.Logger.Warning("[Integrity] Repair incomplete. Using installed files.");
                 TryLoadCore();
             }
 
             UpdateDisplayName(state);
+        }
+
+        private bool CanLoadUsableCore(MissingCoreState state)
+        {
+            return _integrity != null && _integrity.CoreUsable && (state == MissingCoreState.Failed || state == MissingCoreState.Cancelled);
         }
 
         private void UpdateDisplayName(MissingCoreState state)
@@ -168,9 +177,10 @@ namespace TimingShow.UMM
             if (!failed && !running && !_restartRequired) return;
 
             GUILayout.BeginVertical(GUI.skin.box);
+            if (_integrity != null && _integrity.Problems.Count > 0) GUILayout.Label("TimingShow files need repair: " + _integrity.Summary);
             if (_restartRequired)
             {
-                GUILayout.Label("Core downloaded, but it could not start: " + _failureMessage);
+                GUILayout.Label("TimingShow was updated, but it could not start: " + _failureMessage);
             }
             else if (state == MissingCoreState.Failed)
             {

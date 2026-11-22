@@ -43,7 +43,7 @@ namespace TimingShow.Melon
             string updateRoot = Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow", UpdateDirectoryName);
             string bootstrapPath = Path.Combine(MelonEnvironment.PluginsDirectory, "TimingShow.UpdateBootstrap.dll");
             bool bootstrapInstalled = File.Exists(bootstrapPath);
-            if (!bootstrapInstalled) ModContext.Logger.Error("TimingShow.UpdateBootstrap.dll is missing from " + MelonEnvironment.PluginsDirectory + "; automatic updates are disabled.");
+            if (!bootstrapInstalled) ModContext.Logger.Error("Update bootstrap missing from " + MelonEnvironment.PluginsDirectory + ". Automatic updates disabled.");
 
             UpdateBridge.Initialize(modPath, updateRoot, UpdateBridge.DefaultRepositoryUrl, version, UpdateTarget.Melon, bootstrapInstalled, ModContext.Logger);
         }

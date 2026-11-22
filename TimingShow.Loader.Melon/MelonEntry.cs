@@ -20,9 +20,16 @@ namespace TimingShow.Melon
         public override void OnInitializeMelon()
         {
             _modPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            StartupIntegrityReport integrity = StartupIntegrity.Check(_modPath, MelonEnvironment.PluginsDirectory, true, StartupIntegrity.ResolveLoaderFileName(_modPath, "TimingShow.Loader.Melon.dll"), Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow", "Settings.json"));
+            if (integrity.NeedsRepair)
+            {
+                BeginMissingCoreDownload("TimingShow needs a repair (" + integrity.Summary + "); starting the repair downloader.", integrity);
+                return;
+            }
+
             if (!File.Exists(Path.Combine(_modPath, MissingCoreInstaller.CoreFileName)))
             {
-                BeginMissingCoreDownload("TimingShow.dll is missing; starting the missing-core downloader.");
+                BeginMissingCoreDownload("TimingShow.dll is missing; starting the missing-core downloader.", null);
                 return;
             }
 
@@ -32,18 +39,18 @@ namespace TimingShow.Melon
             }
             catch (TypeLoadException e)
             {
-                BeginMissingCoreDownload("The installed TimingShow core is incompatible with this loader; starting the missing-core downloader. " + e.Message);
+                BeginMissingCoreDownload("The installed TimingShow core is incompatible with this loader; starting the missing-core downloader. " + e.Message, null);
             }
             catch (BadImageFormatException e)
             {
-                BeginMissingCoreDownload("The installed TimingShow core is corrupted; starting the missing-core downloader. " + e.Message);
+                BeginMissingCoreDownload("The installed TimingShow core is corrupted; starting the missing-core downloader. " + e.Message, null);
             }
         }
 
-        private void BeginMissingCoreDownload(string message)
+        private void BeginMissingCoreDownload(string message, StartupIntegrityReport integrity)
         {
             MelonLogger.Warning("[TimingShow] " + message);
-            _missingCore = new MissingCoreFallback(_modPath, MelonEnvironment.UserDataDirectory, MelonEnvironment.PluginsDirectory);
+            _missingCore = new MissingCoreFallback(_modPath, MelonEnvironment.UserDataDirectory, MelonEnvironment.PluginsDirectory, integrity);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -80,7 +87,7 @@ namespace TimingShow.Melon
             if (_missingCore != null)
             {
                 _missingCore.Tick();
-                if (_missingCore.IsReadyToLoad && !_coreLoadAttempted)
+                if (_missingCore.ShouldLoadCore && !_coreLoadAttempted)
                 {
                     _coreLoadAttempted = true;
                     TryLoadCore();

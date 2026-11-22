@@ -721,6 +721,11 @@ namespace TimingShow.Options
 
                 GUILayout.Space(8);
 
+                IndentedLabel($"<color=#888888>{i18n.T("Btn_StartupIntegrity")}</color>", 0f);
+                ModContext.Settings.Startup_VerifyFiles = ToggleWithDescription(ModContext.Settings.Startup_VerifyFiles, "Toggle_StartupVerifyFiles", "Desc_StartupVerifyFiles", "", 0f);
+
+                GUILayout.Space(8);
+
                 DrawDebugSettings();
             }
             GUILayout.EndVertical();

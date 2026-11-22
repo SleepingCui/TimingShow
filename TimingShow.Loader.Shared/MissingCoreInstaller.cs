@@ -86,8 +86,8 @@ namespace TimingShow.Bootstrap
             _runningLoaderPath = ResolveRunningLoaderPath();
             _runningLoaderHash = TryComputeHash(_runningLoaderPath);
             if (_customRepository) _log("Using the custom update source from Settings.json: " + _repositoryUrl);
-            if (_skipChecksum) _log("Debug_SkipUpdateChecksum is enabled; the package checksum will not be verified.");
-            if (_skipTlsValidation) _log("Debug_SkipTlsValidation is enabled; HTTPS certificate validation is disabled.");
+            if (_skipChecksum) _log("Checksum verification skipped (Debug_SkipUpdateChecksum).");
+            if (_skipTlsValidation) _log("TLS certificate validation skipped (Debug_SkipTlsValidation).");
         }
 
         private sealed class UpdateDebugSettings
@@ -112,7 +112,7 @@ namespace TimingShow.Bootstrap
             }
             catch (Exception e)
             {
-                _log("Settings.json could not be read for update debug options: " + e.Message);
+                _log("Failed to read update debug options: " + e.Message);
             }
             return settings;
         }
@@ -228,8 +228,8 @@ namespace TimingShow.Bootstrap
                 InstallStaging(staging, pluginStaging);
 
                 SetState(_loaderChanged ? MissingCoreState.RestartRequired : MissingCoreState.ReadyToLoad);
-                if (_loaderChanged) _log("game must be restarted.");
-                else _log("TimingShow " + release.Version + " was installed and can be loaded now.");
+                if (_loaderChanged) _log("TimingShow " + release.Version + " installed. Restart required.");
+                else _log("TimingShow " + release.Version + " installed. Ready to load.");
             }
             catch (OperationCanceledException)
             {
@@ -425,12 +425,12 @@ namespace TimingShow.Bootstrap
             
             if (!canLoadNow)
             {
-                _log("The downloaded loader differs from the installed loader; updating it on disk and requiring a restart.");
+                _log("Loader changed. Restart required.");
                 ReplaceLoadedFile(stagedLoader, _runningLoaderPath);
             }
 
             lock (_sync) _loaderChanged = !canLoadNow;
-            if (canLoadNow) _log("The downloaded loader matches the installed loader; TimingShow will start without a restart.");
+            if (canLoadNow) _log("Loader unchanged. No restart required.");
 
             string stagingRoot = Path.GetFullPath(staging);
             if (!stagingRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) stagingRoot += Path.DirectorySeparatorChar;

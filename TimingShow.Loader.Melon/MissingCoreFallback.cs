@@ -20,7 +20,9 @@ namespace TimingShow.Melon
         private const int CanvasSortingOrder = 20000;
 
         private readonly MissingCoreInstaller _installer;
+        private readonly StartupIntegrityReport _integrity;
         private bool _readyToLoad;
+        private bool _repairAbandoned;
         private bool _loadFailed;
         private string _loadFailureMessage;
         private GameObject _hintObject;
@@ -30,8 +32,9 @@ namespace TimingShow.Melon
         private float _nextFontCheck;
         private bool _gameFontResolved;
 
-        public MissingCoreFallback(string modPath, string userDataDirectory, string pluginsDirectory)
+        public MissingCoreFallback(string modPath, string userDataDirectory, string pluginsDirectory, StartupIntegrityReport integrity)
         {
+            _integrity = integrity;
             string updateRoot = Path.Combine(userDataDirectory, "TimingShow", "Update");
             _installer = new MissingCoreInstaller(
                 modPath,
@@ -52,12 +55,18 @@ namespace TimingShow.Melon
             get { return _readyToLoad && !_loadFailed; }
         }
 
+        public bool ShouldLoadCore
+        {
+            get { return IsReadyToLoad || (_repairAbandoned && !_loadFailed && _integrity != null && _integrity.CoreUsable); }
+        }
+
         public void Tick()
         {
             ShowHint();
             if (_readyToLoad || _loadFailed) return;
 
             MissingCoreState state = _installer.State;
+            _repairAbandoned = state == MissingCoreState.Failed || state == MissingCoreState.Cancelled;
             if (state == MissingCoreState.ReadyToLoad)
             {
                 _readyToLoad = true;
@@ -164,7 +173,7 @@ namespace TimingShow.Melon
             }
             catch (Exception e)
             {
-                MelonLogger.Error("[TimingShow] Failed to create the missing-core hint: " + e.Message);
+                MelonLogger.Error("[TimingShow] Failed to display missing-core hint: " + e.Message);
                 Dispose();
                 return false;
             }
@@ -196,29 +205,30 @@ namespace TimingShow.Melon
 
         private string StatusText()
         {
-            if (_loadFailed) return "Core downloaded, but it could not start. Restart the game." + (string.IsNullOrEmpty(_loadFailureMessage) ? string.Empty : " " + _loadFailureMessage);
+            if (_loadFailed) return "TimingShow was updated, but it could not start. Restart the game." + (string.IsNullOrEmpty(_loadFailureMessage) ? string.Empty : " " + _loadFailureMessage);
 
+            string prefix = _integrity != null ? "TimingShow files need repair! " : "Core missing! ";
             MissingCoreState state = _installer.State;
             switch (state)
             {
                 case MissingCoreState.Checking:
-                    return "Core missing! Checking for updates...";
+                    return prefix + "Checking for updates...";
                 case MissingCoreState.Downloading:
-                    return "Core missing! Downloading... " + FormatPercent() + "  Press F6 to cancel";
+                    return prefix + "Downloading... " + FormatPercent() + "  Press F6 to cancel";
                 case MissingCoreState.Verifying:
-                    return "Core missing! Verifying the download...  Press F6 to cancel";
+                    return prefix + "Verifying the download...  Press F6 to cancel";
                 case MissingCoreState.Installing:
-                    return "Core missing! Installing...  Press F6 to cancel";
+                    return prefix + "Installing...  Press F6 to cancel";
                 case MissingCoreState.ReadyToLoad:
-                    return "Core downloaded. Loading TimingShow...";
+                    return "TimingShow files are ready. Loading TimingShow...";
                 case MissingCoreState.RestartRequired:
-                    return "Core downloaded. Restart the game to load TimingShow.";
+                    return "TimingShow was updated. Restart the game to load it.";
                 case MissingCoreState.Failed:
-                    return "Core download failed: " + _installer.ErrorMessage + "  Press F6 to retry";
+                    return "TimingShow repair failed: " + _installer.ErrorMessage + "  Press F6 to retry";
                 case MissingCoreState.Cancelled:
-                    return "Download cancelled. Press F6 to retry.";
+                    return "Repair cancelled. Press F6 to retry.";
                 default:
-                    return "Core missing! Preparing the download...";
+                    return prefix + "Preparing the download...";
             }
         }
 
