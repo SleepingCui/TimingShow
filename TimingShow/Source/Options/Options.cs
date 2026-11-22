@@ -28,6 +28,7 @@ namespace TimingShow.Options
         private static bool _capturingPanelKey;
         private static int _panelKeySuppressFrame = -1;
         private static GUIStyle _warningLabelStyle;
+        private static string _cacheStatus;
 
         internal static bool HotkeySuppressed
         {
@@ -586,6 +587,11 @@ namespace TimingShow.Options
                 }
 
                 GUI.enabled = prevGuiEnabled;
+
+                if (GUILayout.Button(i18n.T("Btn_ClearCache"), GUILayout.Width(200)))
+                    _cacheStatus = CacheCleaner.Clear();
+                if (!string.IsNullOrEmpty(_cacheStatus))
+                    GUILayout.Label(_cacheStatus);
 
                 UpdateBridge.DrawSettings();
             }

@@ -37,6 +37,7 @@ namespace TimingShow.Options
         private static string _logListDrawBudgetText;
         private static string _bufferSizeText;
         private static string _graphRedrawIntervalText;
+        private static string _cacheStatus;
 
         internal static void Draw()
         {
@@ -159,6 +160,15 @@ namespace TimingShow.Options
             }
 
             if (NewUIWidgets.ButtonAt(resetButton, i18n.T("Btn_Reset"))) Players.ResetAll();
+
+            Rect cacheRow = NewUIWidgets.Row(30f);
+            Rect cacheButton = new Rect(cacheRow.x, cacheRow.y, 200f, cacheRow.height);
+            if (NewUIWidgets.ButtonAt(cacheButton, i18n.T("Btn_ClearCache"))) _cacheStatus = CacheCleaner.Clear();
+            if (!string.IsNullOrEmpty(_cacheStatus))
+            {
+                float statusWidth = Mathf.Max(10f, cacheRow.xMax - cacheButton.xMax - 10f);
+                GUI.Label(new Rect(cacheButton.xMax + 10f, cacheRow.y, statusWidth, cacheRow.height), _cacheStatus, NewUISkin.DimLabelStyle);
+            }
 
             NewUIWidgets.Divider();
             DrawUpdateRows(s);

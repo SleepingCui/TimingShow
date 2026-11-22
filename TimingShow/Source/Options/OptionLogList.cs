@@ -817,9 +817,9 @@ namespace TimingShow.Options
             catch { return DateTime.MinValue; }
         }
 
-        private static string MetaCachePath => Path.Combine(GetCacheDirectory(), "logmeta.cache");
+        internal static string MetaCachePath => Path.Combine(GetCacheDirectory(), "logmeta.cache");
 
-        private static string GetCacheDirectory()
+        internal static string GetCacheDirectory()
         {
             string root = ModContext.DataDirectory;
             if (string.IsNullOrEmpty(root))
@@ -901,6 +901,13 @@ namespace TimingShow.Options
             }
         }
 
+        internal static void ResetCacheState()
+        {
+            MetaCache.Clear();
+            _cacheLoaded = false;
+            _logListDirty = true;
+        }
+
         private static void CacheMeta(string filePath, MetaCacheEntry value, ref bool cacheDirty)
         {
             MetaCacheEntry previous;
@@ -979,7 +986,7 @@ namespace TimingShow.Options
             }
         }
 
-        private static string FormatFileSize(long bytes)
+        internal static string FormatFileSize(long bytes)
         {
             string[] units = { "B", "KB", "MB", "GB", "TB" };
             double size = Math.Max(0, bytes);

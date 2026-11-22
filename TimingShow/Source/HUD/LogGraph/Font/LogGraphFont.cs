@@ -219,7 +219,7 @@ namespace TimingShow.HUD
             return fontPath;
         }
 
-        private static string CacheDirectory()
+        internal static string CacheDirectory()
         {
             if (ModContext.IsMelon && !string.IsNullOrEmpty(ModContext.DataDirectory))
                 return Path.Combine(ModContext.DataDirectory, "Cache");

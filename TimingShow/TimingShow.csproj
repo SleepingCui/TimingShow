@@ -192,6 +192,7 @@
     <Compile Include="Source\Logging\VarInt.cs" />
     <Compile Include="Source\Logging\CountingStream.cs" />
     <Compile Include="Source\Logging\LogWriteStats.cs" />
+    <Compile Include="Source\Options\CacheCleaner.cs" />
     <Compile Include="Source\Options\OptionLogList.cs" />
     <Compile Include="Source\Options\Options.cs" />
     <Compile Include="Source\Options\OptionsWidgets.cs" />
