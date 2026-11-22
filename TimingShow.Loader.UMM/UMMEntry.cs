@@ -11,7 +11,14 @@ namespace TimingShow.UMM
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
             PendingUpdate.Apply(modEntry);
-            if (!File.Exists(Path.Combine(modEntry.Path, MissingCoreInstaller.CoreFileName))) return MissingCoreFallback.Start(modEntry);
+            StartupIntegrityReport integrity = StartupIntegrity.Check(modEntry.Path, null, false, StartupIntegrity.ResolveLoaderFileName(modEntry.Path, "TimingShow.Loader.UMM.dll"), Path.Combine(modEntry.Path, "Settings.json"));
+            if (integrity.NeedsRepair)
+            {
+                modEntry.Logger.Warning("[Integrity] TimingShow needs a repair: " + integrity.Summary);
+                return MissingCoreFallback.Start(modEntry, integrity);
+            }
+
+            if (!File.Exists(Path.Combine(modEntry.Path, MissingCoreInstaller.CoreFileName))) return MissingCoreFallback.Start(modEntry, null);
             try
             {
                 return StartCore(modEntry);
@@ -19,12 +26,12 @@ namespace TimingShow.UMM
             catch (TypeLoadException e)
             {
                 modEntry.Logger.Error("[MissingCore] The installed TimingShow core is incompatible with this loader: " + e.Message);
-                return MissingCoreFallback.Start(modEntry);
+                return MissingCoreFallback.Start(modEntry, null);
             }
             catch (BadImageFormatException e)
             {
                 modEntry.Logger.Error("[MissingCore] The installed TimingShow core is corrupted: " + e.Message);
-                return MissingCoreFallback.Start(modEntry);
+                return MissingCoreFallback.Start(modEntry, null);
             }
         }
 

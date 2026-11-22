@@ -41,6 +41,7 @@ namespace TimingShow
 
         public bool UpdateCheckEnabled;
         public bool UpdateAutoUpdate;
+        public bool Startup_VerifyFiles = true;
             
         public bool Coop_TimingHUD = true;
         public bool Coop_AvgHUD = true;

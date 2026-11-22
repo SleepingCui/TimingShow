@@ -83,6 +83,9 @@
     <Compile Include="..\TimingShow.Loader.Shared\JsonText.cs">
       <Link>JsonText.cs</Link>
     </Compile>
+    <Compile Include="..\TimingShow.Loader.Shared\StartupIntegrity.cs">
+      <Link>StartupIntegrity.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
