@@ -12,7 +12,7 @@ namespace TimingShow.HUD.LogGraphWindow
     {
         private const int MaxLength = 9;
         private const int MaxTextLength = 260;
-        private const float TextInset = 4f;
+        private const float TextInset = 9f;
         private const float CaretWidth = 1.5f;
         private const float CaretBlinkSeconds = 0.53f;
         private const float RepeatDelay = 0.45f;
@@ -20,18 +20,15 @@ namespace TimingShow.HUD.LogGraphWindow
         private const float RingThickness = 1.25f;
         private const int UndoLimit = 32;
 
-        private static readonly Color IdleTopColor = new Color(1f, 1f, 1f, 0.10f);
-        private static readonly Color IdleBottomColor = new Color(1f, 1f, 1f, 0.055f);
-        private static readonly Color HoverTopColor = new Color(1f, 1f, 1f, 0.15f);
-        private static readonly Color HoverBottomColor = new Color(1f, 1f, 1f, 0.09f);
-        private static readonly Color EditTopColor = new Color(1f, 1f, 1f, 0.20f);
-        private static readonly Color EditBottomColor = new Color(1f, 1f, 1f, 0.12f);
-        private static readonly Color HoverBorderColor = new Color(1f, 1f, 1f, 0.14f);
-        private static readonly Color FocusBorderColor = new Color(0.30f, 0.76f, 1f, 0.62f);
-        private static readonly Color TextColor = new Color(0.94f, 0.96f, 1f, 0.96f);
-        private static readonly Color HintColor = new Color(1f, 1f, 1f, 0.26f);
-        private static readonly Color CaretColor = new Color(1f, 1f, 1f, 0.92f);
-        private static readonly Color SelectionColor = new Color(0.30f, 0.76f, 1f, 0.32f);
+        private static readonly Color IdleColor = LogGraphTheme.Rgb(16, 18, 28, 0.55f);
+        private static readonly Color HoverColor = LogGraphTheme.Rgb(22, 25, 38, 0.70f);
+        private static readonly Color EditColor = LogGraphTheme.Rgb(10, 11, 18, 0.80f);
+        private static readonly Color HoverBorderColor = LogGraphTheme.HairStrong;
+        private static readonly Color FocusBorderColor = LogGraphTheme.Accent;
+        private static readonly Color TextColor = LogGraphTheme.TextMain;
+        private static readonly Color HintColor = LogGraphTheme.TextDisabled;
+        private static readonly Color CaretColor = LogGraphTheme.Accent;
+        private static readonly Color SelectionColor = LogGraphTheme.AccentSoft;
 
         private struct EditState
         {
@@ -732,18 +729,17 @@ namespace TimingShow.HUD.LogGraphWindow
             Rect rect = rectTransform != null ? rectTransform.rect : new Rect(0f, 0f, 0f, 0f);
             if (rect.width <= 0f || rect.height <= 0f) return;
 
-            float corner = Mathf.Min(LogRoundedRect.ControlRadius, Mathf.Min(rect.width, rect.height) * 0.5f);
-            Color top = _editing ? EditTopColor : (_hover ? HoverTopColor : IdleTopColor);
-            Color bottom = _editing ? EditBottomColor : (_hover ? HoverBottomColor : IdleBottomColor);
-            LogRoundedRect.DrawFilled(vh, rect, corner, top, bottom, 8, 1f);
+            float corner = Mathf.Min(rect.height * 0.34f, 10f);
+            Color fill = _editing ? EditColor : (_hover ? HoverColor : IdleColor);
+            LogRoundedRect.DrawFilled(vh, rect, corner, fill, 8);
 
             if (_editing)
             {
-                LogRoundedRect.DrawBorder(vh, rect, corner, RingThickness, FocusBorderColor, FocusBorderColor, 8, 1f);
+                LogRoundedRect.DrawBorder(vh, rect, corner, Mathf.Max(1f, RingThickness), FocusBorderColor, 8);
             }
             else if (_hover)
             {
-                LogRoundedRect.DrawBorder(vh, rect, corner, 1f, HoverBorderColor, HoverBorderColor, 8, 1f);
+                LogRoundedRect.DrawBorder(vh, rect, corner, 1f, HoverBorderColor, 8);
             }
 
             if (!_editing) return;
@@ -773,8 +769,7 @@ namespace TimingShow.HUD.LogGraphWindow
 
     public sealed class LogRangeBar : MaskableGraphic
     {
-        private static readonly Color BarColor = new Color(1f, 1f, 1f, 0.045f);
-        private static readonly Color BorderColor = new Color(1f, 1f, 1f, 0.10f);
+        private static readonly Color BarColor = LogGraphTheme.WithAlpha(LogGraphTheme.Surface, 0.72f);
 
         protected override void Awake()
         {
@@ -792,9 +787,8 @@ namespace TimingShow.HUD.LogGraphWindow
             Rect rect = rectTransform != null ? rectTransform.rect : new Rect(0f, 0f, 0f, 0f);
             if (rect.width <= 0f || rect.height <= 0f) return;
 
-            float corner = Mathf.Min(LogRoundedRect.PanelRadius, Mathf.Min(rect.width, rect.height) * 0.5f);
-            LogRoundedRect.DrawFilled(vh, rect, corner, BarColor, 8);
-            LogRoundedRect.DrawBorder(vh, rect, corner, 1f, BorderColor, 8);
+            float corner = Mathf.Min(rect.height * 0.36f, 15f);
+            LogRoundedRect.DrawFilled(vh, rect, corner, BarColor, 10);
         }
     }
 }

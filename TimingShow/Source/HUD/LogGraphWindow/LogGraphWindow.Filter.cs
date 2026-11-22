@@ -6,15 +6,16 @@ namespace TimingShow.HUD.LogGraphWindow
 {
     public partial class LogGraphWindow
     {
-        private const float RangeBarHeightBase = 22f;
-        private const float RangeBarPaddingBase = 4f;
-        private const float RangeLabelWidthBase = 76f;
-        private const float RangeFieldWidthBase = 54f;
-        private const float RangeSeparatorWidthBase = 12f;
-        private const float RangeUnitWidthBase = 22f;
-        private const float RangeResetWidthBase = 64f;
-        private const float RangeGapBase = 4f;
-        private const float RangeFontSizeBase = 11f;
+        private const float RangeBarHeightBase = 34f;
+        private const float RangeBarPaddingBase = 6f;
+        private const float RangeLabelWidthBase = 48f;
+        private const float RangeFieldWidthBase = 62f;
+        private const float RangeSeparatorWidthBase = 11f;
+        private const float RangeUnitWidthBase = 24f;
+        private const float RangeResetWidthBase = 52f;
+        private const float RangeGapBase = 6f;
+        private const float RangeFontSizeBase = 12f;
+        private const float RangeStatusMinWidthBase = 64f;
 
         private RectTransform _rangeBar;
         private TMP_Text _rangeLabel;
@@ -37,6 +38,13 @@ namespace TimingShow.HUD.LogGraphWindow
             return (RangeBarHeightBase + RangeBarPaddingBase * 2f) * Mathf.Max(0.01f, UiScale);
         }
 
+        private float RangeControlsWidth()
+        {
+            float scale = Mathf.Max(0.01f, UiScale);
+            return (RangeLabelWidthBase + RangeFieldWidthBase * 2f + RangeSeparatorWidthBase + RangeUnitWidthBase
+                + RangeResetWidthBase + RangeGapBase * 2f + RangeBarPaddingBase * 2f) * scale;
+        }
+
         private void CreateRangeFilter(TMP_FontAsset font)
         {
             GameObject barGo = new GameObject("RangeFilter", typeof(RectTransform));
@@ -51,11 +59,14 @@ namespace TimingShow.HUD.LogGraphWindow
             _rangeLabel = CreateRangeText("Label", i18n.T("LogGraph_RangeFilter"), font, TextAlignmentOptions.MidlineLeft);
             _rangeMinField = CreateRangeField("MinField", font, "LogGraph_RangeMinHint");
             _rangeSeparator = CreateRangeText("Separator", "~", font, TextAlignmentOptions.Center);
+            _rangeSeparator.color = LogGraphTheme.TextFaint;
             _rangeMaxField = CreateRangeField("MaxField", font, "LogGraph_RangeMaxHint");
             _rangeUnitText = CreateRangeText("Unit", "", font, TextAlignmentOptions.MidlineLeft);
             _rangeResetButton = CreateRangeButton(font);
             _rangeStatusText = CreateRangeText("Status", "", font, TextAlignmentOptions.MidlineRight);
+            _rangeStatusText.color = LogGraphTheme.TextFaint;
             _rangeStatusText.overflowMode = TextOverflowModes.Ellipsis;
+            _rangeUnitText.color = LogGraphTheme.TextFaint;
 
             barGo.SetActive(false);
         }
@@ -70,7 +81,7 @@ namespace TimingShow.HUD.LogGraphWindow
             LogGraphFont.EnsureGlyphs(textFont, content);
             text.font = textFont;
             text.text = content;
-            text.color = new Color(1f, 1f, 1f, 0.62f);
+            text.color = LogGraphTheme.TextMuted;
             text.alignment = alignment;
             text.raycastTarget = false;
             text.textWrappingMode = TextWrappingModes.NoWrap;
@@ -98,6 +109,7 @@ namespace TimingShow.HUD.LogGraphWindow
             string label = i18n.T("Btn_ResetColor");
             TMP_FontAsset labelFont = font != null ? font : TMP_Settings.defaultFontAsset;
             LogGraphFont.EnsureGlyphs(labelFont, label);
+            button.SetGhost(true);
             button.SetLabelOverflow(TextOverflowModes.Overflow);
             button.SetLabel(label);
             return button;
@@ -160,7 +172,7 @@ namespace TimingShow.HUD.LogGraphWindow
             float resetWidth = RangeResetWidthBase * scale;
 
             Rect plot = ResolvedPlotRect();
-            float width = Mathf.Max(plot.width, pad * 2f + labelWidth + fieldWidth * 2f + separatorWidth + unitWidth + resetWidth);
+            float width = Mathf.Max(0f, plot.width);
             float x = plot.x;
             float y = Mathf.Clamp(plot.yMax + pad, 0f, Mathf.Max(0f, size.y - height));
 
@@ -168,25 +180,32 @@ namespace TimingShow.HUD.LogGraphWindow
             _rangeBar.sizeDelta = new Vector2(width, height);
 
             float fontSize = RangeFontSizeBase * scale;
-            float fieldHeight = Mathf.Max(12f * scale, height - pad * 1.2f);
+            float fieldHeight = Mathf.Max(16f * scale, height - pad * 1.2f);
             float fieldY = (height - fieldHeight) * 0.5f;
 
-            float cursor = pad;
-            PlaceRangeChild(_rangeLabel.rectTransform, cursor, 0f, labelWidth, height);
-            cursor += labelWidth;
-            PlaceRangeChild(_rangeMinField.rectTransform, cursor, fieldY, fieldWidth, fieldHeight);
-            cursor += fieldWidth;
-            PlaceRangeChild(_rangeSeparator.rectTransform, cursor, 0f, separatorWidth, height);
-            cursor += separatorWidth;
-            PlaceRangeChild(_rangeMaxField.rectTransform, cursor, fieldY, fieldWidth, fieldHeight);
-            cursor += fieldWidth;
-            PlaceRangeChild(_rangeUnitText.rectTransform, cursor, 0f, unitWidth, height);
-            cursor += unitWidth + gap;
-            PlaceRangeChild(_rangeResetButton.rectTransform, cursor, fieldY, resetWidth, fieldHeight);
-            cursor += resetWidth + gap;
+            float resetX = width - pad - resetWidth;
+            float unitX = resetX - gap - unitWidth;
+            float maxX = unitX - gap - fieldWidth;
+            float separatorX = maxX - separatorWidth;
+            float minX = separatorX - fieldWidth;
+            float labelX = minX - labelWidth;
 
-            float statusWidth = Mathf.Max(0f, width - cursor - pad);
-            PlaceRangeChild(_rangeStatusText.rectTransform, cursor, 0f, statusWidth, height);
+            float legendWidth = JudgeLegendVisible && ToolbarFitsOneRow() ? JudgeLegendRowWidth() : 0f;
+            float statusX = pad + (legendWidth > 0f ? legendWidth + gap : 0f);
+            float statusWidth = Mathf.Max(0f, labelX - gap - statusX);
+            bool showStatus = statusWidth >= RangeStatusMinWidthBase * scale;
+
+            if (_rangeStatusText.gameObject.activeSelf != showStatus) _rangeStatusText.gameObject.SetActive(showStatus);
+            PlaceRangeChild(_rangeStatusText.rectTransform, statusX, 0f, showStatus ? statusWidth : 0f, height);
+
+            bool showLabel = !showStatus;
+            if (_rangeLabel.gameObject.activeSelf != showLabel) _rangeLabel.gameObject.SetActive(showLabel);
+            PlaceRangeChild(_rangeLabel.rectTransform, labelX, 0f, labelWidth, height);
+            PlaceRangeChild(_rangeMinField.rectTransform, minX, fieldY, fieldWidth, fieldHeight);
+            PlaceRangeChild(_rangeSeparator.rectTransform, separatorX, 0f, separatorWidth, height);
+            PlaceRangeChild(_rangeMaxField.rectTransform, maxX, fieldY, fieldWidth, fieldHeight);
+            PlaceRangeChild(_rangeUnitText.rectTransform, unitX, 0f, unitWidth, height);
+            PlaceRangeChild(_rangeResetButton.rectTransform, resetX, fieldY, resetWidth, fieldHeight);
 
             _rangeLabel.fontSize = fontSize;
             _rangeSeparator.fontSize = fontSize;

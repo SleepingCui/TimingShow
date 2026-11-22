@@ -9,15 +9,17 @@ namespace TimingShow.HUD
         IPointerClickHandler, IPointerDownHandler, IPointerUpHandler,
         IPointerEnterHandler, IPointerExitHandler
     {
-        private static readonly Color NormalColor = new Color(1f, 1f, 1f, 0.12f);
-        private static readonly Color HoverColor = new Color(1f, 1f, 1f, 0.28f);
-        private static readonly Color ActiveColor = new Color(0.30f, 0.76f, 1f, 0.55f);
-        private static readonly Color BorderColor = new Color(1f, 1f, 1f, 0.18f);
+        private static readonly Color NormalColor = LogGraphTheme.Rgb(66, 72, 99, 0.95f);
+        private static readonly Color HoverColor = LogGraphTheme.Rgb(78, 85, 116, 0.98f);
+        private static readonly Color ActiveColor = LogGraphTheme.AccentSoft;
+        private static readonly Color GhostHoverColor = LogGraphTheme.WithAlpha(Color.white, 0.06f);
 
         private TextMeshProUGUI _label;
         private System.Action _onClick;
         private bool _hovered;
         private bool _active;
+        private bool _ghost;
+        private bool _chevron;
 
         protected override void Awake()
         {
@@ -37,9 +39,9 @@ namespace TimingShow.HUD
 
             _label = go.AddComponent<TextMeshProUGUI>();
             _label.font = font != null ? font : TMP_Settings.defaultFontAsset;
-            _label.fontSize = 12f;
+            _label.fontSize = 13f;
             _label.alignment = TextAlignmentOptions.Center;
-            _label.color = new Color(1f, 1f, 1f, 0.86f);
+            _label.color = LogGraphTheme.TextMain;
             _label.raycastTarget = false;
             _label.textWrappingMode = TextWrappingModes.NoWrap;
             _label.overflowMode = TextOverflowModes.Ellipsis;
@@ -47,8 +49,24 @@ namespace TimingShow.HUD
             RectTransform rect = _label.rectTransform;
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
-            rect.offsetMin = new Vector2(4f, 1f);
-            rect.offsetMax = new Vector2(-8f, -1f);
+            rect.offsetMin = new Vector2(10f, 1f);
+            rect.offsetMax = new Vector2(-10f, -1f);
+        }
+
+        internal void SetGhost(bool ghost)
+        {
+            if (_ghost == ghost) return;
+            _ghost = ghost;
+            ApplyLabelStyle();
+            SetVerticesDirty();
+        }
+
+        internal void SetChevron(bool chevron)
+        {
+            if (_chevron == chevron) return;
+            _chevron = chevron;
+            ApplyLabelStyle();
+            SetVerticesDirty();
         }
 
         internal void SetFont(TMP_FontAsset font)
@@ -90,6 +108,17 @@ namespace TimingShow.HUD
             if (!Mathf.Approximately(_label.fontSize, clamped)) _label.fontSize = clamped;
         }
 
+        private void ApplyLabelStyle()
+        {
+            if (_label == null) return;
+            _label.color = _ghost ? LogGraphTheme.Accent : LogGraphTheme.TextMain;
+            _label.alignment = _chevron ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.Center;
+
+            RectTransform rect = _label.rectTransform;
+            rect.offsetMin = new Vector2(_chevron ? 14f : 10f, 1f);
+            rect.offsetMax = new Vector2(_chevron ? -28f : -10f, -1f);
+        }
+
         public void OnPointerClick(PointerEventData eventData)
         {
             if (eventData != null && eventData.button != PointerEventData.InputButton.Left) return;
@@ -125,12 +154,26 @@ namespace TimingShow.HUD
             float h = rect.height;
             if (w <= 0f || h <= 0f) return;
 
-            float corner = Mathf.Min(w, h) * LogRoundedRect.CapsuleRatio;
-            Color fill = _active ? ActiveColor : (_hovered ? HoverColor : NormalColor);
-            LogRoundedRect.DrawFilled(vh, rect, corner, fill, 8);
+            float corner = Mathf.Min(h * 0.34f, 13f);
+            Color fill;
+            if (_ghost)
+            {
+                fill = _active ? ActiveColor : (_hovered ? GhostHoverColor : new Color(0f, 0f, 0f, 0f));
+            }
+            else
+            {
+                fill = _active ? ActiveColor : (_hovered ? HoverColor : NormalColor);
+            }
 
-            float border = Mathf.Max(1f, Mathf.Min(w, h) * 0.06f);
-            LogRoundedRect.DrawBorder(vh, rect, corner, border, BorderColor, 8);
+            if (fill.a > 0f) LogRoundedRect.DrawFilled(vh, rect, corner, fill, 8);
+
+            if (!_chevron) return;
+
+            float chevronWidth = Mathf.Clamp(h * 0.26f, 5f, 10f);
+            float chevronX = rect.xMax - Mathf.Max(12f, h * 0.34f);
+            Vector2 center = new Vector2(chevronX, rect.center.y);
+            Color arrow = _hovered ? LogGraphTheme.TextMain : LogGraphTheme.TextMuted;
+            LogGraphTheme.DrawChevronDown(vh, center, chevronWidth, Mathf.Max(1f, h * 0.045f), arrow);
         }
 
         private static void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)
@@ -151,10 +194,10 @@ namespace TimingShow.HUD
         IPointerDownHandler, IPointerUpHandler,
         IBeginDragHandler, IDragHandler, IEndDragHandler
     {
-        private static readonly Color TrackColor = new Color(1f, 1f, 1f, 0.16f);
-        private static readonly Color FillColor = new Color(0.30f, 0.76f, 1f, 0.70f);
-        private static readonly Color HandleColor = new Color(0.88f, 0.96f, 1f, 1f);
-        private static readonly Color HandleBorderColor = new Color(0.10f, 0.35f, 0.55f, 0.9f);
+        private static readonly Color TrackColor = LogGraphTheme.Rgb(0, 0, 0, 0.38f);
+        private static readonly Color FillColor = LogGraphTheme.WithAlpha(LogGraphTheme.Accent, 0.92f);
+        private static readonly Color HandleColor = LogGraphTheme.TextMain;
+        private static readonly Color HandleBorderColor = LogGraphTheme.WithAlpha(LogGraphTheme.Accent, 0.85f);
 
         private float _min = 5f;
         private float _max = 500f;
@@ -343,12 +386,12 @@ namespace TimingShow.HUD
     {
         private const int MaxRows = 12;
 
-        private static readonly Color PanelColor = new Color(0.05f, 0.06f, 0.09f, 0.98f);
-        private static readonly Color BorderColor = new Color(1f, 1f, 1f, 0.22f);
-        private static readonly Color RowHoverColor = new Color(1f, 1f, 1f, 0.10f);
-        private static readonly Color RowSelectedColor = new Color(0.30f, 0.76f, 1f, 0.28f);
-        private static readonly Color SelectedTextColor = new Color(1f, 1f, 1f, 0.96f);
-        private static readonly Color NormalTextColor = new Color(0.82f, 0.85f, 0.90f, 1f);
+        private static readonly Color PanelColor = LogGraphTheme.Rgb(34, 38, 54, 0.985f);
+        private static readonly Color BorderColor = LogGraphTheme.HairStrong;
+        private static readonly Color RowHoverColor = LogGraphTheme.WithAlpha(Color.white, 0.055f);
+        private static readonly Color RowSelectedColor = LogGraphTheme.AccentSoft;
+        private static readonly Color SelectedTextColor = LogGraphTheme.TextMain;
+        private static readonly Color NormalTextColor = LogGraphTheme.TextMuted;
 
         private readonly TextMeshProUGUI[] _labels = new TextMeshProUGUI[MaxRows];
         private readonly string[] _itemBuffer = new string[MaxRows];
@@ -535,8 +578,8 @@ namespace TimingShow.HUD
             float h = rect.height;
             if (w <= 0f || h <= 0f) return;
 
-            float panelCorner = Mathf.Min(LogRoundedRect.MenuRadius, Mathf.Min(w, h) * 0.25f);
-            LogRoundedRect.DrawFilled(vh, rect, panelCorner, PanelColor, 8);
+            float panelCorner = Mathf.Min(Mathf.Min(w, h) * 0.16f, 14f);
+            LogRoundedRect.DrawFilled(vh, rect, panelCorner, PanelColor, 10);
 
             for (int i = 0; i < _itemCount; i++)
             {
@@ -549,13 +592,12 @@ namespace TimingShow.HUD
                     {
                         color.a = Mathf.Clamp01(RowSelectedColor.a + RowHoverColor.a);
                     }
-                    Rect rowRect = new Rect(rect.xMin + 2f, bottom, rect.width - 4f, _rowHeight);
-                    LogRoundedRect.DrawFilled(vh, rowRect,
-                        Mathf.Min(LogRoundedRect.MenuItemRadius, _rowHeight * 0.25f), color, 6);
+                    Rect rowRect = new Rect(rect.xMin + 4f, bottom + 1f, rect.width - 8f, _rowHeight - 2f);
+                    LogRoundedRect.DrawFilled(vh, rowRect, Mathf.Min(_rowHeight * 0.34f, 9f), color, 6);
                 }
             }
 
-            LogRoundedRect.DrawBorder(vh, rect, panelCorner, 1f, BorderColor, 8);
+            LogRoundedRect.DrawBorder(vh, rect, panelCorner, 1f, BorderColor, 10);
         }
 
         private static void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)

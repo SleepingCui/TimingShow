@@ -141,7 +141,7 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 
                 float rowCorner = Mathf.Min(LogRoundedRect.ControlRadius * scale, row.Rect.height * 0.3f);
                 LogRoundedRect.DrawFilled(vh, row.Rect, rowCorner,
-                    selected ? TabActiveColor : new Color(1f, 1f, 1f, 0.035f), 6);
+                    selected ? TabActiveColor : TabColor, 6);
 
                 float swatch = ColorSwatchSize(row.Rect.height, scale);
                 float sx = row.Rect.x + 4f * scale;
@@ -181,8 +181,8 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             private static void DrawButton(VertexHelper vh, Row row, float scale, bool dirty)
             {
                 bool enabled = row.IsEnabled == null || row.IsEnabled();
-                Color fill = dirty ? new Color(0.20f, 0.52f, 0.88f, 0.95f) : new Color(1f, 1f, 1f, 0.10f);
-                Color edge = dirty ? new Color(0.55f, 0.82f, 1f, 0.95f) : BorderColor;
+                Color fill = dirty ? LogGraphTheme.WithAlpha(AccentColor, 0.90f) : RowHoverColor;
+                Color edge = dirty ? LogGraphTheme.WithAlpha(AccentColor, 0.95f) : BorderColor;
 
                 if (!enabled)
                 {
@@ -203,20 +203,23 @@ namespace TimingShow.HUD.LogGraphSettingsUI
                 Rect box = row.Bars[0];
                 bool on = row.GetToggle();
 
-                float corner = Mathf.Min(LogRoundedRect.SmallRadius * scale,
-                    Mathf.Min(box.width, box.height) * LogRoundedRect.CapsuleRatio);
-                LogRoundedRect.DrawFilled(vh, box, corner, on ? AccentColor : TrackColor, 6);
-                LogRoundedRect.DrawFilled(vh, box, corner,
-                    new Color(0f, 0f, 0f, on ? 0f : 0.25f), 6);
+                float corner = box.height * 0.5f;
+                LogRoundedRect.DrawFilled(vh, box, corner, on ? AccentColor : TrackColor, 12);
 
-                if (on)
+                if (!on)
                 {
-                    float inset = Mathf.Max(1f, 3f * scale);
-                    Rect inner = new Rect(box.x + inset, box.y + inset,
-                        Mathf.Max(0f, box.width - inset * 2f), Mathf.Max(0f, box.height - inset * 2f));
-                    LogRoundedRect.DrawFilled(vh, inner, Mathf.Max(0f, corner - inset),
-                        new Color(0.05f, 0.06f, 0.09f, 1f), 6);
+                    LogRoundedRect.DrawBorder(vh, box, corner,
+                        Mathf.Max(1f, 1f * scale), BorderColor, 12);
                 }
+
+                float inset = Mathf.Max(1.5f * scale, box.height * 0.14f);
+                float knobRadius = Mathf.Max(1f, box.height * 0.5f - inset);
+                float knobX = on
+                    ? box.xMax - inset - knobRadius
+                    : box.x + inset + knobRadius;
+                LogGraphTheme.DrawCircle(vh,
+                    new Vector2(knobX, box.center.y), knobRadius,
+                    on ? ValueColor : LogGraphTheme.TextMuted, 18);
             }
 
             private static void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)

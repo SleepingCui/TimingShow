@@ -5,9 +5,9 @@ namespace TimingShow.HUD.LogGraphWindow
 {
     public partial class LogGraphWindow
     {
-        private const float JudgeLegendHeightBase = 18f;
-        private const float JudgeLegendPaddingBase = 4f;
-        private const float JudgeLegendGapBase = 6f;
+        private const float JudgeLegendHeightBase = 26f;
+        private const float JudgeLegendPaddingBase = 6f;
+        private const float JudgeLegendGapBase = 4f;
 
         private RectTransform _judgeLegendBar;
         private readonly LogJudgeLegendChip[] _judgeLegendChips = new LogJudgeLegendChip[LogScatterJudgeLegend.Count];
@@ -88,14 +88,50 @@ namespace TimingShow.HUD.LogGraphWindow
             }
         }
 
+        private float ToolbarStripHeight()
+        {
+            float range = RangeStripHeight();
+            float legend = JudgeLegendStripHeight();
+            if (legend <= 0f) return range;
+            if (range <= 0f) return legend;
+            return ToolbarFitsOneRow() ? Mathf.Max(range, legend) : range + legend;
+        }
+
+        private bool ToolbarFitsOneRow()
+        {
+            float scale = Mathf.Max(0.01f, UiScale);
+            float legendWidth = JudgeLegendVisible ? JudgeLegendRowWidth() : 0f;
+            if (legendWidth <= 0f) return true;
+            if (!RangeFilterVisible) return true;
+
+            float needed = legendWidth + RangeControlsWidth() + JudgeLegendPaddingBase * 2f * scale;
+            return needed <= ResolvedPlotRect().width;
+        }
+
+        private float JudgeLegendRowWidth()
+        {
+            float scale = Mathf.Max(0.01f, UiScale);
+            float gap = JudgeLegendGapBase * scale;
+            float total = 0f;
+            for (int i = 0; i < _judgeLegendChips.Length; i++)
+            {
+                LogJudgeLegendChip chip = _judgeLegendChips[i];
+                if (chip == null) continue;
+                chip.SetScale(scale);
+                total += chip.MeasureWidth() + gap;
+            }
+
+            return Mathf.Max(0f, total - gap);
+        }
+
         private void PositionJudgeLegend(Vector2 size)
         {
             if (_judgeLegendBar == null) return;
 
             float scale = Mathf.Max(0.01f, UiScale);
             float height = JudgeLegendHeightBase * scale;
-            float pad = JudgeLegendPaddingBase * scale;
             float gap = JudgeLegendGapBase * scale;
+            float inset = RangeBarPaddingBase * scale;
             Rect plot = ResolvedPlotRect();
 
             float cursor = 0f;
@@ -111,8 +147,18 @@ namespace TimingShow.HUD.LogGraphWindow
             }
 
             float barWidth = Mathf.Max(0f, cursor - gap);
-            float y = Mathf.Clamp(plot.yMax + RangeStripHeight() + pad, 0f, Mathf.Max(0f, size.y - height));
-            _judgeLegendBar.anchoredPosition = new Vector2(plot.x, y);
+            float y;
+            if (RangeFilterVisible && !ToolbarFitsOneRow())
+            {
+                y = plot.yMax + RangeStripHeight() + JudgeLegendPaddingBase * scale;
+            }
+            else
+            {
+                float centering = RangeFilterVisible ? (RangeBarHeightBase - JudgeLegendHeightBase) * 0.5f * scale : 0f;
+                y = plot.yMax + inset + centering;
+            }
+            y = Mathf.Clamp(y, 0f, Mathf.Max(0f, size.y - height));
+            _judgeLegendBar.anchoredPosition = new Vector2(plot.x + inset, y);
             _judgeLegendBar.sizeDelta = new Vector2(barWidth, height);
         }
 

@@ -135,7 +135,7 @@ namespace TimingShow.HUD.LogGraphWindow
             Rect container = _resolvedContainerRect;
             Rect plot = _resolvedPlotRect;
 
-            float stripHeight = RangeStripHeight() + JudgeLegendStripHeight();
+            float stripHeight = ToolbarStripHeight();
             if (stripHeight > 0f && plot.height > stripHeight * 2f)
             {
                 plot = new Rect(plot.x, plot.y, plot.width, plot.height - stripHeight);
@@ -220,12 +220,13 @@ namespace TimingShow.HUD.LogGraphWindow
             if (!Mathf.Approximately(_titleText.fontSize, titleFontSize)) _titleText.fontSize = titleFontSize;
             _titleText.alignment = hasFile ? TextAlignmentOptions.Left : TextAlignmentOptions.MidlineLeft;
 
+            float blockTop = pad + Mathf.Max(0f, (innerHeight - titleHeight - fileHeight) * 0.5f);
+
             RectTransform titleRect = _titleText.rectTransform;
             titleRect.anchorMin = new Vector2(0f, 1f);
             titleRect.anchorMax = new Vector2(0f, 1f);
             titleRect.pivot = new Vector2(0f, 1f);
-            titleRect.anchoredPosition = new Vector2(TitleLeftPadding,
-                hasFile ? -pad : -pad - (innerHeight - titleHeight) * 0.5f);
+            titleRect.anchoredPosition = new Vector2(TitleLeftPadding, -blockTop);
             titleRect.sizeDelta = new Vector2(titleWidth, titleHeight);
 
             if (_fileText != null)
@@ -236,7 +237,7 @@ namespace TimingShow.HUD.LogGraphWindow
                 rect.anchorMin = new Vector2(0f, 1f);
                 rect.anchorMax = new Vector2(0f, 1f);
                 rect.pivot = new Vector2(0f, 1f);
-                rect.anchoredPosition = new Vector2(TitleLeftPadding, -pad - titleHeight);
+                rect.anchoredPosition = new Vector2(TitleLeftPadding, -blockTop - titleHeight);
                 rect.sizeDelta = new Vector2(titleWidth, fileHeight);
                 ApplyEllipsizedText(_fileText, _baseFileTitle, titleWidth);
             }
@@ -249,9 +250,9 @@ namespace TimingShow.HUD.LogGraphWindow
                 RectTransform rect = _metaText.rectTransform;
                 rect.anchorMin = new Vector2(0f, 1f);
                 rect.anchorMax = new Vector2(0f, 1f);
-                rect.pivot = new Vector2(1f, 1f);
-                rect.anchoredPosition = new Vector2(selectorsLeft - TitleMetaGap, -pad);
-                rect.sizeDelta = new Vector2(metaWidth, titleHeight);
+                rect.pivot = new Vector2(1f, 0.5f);
+                rect.anchoredPosition = new Vector2(selectorsLeft - TitleMetaGap, -HeaderHeight * 0.5f);
+                rect.sizeDelta = new Vector2(metaWidth, SelectorHeight);
             }
 
             _titleText.ForceMeshUpdate();
@@ -259,19 +260,19 @@ namespace TimingShow.HUD.LogGraphWindow
             if (_metaText != null && _metaText.gameObject.activeSelf) _metaText.ForceMeshUpdate();
         }
 
-        private static float ChartSelectorWidth { get { return 150f * UiScale; } }
-        private static float PlayerSelectorWidth { get { return 64f * UiScale; } }
-        private static float SelectorGap { get { return 4f * UiScale; } }
+        private static float ChartSelectorWidth { get { return 172f * UiScale; } }
+        private static float PlayerSelectorWidth { get { return 76f * UiScale; } }
+        private static float SelectorGap { get { return 6f * UiScale; } }
 
         private static float SelectorHeight
         {
-            get { return Mathf.Clamp(20f * UiScale, 12f, Mathf.Max(12f, HeaderHeight - HeaderPadding * 2f)); }
+            get { return Mathf.Clamp(32f * UiScale, 12f, Mathf.Max(12f, HeaderHeight - HeaderPadding * 2f)); }
         }
 
         private static void SelectorRects(Vector2 size, bool hasPlayer, out Rect chart, out Rect player)
         {
             float height = SelectorHeight;
-            float y = size.y - HeaderPadding - height;
+            float y = size.y - (HeaderHeight - height) * 0.5f - height;
             float right = size.x - TitleRightPadding;
 
             chart = new Rect(right - ChartSelectorWidth, y, ChartSelectorWidth, height);

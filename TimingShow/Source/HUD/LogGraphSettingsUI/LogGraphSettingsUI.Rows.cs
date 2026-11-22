@@ -330,11 +330,12 @@ namespace TimingShow.HUD.LogGraphSettingsUI
             }
             else if (row.Kind == RowKind.Toggle)
             {
-                float toggleSize = Mathf.Min(BaseToggleSize * scale, rowHeight * 0.8f);
+                float toggleHeight = Mathf.Min(BaseToggleHeight * scale, rowHeight * 0.8f);
+                float toggleWidth = toggleHeight * (BaseToggleWidth / BaseToggleHeight);
                 row.Bars = new[]
                 {
-                    new Rect(r.x + r.width - toggleSize - 2f * scale,
-                        r.y + (rowHeight - toggleSize) * 0.5f, toggleSize, toggleSize)
+                    new Rect(r.x + r.width - toggleWidth - 2f * scale,
+                        r.y + (rowHeight - toggleHeight) * 0.5f, toggleWidth, toggleHeight)
                 };
             }
         }

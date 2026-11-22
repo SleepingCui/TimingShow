@@ -140,6 +140,7 @@
     <Compile Include="Source\HUD\LogGraph\Charts\Xacc\LogXaccDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Common\LogChartDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\UI\LogChartUi.cs" />
+    <Compile Include="Source\HUD\LogGraph\UI\LogGraphTheme.cs" />
     <Compile Include="Source\HUD\LogGraph\UI\LogRoundedRect.cs" />
     <Compile Include="Source\HUD\LogGraph\UI\LogJudgeLegendChip.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Histogram\LogDeltaData.cs" />
@@ -154,6 +155,7 @@
     <Compile Include="Source\HUD\LogGraph\Charts\Overview\LogOverviewData.cs" />
     <Compile Include="Source\HUD\LogGraph\Charts\Overview\LogOverviewDrawer.cs" />
     <Compile Include="Source\HUD\LogGraph\Font\LogGraphFont.cs" />
+    <Compile Include="Source\HUD\LogGraphWindow\LogGraphPlotFrame.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Window.cs" />
     <Compile Include="Source\HUD\LogGraphWindow\LogGraphWindow.Layout.cs" />

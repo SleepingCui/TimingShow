@@ -7,22 +7,19 @@ namespace TimingShow.HUD
 {
     public class LogJudgeLegendChip : MaskableGraphic, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
-        internal const float HeightBase = 18f;
-        internal const float PaddingBase = 6f;
+        internal const float HeightBase = 26f;
+        internal const float PaddingBase = 12f;
+        internal const float GapBase = 4f;
 
-        private const float BoxSizeBase = 9f;
-        private const float SwatchSizeBase = 8f;
-        private const float GapBase = 4f;
-        private const float TextGapBase = 5f;
-        private const float FontSizeBase = 11f;
+        private const float DotSizeBase = 7f;
+        private const float TextGapBase = 8f;
+        private const float FontSizeBase = 12f;
+        private const float RadiusBase = 9f;
 
-        private static readonly Color NormalColor = new Color(1f, 1f, 1f, 0.05f);
-        private static readonly Color HoverColor = new Color(1f, 1f, 1f, 0.14f);
-        private static readonly Color BorderColor = new Color(1f, 1f, 1f, 0.14f);
-        private static readonly Color CheckColor = new Color(0.30f, 0.76f, 1f, 0.95f);
-        private static readonly Color BoxBorderColor = new Color(1f, 1f, 1f, 0.45f);
-        private static readonly Color LabelOnColor = new Color(1f, 1f, 1f, 0.86f);
-        private static readonly Color LabelOffColor = new Color(1f, 1f, 1f, 0.38f);
+        private static readonly Color LabelOnColor = LogGraphTheme.TextMain;
+        private static readonly Color LabelOffColor = LogGraphTheme.TextFaint;
+        private static readonly Color FillColor = LogGraphTheme.SurfaceRaised;
+        private static readonly Color FillHoverColor = LogGraphTheme.Rgb(78, 85, 116);
 
         private TextMeshProUGUI _label;
         private System.Action _onClick;
@@ -97,7 +94,7 @@ namespace TimingShow.HUD
 
         internal float MeasureWidth()
         {
-            float inset = (PaddingBase + BoxSizeBase + GapBase + SwatchSizeBase + TextGapBase) * _scale;
+            float inset = (PaddingBase + DotSizeBase + TextGapBase) * _scale;
             return Mathf.Ceil(inset + MeasureLabelWidth() + PaddingBase * _scale);
         }
 
@@ -128,23 +125,23 @@ namespace TimingShow.HUD
             float h = rect.height;
             if (w <= 0f || h <= 0f) return;
 
-            float corner = Mathf.Min(w, h) * LogRoundedRect.CapsuleRatio;
-            LogRoundedRect.DrawFilled(vh, rect, corner, _hovered ? HoverColor : NormalColor, 8);
-            LogRoundedRect.DrawBorder(vh, rect, corner, Mathf.Max(1f, Mathf.Min(w, h) * 0.05f), BorderColor, 8);
+            float corner = Mathf.Min(RadiusBase * _scale, Mathf.Min(w, h) * 0.5f);
+            Color fill = _checked
+                ? (_hovered ? FillHoverColor : FillColor)
+                : (_hovered ? LogGraphTheme.WithAlpha(Color.white, 0.05f) : new Color(0f, 0f, 0f, 0f));
+            if (fill.a > 0f) LogRoundedRect.DrawFilled(vh, rect, corner, fill, 8);
 
-            float box = BoxSizeBase * _scale;
-            float swatch = SwatchSizeBase * _scale;
-            float centerY = rect.center.y;
-            float x = rect.xMin + PaddingBase * _scale;
-
-            Rect boxRect = new Rect(x, centerY - box * 0.5f, box, box);
-            if (_checked) LogRoundedRect.DrawFilled(vh, boxRect, box * 0.28f, CheckColor, 4);
-            else LogRoundedRect.DrawBorder(vh, boxRect, box * 0.28f, Mathf.Max(1f, box * 0.16f), BoxBorderColor, 4);
-
-            x += box + GapBase * _scale;
-            Color swatchColor = _checked ? _swatch : new Color(_swatch.r, _swatch.g, _swatch.b, _swatch.a * 0.35f);
-            Rect swatchRect = new Rect(x, centerY - swatch * 0.5f, swatch, swatch);
-            LogRoundedRect.DrawFilled(vh, swatchRect, swatch * 0.3f, swatchColor, 5);
+            float dot = DotSizeBase * _scale;
+            Vector2 center = new Vector2(rect.xMin + PaddingBase * _scale + dot * 0.5f, rect.center.y);
+            if (_checked)
+            {
+                Color dotColor = _hovered ? LogGraphTheme.Mix(_swatch, Color.white, 0.15f) : _swatch;
+                LogGraphTheme.DrawCircle(vh, center, dot * 0.5f, dotColor, 14);
+            }
+            else
+            {
+                LogGraphTheme.DrawRing(vh, center, dot * 0.5f, Mathf.Max(1f, 1.6f * _scale), LogGraphTheme.TextFaint, 16);
+            }
         }
 
         private void ApplyLabelLayout()
@@ -152,10 +149,10 @@ namespace TimingShow.HUD
             if (_label == null) return;
 
             float scale = _scale;
-            _label.fontSize = Mathf.Clamp(Mathf.RoundToInt(FontSizeBase * scale), 8, 28);
+            _label.fontSize = Mathf.Clamp(Mathf.RoundToInt(FontSizeBase * scale), 8, 32);
             _label.alignment = TextAlignmentOptions.MidlineLeft;
 
-            float inset = (PaddingBase + BoxSizeBase + GapBase + SwatchSizeBase + TextGapBase) * scale;
+            float inset = (PaddingBase + DotSizeBase + TextGapBase) * scale;
             RectTransform rt = _label.rectTransform;
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;

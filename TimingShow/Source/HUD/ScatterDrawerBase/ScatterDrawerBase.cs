@@ -196,7 +196,6 @@ namespace TimingShow.HUD.ScatterDrawerBase
         {
             base.Update();
             UpdateInteraction();
-            StepDetailFade();
             RefreshBandWindow();
         }
 

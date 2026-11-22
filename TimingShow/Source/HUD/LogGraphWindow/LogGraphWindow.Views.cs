@@ -248,11 +248,13 @@ namespace TimingShow.HUD.LogGraphWindow
             chartButtonGo.transform.SetParent(_windowRect, false);
             _chartButton = chartButtonGo.AddComponent<LogPillButton>();
             _chartButton.Initialize(font, ToggleChartMenu);
+            _chartButton.SetChevron(true);
 
             GameObject playerButtonGo = new GameObject("PlayerSelector", typeof(RectTransform));
             playerButtonGo.transform.SetParent(_windowRect, false);
             _playerButton = playerButtonGo.AddComponent<LogPillButton>();
             _playerButton.Initialize(font, TogglePlayerMenu);
+            _playerButton.SetChevron(true);
 
             _chartMenu = CreateMenu("ChartMenu", font, OnChartMenuItemSelected);
             _playerMenu = CreateMenu("PlayerMenu", font, OnPlayerMenuItemSelected);
@@ -348,14 +350,14 @@ namespace TimingShow.HUD.LogGraphWindow
         private void UpdateChartButtonLabel()
         {
             if (_chartButton == null) return;
-            _chartButton.SetLabel(i18n.T(ViewLabelKeys[(int)_view]) + " ▾");
+            _chartButton.SetLabel(i18n.T(ViewLabelKeys[(int)_view]));
         }
 
         private void UpdatePlayerButtonLabel()
         {
             if (_playerButton == null) return;
             int playerId = _drawer != null ? _drawer.SelectedPlayerId : -1;
-            _playerButton.SetLabel((playerId >= 0 ? Coop.Label(playerId) : i18n.T("LogGraph_PlayerAll")) + " ▾");
+            _playerButton.SetLabel(playerId >= 0 ? Coop.Label(playerId) : i18n.T("LogGraph_PlayerAll"));
         }
 
         private void PositionSelectorAndMenus(Vector2 size)
@@ -376,14 +378,14 @@ namespace TimingShow.HUD.LogGraphWindow
             if (_chartMenuOpen && _chartMenu != null)
             {
                 float width = Mathf.Max(chartRect.width + 50f * UiScale, 190f * UiScale);
-                _chartMenu.SetLayout(width, 20f * UiScale, 4f * UiScale);
+                _chartMenu.SetLayout(width, 28f * UiScale, 5f * UiScale);
                 PlaceMenu(_chartMenu, chartRect, width, size);
             }
 
             if (_playerMenuOpen && _playerMenu != null)
             {
                 float width = Mathf.Max(playerRect.width + 40f * UiScale, 90f * UiScale);
-                _playerMenu.SetLayout(width, 20f * UiScale, 4f * UiScale);
+                _playerMenu.SetLayout(width, 28f * UiScale, 5f * UiScale);
                 PlaceMenu(_playerMenu, playerRect, width, size);
             }
         }
@@ -398,7 +400,7 @@ namespace TimingShow.HUD.LogGraphWindow
             transform.pivot = Vector2.zero;
             transform.anchoredPosition = new Vector2(rect.x, rect.y);
             transform.sizeDelta = new Vector2(rect.width, rect.height);
-            button.SetFontSize(Mathf.Clamp(11f * UiScale, 8f, 28f));
+            button.SetFontSize(Mathf.Clamp(13f * UiScale, 8f, 32f));
         }
 
         private void PlaceMenu(LogChartMenu menu, Rect anchor, float width, Vector2 size)
