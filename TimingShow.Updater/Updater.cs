@@ -181,7 +181,7 @@ namespace TimingShow.Update
             UpdateState state = State;
             if (state == UpdateState.Checking || state == UpdateState.Downloading || state == UpdateState.Verifying || state == UpdateState.Ready) return;
             lock (Sync) _checkAt = -1f;
-            BeginCheck(false);
+            BeginCheck(false, true);
         }
 
         public static void Tick()
@@ -279,7 +279,7 @@ namespace TimingShow.Update
             }
         }
 
-        private static void BeginCheck(bool autoUpdate)
+        private static void BeginCheck(bool autoUpdate, bool allowDowngrade = false)
         {
             Thread worker;
             lock (Sync)
@@ -294,12 +294,12 @@ namespace TimingShow.Update
                 _progress = 0f;
                 _state = UpdateState.Checking;
                 _dirty = true;
-                worker = _worker = new Thread(() => CheckWorker(autoUpdate)) { IsBackground = true, Name = "TimingShow.UpdateCheck" };
+                worker = _worker = new Thread(() => CheckWorker(autoUpdate, allowDowngrade)) { IsBackground = true, Name = "TimingShow.UpdateCheck" };
             }
             worker.Start();
         }
 
-        private static void CheckWorker(bool autoUpdate)
+        private static void CheckWorker(bool autoUpdate, bool allowDowngrade)
         {
             string releaseId = ReleaseId;
             string repositoryUrl = ResolveRepositoryUrl();
@@ -309,7 +309,7 @@ namespace TimingShow.Update
                 bool preview = settings != null && settings.Update_Channel == Settings.UpdateChannelPreview;
                 Log((preview ? "Using the preview update repository: " : "Using configured update repository: ") + repositoryUrl);
             }
-            Trace("Checking " + repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + " for game " + _gameVersionText + ".");
+            Trace("Checking " + repositoryUrl + " for " + releaseId + " releases " + (allowDowngrade ? "different from " : "newer than ") + _currentVersion + " for game " + _gameVersionText + ".");
             Stopwatch elapsed = Stopwatch.StartNew();
             try
             {
@@ -317,7 +317,7 @@ namespace TimingShow.Update
                 string skippedForGame;
                 string skippedByUser;
                 string skippedVersion = ModContext.Settings != null ? ModContext.Settings.Update_SkippedVersion : null;
-                UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion, _gameVersion, skippedVersion, out skippedForGame, out skippedByUser);
+                UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion, _gameVersion, skippedVersion, allowDowngrade, out skippedForGame, out skippedByUser);
                 Trace("Check completed in " + elapsed.ElapsedMilliseconds + " ms.");
                 if (release == null)
                 {
@@ -337,7 +337,7 @@ namespace TimingShow.Update
                     _release = release;
                     _availableVersion = release.Version;
                 }
-                Log("Update available: " + release.Version + " (current " + _currentVersion + ", game " + _gameVersionText + ").");
+                Log("Update available: " + release.Version + " (current " + _currentVersion + ", game " + _gameVersionText + (allowDowngrade ? ", downgrade allowed" : "") + ").");
                 SetCheckResult(UpdateCheckResult.Available, string.Empty);
                 SetState(UpdateState.Available);
 

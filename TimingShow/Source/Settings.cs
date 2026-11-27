@@ -7,6 +7,7 @@ using TimingShow.Logging;
 
 namespace TimingShow
 {
+    [JsonConverter(typeof(SettingsJsonConverter))]
     public class Settings
     {
         public bool ShowInSongTitle;
@@ -375,6 +376,7 @@ namespace TimingShow
                         bool isLegacyConfig = json.IndexOf("settingsVersion", StringComparison.OrdinalIgnoreCase) < 0;
                         settings.Migrate(isLegacyConfig);
                         settings.Sanitize();
+                        if (!SettingsJsonConverter.HasGroupedLayout(json)) settings.Save(modPath);
                         return settings;
                     }
                 }

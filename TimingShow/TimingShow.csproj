@@ -185,6 +185,7 @@
     <Compile Include="Source\LevelEditor\HitOverlay\HitOverlaySkin.cs" />
     <Compile Include="Source\LevelEditor\HitOverlay\InputGate.cs" />
     <Compile Include="Source\Logging\ColorConverter.cs" />
+    <Compile Include="Source\SettingsJsonConverter.cs" />
     <Compile Include="Source\Logging\TimingLogger.cs" />
     <Compile Include="Source\Logging\TimingLoggerBinary.cs" />
     <Compile Include="Source\Logging\LogRetention.cs" />

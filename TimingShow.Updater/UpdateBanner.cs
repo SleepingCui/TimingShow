@@ -43,7 +43,7 @@ namespace TimingShow.Update
         {
             GUILayout.BeginVertical(GUI.skin.box);
             string label = string.Format(i18n.T("Updater_Downloading"), Updater.AvailableVersion);
-            GUILayout.Label(label + " " + Mathf.RoundToInt(Updater.Progress * 100f) + "%", GUILayout.ExpandWidth(true));
+            GUILayout.Label(label + " " + (Mathf.Clamp01(Updater.Progress) * 100f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "%", GUILayout.ExpandWidth(true));
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(i18n.T("Btn_Cancel"), GUILayout.Width(120f))) Updater.CancelDownload();
             GUILayout.EndHorizontal();

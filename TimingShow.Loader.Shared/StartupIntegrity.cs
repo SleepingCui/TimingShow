@@ -24,6 +24,8 @@ namespace TimingShow.Bootstrap
     internal static class StartupIntegrity
     {
         public const string SettingKey = "Startup_VerifyFiles";
+        public const string SettingsGroup = "Startup";
+        public const string GroupedSettingKey = "VerifyFiles";
         public const string BootstrapFileName = "TimingShow.UpdateBootstrap.dll";
 
         private const string CoreAssemblyName = "TimingShow";
@@ -65,7 +67,12 @@ namespace TimingShow.Bootstrap
             {
                 Dictionary<string, object> settings = JsonText.ParseObject(File.ReadAllText(settingsPath));
                 object value;
-                if (!settings.TryGetValue(SettingKey, out value)) return true;
+                if (!settings.TryGetValue(SettingKey, out value))
+                {
+                    object group;
+                    Dictionary<string, object> section = settings.TryGetValue(SettingsGroup, out group) ? group as Dictionary<string, object> : null;
+                    if (section == null || !section.TryGetValue(GroupedSettingKey, out value)) return true;
+                }
                 if (!(value is bool)) return true;
                 return (bool)value;
             }

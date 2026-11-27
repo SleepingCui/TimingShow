@@ -88,7 +88,7 @@ namespace TimingShow.Options
             {
                 case UpdateBannerKind.Available: return string.Format(i18n.T("Updater_Banner"), source.BannerVersion);
                 case UpdateBannerKind.Downloading:
-                    return string.Format(i18n.T("Updater_Downloading"), source.BannerVersion) + " " + Mathf.RoundToInt(Mathf.Clamp01(source.BannerProgress) * 100f) + "%";
+                    return string.Format(i18n.T("Updater_Downloading"), source.BannerVersion) + " " + (Mathf.Clamp01(source.BannerProgress) * 100f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "%";
                 case UpdateBannerKind.Verifying: return i18n.T("Updater_Verifying");
                 case UpdateBannerKind.Failed: return string.Format(i18n.T("Updater_Failed"), source.BannerError);
                 default: return i18n.T("Updater_Pending");

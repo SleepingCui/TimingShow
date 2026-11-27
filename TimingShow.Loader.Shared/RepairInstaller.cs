@@ -109,12 +109,14 @@ namespace TimingShow.Bootstrap
             try
             {
                 Dictionary<string, object> values = JsonText.ParseObject(File.ReadAllText(settingsPath));
-                string channel = GetString(values, "Update_Channel").Trim();
-                string source = GetString(values, "Update_SourceUrl").Trim();
+                Dictionary<string, object> update = GetObject(values, "Update");
+                Dictionary<string, object> debug = GetObject(values, "Debug");
+                string channel = GetNestedString(values, update, "Channel", "Update_Channel").Trim();
+                string source = GetNestedString(values, update, "SourceUrl", "Update_SourceUrl").Trim();
                 if (string.IsNullOrEmpty(channel))
                 {
-                    if (string.IsNullOrEmpty(source) && GetBool(values, "Debug_CustomUpdateUrl"))
-                        source = GetString(values, "Debug_UpdateUrl").Trim();
+                    if (string.IsNullOrEmpty(source) && GetNestedBool(values, debug, "CustomUpdateUrl", "Debug_CustomUpdateUrl"))
+                        source = GetNestedString(values, debug, "UpdateUrl", "Debug_UpdateUrl").Trim();
                     settings.CustomRepository = !string.IsNullOrEmpty(source);
                     settings.RepositoryUrl = source;
                 }
@@ -128,8 +130,8 @@ namespace TimingShow.Bootstrap
                     settings.CustomRepository = !string.IsNullOrEmpty(source);
                     settings.RepositoryUrl = source;
                 }
-                settings.SkipChecksum = GetBool(values, "Debug_SkipUpdateChecksum");
-                settings.SkipTlsValidation = GetBool(values, "Debug_SkipTlsValidation");
+                settings.SkipChecksum = GetNestedBool(values, debug, "SkipUpdateChecksum", "Debug_SkipUpdateChecksum");
+                settings.SkipTlsValidation = GetNestedBool(values, debug, "SkipTlsValidation", "Debug_SkipTlsValidation");
             }
             catch (Exception e)
             {
@@ -684,6 +686,24 @@ namespace TimingShow.Bootstrap
             bool https = responseUri.Scheme == Uri.UriSchemeHttps;
             if (!https && !(_skipTlsValidation && responseUri.Scheme == Uri.UriSchemeHttp)) throw new InvalidDataException("The update server redirected to an untrusted address.");
             if (!_customRepository && !IsTrustedHost(responseUri.Host)) throw new InvalidDataException("The update server redirected to an untrusted address.");
+        }
+
+        private static Dictionary<string, object> GetObject(Dictionary<string, object> values, string key)
+        {
+            object value;
+            return values.TryGetValue(key, out value) ? value as Dictionary<string, object> : null;
+        }
+
+        private static string GetNestedString(Dictionary<string, object> values, Dictionary<string, object> section, string nestedKey, string flatKey)
+        {
+            if (section != null && section.ContainsKey(nestedKey)) return GetString(section, nestedKey);
+            return GetString(values, flatKey);
+        }
+
+        private static bool GetNestedBool(Dictionary<string, object> values, Dictionary<string, object> section, string nestedKey, string flatKey)
+        {
+            if (section != null && section.ContainsKey(nestedKey)) return GetBool(section, nestedKey);
+            return GetBool(values, flatKey);
         }
 
         private static bool GetBool(Dictionary<string, object> values, string key)

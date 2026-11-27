@@ -55,7 +55,7 @@ namespace TimingShow.Update
             }
         }
 
-        public static UpdateRelease FindRelease(string json, string id, Version currentVersion, GameVersion gameVersion, string skippedVersion, out string skippedForGame, out string skippedByUser)
+        public static UpdateRelease FindRelease(string json, string id, Version currentVersion, GameVersion gameVersion, string skippedVersion, bool allowDowngrade, out string skippedForGame, out string skippedByUser)
         {
             skippedForGame = null;
             skippedByUser = null;
@@ -65,7 +65,7 @@ namespace TimingShow.Update
             if (manifest == null || manifest.Releases == null)
                 throw new InvalidDataException("Repository.json does not contain a Releases list.");
 
-            TraceLine("Manifest lists " + manifest.Releases.Length + " release entries; looking for " + id + " newer than " + currentVersion + " for game " + gameVersion + ".");
+            TraceLine("Manifest lists " + manifest.Releases.Length + " release entries; looking for " + id + " " + (allowDowngrade ? "different from " : "newer than ") + currentVersion + " for game " + gameVersion + ".");
             foreach (UpdateRelease release in manifest.Releases)
             {
                 if (release == null) continue;
@@ -81,9 +81,14 @@ namespace TimingShow.Update
                     TraceLine("Skipped " + release.Id + " " + release.Version + ": version not parseable.");
                     continue;
                 }
-                if (candidate <= currentVersion)
+                if (candidate == currentVersion)
                 {
-                    TraceLine("Skipped " + release.Id + " " + release.Version + ": not newer than " + currentVersion + ".");
+                    TraceLine("Skipped " + release.Id + " " + release.Version + ": already installed.");
+                    continue;
+                }
+                if (candidate < currentVersion && !allowDowngrade)
+                {
+                    TraceLine("Skipped " + release.Id + " " + release.Version + ": older than " + currentVersion + ".");
                     continue;
                 }
                 if (hasSkipped && candidate == skipped)
@@ -116,7 +121,7 @@ namespace TimingShow.Update
                 TraceLine("Selected " + release.Version + ": size " + release.Size + ", sha256 " + release.Sha256 + ".");
                 return release;
             }
-            TraceLine("No release newer than " + currentVersion + ".");
+            TraceLine(allowDowngrade ? "No different release found." : "No release newer than " + currentVersion + ".");
             return null;
         }
 
