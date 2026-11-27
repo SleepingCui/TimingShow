@@ -39,7 +39,7 @@ namespace TimingShow.HUD
         public static void Update()
         {
             bool isPlayBase = ModContext.IsPlaying && scrController.instance != null && scrController.instance.gameworld && (!scrController.instance.paused || ModContext.IsConfigOpen);
-            bool applyFont = ModContext.UIDirty || !ModContext.Settings.LowOverheadMode;
+            bool applyFont = ModContext.UIDirty;
 
             bool isTimingPlay = isPlayBase && ModContext.Settings.ShowTimingHUD;
             bool created = EnsureUI(ref _hudObj, ref _hudInstance, "TimingShow_HUD", isTimingPlay);

@@ -714,8 +714,6 @@ namespace TimingShow.Options
                 GUILayout.Space(8);
 
                 IndentedLabel($"<color=#888888>{i18n.T("Btn_PerfStability")}</color>", 0f);
-                bool lowOverhead = ToggleWithDescription(ModContext.Settings.LowOverheadMode, "Toggle_LowOverhead", "Desc_LowOverhead", "", 0f);
-                ModContext.Settings.LowOverheadMode = lowOverhead;
                 IntField("Label_GraphRedrawInterval", ref _graphRedrawIntervalText, ref ModContext.Settings.Graph_RedrawIntervalMs, 0, 1000, 0, 190, 0f);
                 bool patchExceptionGuard = ToggleWithDescription(ModContext.Settings.PatchExceptionGuard, "Toggle_PatchExceptionGuard", "Desc_PatchExceptionGuard", "", 0f);
                 ModContext.Settings.PatchExceptionGuard = patchExceptionGuard;

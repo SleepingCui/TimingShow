@@ -616,7 +616,6 @@ namespace TimingShow.Options
 
                     NewUIWidgets.Divider();
                     NewUIWidgets.CardTitle("Btn_PerfStability");
-                    s.LowOverheadMode = NewUIWidgets.Toggle("Toggle_LowOverhead", s.LowOverheadMode, "Desc_LowOverhead");
                     s.Graph_RedrawIntervalMs = NewUIWidgets.IntField("Label_GraphRedrawInterval", ref _graphRedrawIntervalText, s.Graph_RedrawIntervalMs, 0, 1000);
                     s.PatchExceptionGuard = NewUIWidgets.Toggle("Toggle_PatchExceptionGuard", s.PatchExceptionGuard, "Desc_PatchExceptionGuard");
 

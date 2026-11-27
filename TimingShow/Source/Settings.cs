@@ -286,7 +286,6 @@ namespace TimingShow
         public int Judge_Version;
         public bool Judge_AutoFallback = true;
 
-        public bool LowOverheadMode;
         public int Graph_RedrawIntervalMs;
         public bool PatchExceptionGuard = true;
 
