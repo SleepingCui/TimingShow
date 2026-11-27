@@ -87,25 +87,9 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build TimingShow
+      - name: Build solution
         shell: pwsh
-        run: msbuild TimingShow/TimingShow.csproj /p:Configuration=Release /p:Platform="AnyCPU"
-
-      - name: Build updater
-        shell: pwsh
-        run: msbuild TimingShow.Updater/TimingShow.Updater.csproj /p:Configuration=Release /p:Platform="AnyCPU"
-
-      - name: Build UMM loader
-        shell: pwsh
-        run: msbuild TimingShow.Loader.UMM/TimingShow.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
-
-      - name: Build MelonLoader loader
-        shell: pwsh
-        run: msbuild TimingShow.Loader.Melon/TimingShow.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU"
-
-      - name: Build update bootstrap
-        shell: pwsh
-        run: msbuild TimingShow.UpdateBootstrap/TimingShow.UpdateBootstrap.csproj /p:Configuration=Release /p:Platform="AnyCPU"
+        run: msbuild TimingShow.slnx /m /p:Configuration=Release /p:Platform="Any CPU"
 
       - name: Prepare artifact packages
         id: package
