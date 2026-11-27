@@ -47,6 +47,7 @@ namespace TimingShow
         public string Update_SourceUrl = string.Empty;
         public string Update_SkippedVersion = string.Empty;
         public bool Startup_VerifyFiles = true;
+        public bool Startup_RuntimeGuard = true;
             
         public bool Coop_TimingHUD = true;
         public bool Coop_AvgHUD = true;

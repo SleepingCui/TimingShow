@@ -26,6 +26,8 @@ namespace TimingShow.Bootstrap
         public const string SettingKey = "Startup_VerifyFiles";
         public const string SettingsGroup = "Startup";
         public const string GroupedSettingKey = "VerifyFiles";
+        public const string RuntimeGuardKey = "Startup_RuntimeGuard";
+        public const string RuntimeGuardGroupedKey = "RuntimeGuard";
         public const string BootstrapFileName = "TimingShow.UpdateBootstrap.dll";
 
         private const string CoreAssemblyName = "TimingShow";
@@ -61,17 +63,27 @@ namespace TimingShow.Bootstrap
 
         public static bool IsEnabled(string settingsPath)
         {
+            return ReadBool(settingsPath, SettingKey, GroupedSettingKey);
+        }
+
+        public static bool IsRuntimeGuardEnabled(string settingsPath)
+        {
+            return ReadBool(settingsPath, RuntimeGuardKey, RuntimeGuardGroupedKey);
+        }
+
+        private static bool ReadBool(string settingsPath, string flatKey, string groupedKey)
+        {
             if (string.IsNullOrEmpty(settingsPath) || !File.Exists(settingsPath)) return true;
 
             try
             {
                 Dictionary<string, object> settings = JsonText.ParseObject(File.ReadAllText(settingsPath));
                 object value;
-                if (!settings.TryGetValue(SettingKey, out value))
+                if (!settings.TryGetValue(flatKey, out value))
                 {
                     object group;
                     Dictionary<string, object> section = settings.TryGetValue(SettingsGroup, out group) ? group as Dictionary<string, object> : null;
-                    if (section == null || !section.TryGetValue(GroupedSettingKey, out value)) return true;
+                    if (section == null || !section.TryGetValue(groupedKey, out value)) return true;
                 }
                 if (!(value is bool)) return true;
                 return (bool)value;

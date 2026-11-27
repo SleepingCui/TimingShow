@@ -29,6 +29,7 @@ namespace TimingShow
 
         public static void Enable()
         {
+            if (ModContext.IsEnabled) return;
             ModContext.IsEnabled = true;
             try
             {

@@ -1,3 +1,4 @@
+using System.Globalization;
 using TimingShow.Update;
 using UnityEngine;
 
@@ -67,13 +68,21 @@ namespace TimingShow.Options
             }
 
             float textX = iconRect.xMax + 10f;
-            float textWidth = Mathf.Max(20f, textRight - textX);
             float textY = row.y + (downloading ? 9f : (Height - 18f) * 0.5f);
-            GUI.Label(new Rect(textX, textY, textWidth, 18f), Text(kind, source), NewUISkin.LabelStyle);
+            float labelRight = textRight;
+            if (downloading)
+            {
+                string progress = Progress(source);
+                float progressWidth = Mathf.Ceil(NewUISkin.ValueStyle.CalcSize(new GUIContent(progress)).x);
+                labelRight = textRight - progressWidth - 8f;
+                GUI.Label(new Rect(textRight - progressWidth, textY, progressWidth, 18f), progress, NewUISkin.ValueStyle);
+            }
+
+            GUI.Label(new Rect(textX, textY, Mathf.Max(20f, labelRight - textX), 18f), Text(kind, source), NewUISkin.LabelStyle);
 
             if (downloading)
             {
-                Rect track = new Rect(textX, row.y + Height - 14f, textWidth, 4f);
+                Rect track = new Rect(textX, row.y + Height - 14f, Mathf.Max(20f, textRight - textX), 4f);
                 NewUISkin.DrawCapsule(track, NewUISkin.Fade(NewUISkin.Border, 0.7f));
                 float width = track.width * Mathf.Clamp01(source.BannerProgress);
                 if (width > 1f) NewUISkin.DrawCapsule(new Rect(track.x, track.y, width, track.height), NewUISkin.Accent);
@@ -87,12 +96,16 @@ namespace TimingShow.Options
             switch (kind)
             {
                 case UpdateBannerKind.Available: return string.Format(i18n.T("Updater_Banner"), source.BannerVersion);
-                case UpdateBannerKind.Downloading:
-                    return string.Format(i18n.T("Updater_Downloading"), source.BannerVersion) + " " + (Mathf.Clamp01(source.BannerProgress) * 100f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "%";
+                case UpdateBannerKind.Downloading: return string.Format(i18n.T("Updater_Downloading"), source.BannerVersion);
                 case UpdateBannerKind.Verifying: return i18n.T("Updater_Verifying");
                 case UpdateBannerKind.Failed: return string.Format(i18n.T("Updater_Failed"), source.BannerError);
                 default: return i18n.T("Updater_Pending");
             }
+        }
+
+        private static string Progress(IUpdateBannerSource source)
+        {
+            return (Mathf.Clamp01(source.BannerProgress) * 100f).ToString("0.0", CultureInfo.InvariantCulture) + "%";
         }
     }
 }

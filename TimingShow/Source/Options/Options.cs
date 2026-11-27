@@ -722,6 +722,7 @@ namespace TimingShow.Options
 
                 IndentedLabel($"<color=#888888>{i18n.T("Btn_StartupIntegrity")}</color>", 0f);
                 ModContext.Settings.Startup_VerifyFiles = ToggleWithDescription(ModContext.Settings.Startup_VerifyFiles, "Toggle_StartupVerifyFiles", "Desc_StartupVerifyFiles", "", 0f);
+                ModContext.Settings.Startup_RuntimeGuard = ToggleWithDescription(ModContext.Settings.Startup_RuntimeGuard, "Toggle_StartupRuntimeGuard", "Desc_StartupRuntimeGuard", "", 0f);
 
                 GUILayout.Space(8);
 

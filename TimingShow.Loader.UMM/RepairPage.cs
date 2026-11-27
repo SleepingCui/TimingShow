@@ -21,17 +21,19 @@ namespace TimingShow.UMM
         private bool _loaded;
         private bool _restartRequired;
         private bool _loadFailed;
+        private bool _runtimeFailure;
         private string _failureDetails;
         private GUIStyle _detailStyle;
         private Vector2 _scroll;
 
-        private RepairPage(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity, Exception failure)
+        private RepairPage(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity, string failureDetails, bool runtimeFailure)
         {
             _modEntry = modEntry;
             _integrity = integrity;
             _baseDisplayName = string.IsNullOrEmpty(modEntry.Info.DisplayName) ? CoreAssemblyName : modEntry.Info.DisplayName;
-            _loadFailed = failure != null;
-            _failureDetails = failure == null ? string.Empty : failure.ToString();
+            _loadFailed = failureDetails != null;
+            _runtimeFailure = runtimeFailure;
+            _failureDetails = failureDetails ?? string.Empty;
             string repository = string.IsNullOrEmpty(modEntry.Info.Repository) ? RepairInstaller.DefaultRepositoryUrl : modEntry.Info.Repository;
             _installer = new RepairInstaller(
                 modEntry.Path,
@@ -48,17 +50,22 @@ namespace TimingShow.UMM
 
         public static bool Start(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity)
         {
-            return Create(modEntry, integrity, null);
+            return Create(modEntry, integrity, null, false);
         }
 
         public static bool StartAfterLoadFailure(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity, Exception failure)
         {
-            return Create(modEntry, integrity, failure);
+            return Create(modEntry, integrity, failure == null ? string.Empty : failure.ToString(), false);
         }
 
-        private static bool Create(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity, Exception failure)
+        public static bool StartAfterRuntimeFailure(UnityModManager.ModEntry modEntry, string details)
         {
-            RepairPage page = new RepairPage(modEntry, integrity, failure);
+            return Create(modEntry, null, details, true);
+        }
+
+        private static bool Create(UnityModManager.ModEntry modEntry, StartupIntegrityReport integrity, string failureDetails, bool runtimeFailure)
+        {
+            RepairPage page = new RepairPage(modEntry, integrity, failureDetails, runtimeFailure);
             page.Begin();
             return true;
         }
@@ -109,13 +116,16 @@ namespace TimingShow.UMM
         {
             string name = _baseDisplayName;
             if (_installer.IsRunning) return name + " " + ProgressSuffix();
-            if (RestartPending(state)) return name + " [Failed: restart required]";
-            return name + " [Failed]";
+            if (_runtimeFailure) return name + " [Runtime error]";
+            if (RestartPending(state)) return name + " [Restart required]";
+            if (state == RepairState.Failed) return name + " [Repair failed]";
+            if (_loadFailed) return name + " [Load failed]";
+            return name + " [Not running]";
         }
 
         private string ProgressSuffix()
         {
-            return "[Failed: repairing " + FormatPercent() + "]";
+            return "[Repairing... " + FormatPercent() + "]";
         }
 
         private string FormatPercent()
@@ -152,6 +162,7 @@ namespace TimingShow.UMM
                     throw new InvalidOperationException("TimingShow could not be initialized.");
                 }
 
+                UMMEntry.EnableCore();
                 _loaded = true;
                 _loadFailed = false;
                 _failureDetails = string.Empty;
@@ -181,7 +192,7 @@ namespace TimingShow.UMM
             if (_loaded) return;
 
             RepairState state = _installer.State;
-            GUILayout.Label("TimingShow is not running.", DetailStyle);
+            GUILayout.Label(HeaderText(), DetailStyle);
             GUILayout.Label(StatusText(state), DetailStyle);
             DrawButtons(state);
             DrawDetails();
@@ -189,18 +200,61 @@ namespace TimingShow.UMM
 
         private void DrawButtons(RepairState state)
         {
+            GUILayout.BeginHorizontal();
             if (_installer.IsRunning)
             {
                 if (GUILayout.Button("Cancel", GUILayout.Width(120f))) _installer.Cancel();
-                return;
+            }
+            else if (!RestartPending(state) && GUILayout.Button("Repair", GUILayout.Width(120f)))
+            {
+                Repair();
             }
 
-            if (RestartPending(state)) return;
-            if (GUILayout.Button("Repair", GUILayout.Width(120f))) Repair();
+            if (_runtimeFailure && GUILayout.Button("Continue anyway", GUILayout.Width(150f))) Continue();
+
+            GUILayout.FlexibleSpace();
+            if (HasDiagnosticError() && GUILayout.Button("Copy error", GUILayout.Width(120f))) CopyError();
+            GUILayout.EndHorizontal();
+        }
+
+        private void Continue()
+        {
+            _loaded = true;
+            _runtimeFailure = false;
+            _failureDetails = string.Empty;
+            _modEntry.Info.DisplayName = _baseDisplayName;
+            ModBootstrap.Attach(_modEntry);
+            try
+            {
+                UMMEntry.EnableCore();
+            }
+            catch (Exception e)
+            {
+                _modEntry.Logger.Error("[Repair] Failed to resume TimingShow: " + e.Message);
+            }
+        }
+
+        private bool HasDiagnosticError()
+        {
+            if (!string.IsNullOrEmpty(_failureDetails)) return true;
+            if (!string.IsNullOrEmpty(_installer.ErrorMessage)) return true;
+            return _integrity != null && _integrity.Problems.Count > 0;
+        }
+
+        private void CopyError()
+        {
+            GUIUtility.systemCopyBuffer = BuildDetails();
+            _modEntry.Logger.Log("[Repair] Error details copied to the clipboard.");
+        }
+
+        private string HeaderText()
+        {
+            return _runtimeFailure ? "TimingShow was stopped after a runtime error." : "TimingShow is not running.";
         }
 
         private string StatusText(RepairState state)
         {
+            if (_runtimeFailure) return "Repair it, continue anyway, or restart the game.";
             if (RestartPending(state)) return "Restart the game to finish repairing.";
             switch (state)
             {
@@ -253,6 +307,7 @@ namespace TimingShow.UMM
             _loadAttempted = false;
             _restartRequired = false;
             _loadFailed = false;
+            _runtimeFailure = false;
             _failureDetails = string.Empty;
             _installer.Start();
         }

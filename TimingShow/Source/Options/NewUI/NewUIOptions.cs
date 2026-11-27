@@ -622,6 +622,7 @@ namespace TimingShow.Options
                     NewUIWidgets.Divider();
                     NewUIWidgets.CardTitle("Btn_StartupIntegrity");
                     s.Startup_VerifyFiles = NewUIWidgets.Toggle("Toggle_StartupVerifyFiles", s.Startup_VerifyFiles, "Desc_StartupVerifyFiles");
+                    s.Startup_RuntimeGuard = NewUIWidgets.Toggle("Toggle_StartupRuntimeGuard", s.Startup_RuntimeGuard, "Desc_StartupRuntimeGuard");
 
                     if (UpdateBridge.IsAvailable)
                     {

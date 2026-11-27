@@ -15,6 +15,8 @@ namespace TimingShow.Melon
         private string _modPath;
         private bool _coreReady;
         private bool _coreLoadAttempted;
+        private bool _crashWatcherInstalled;
+        private string _crashDetails;
         private RepairPage _repair;
 
         public override void OnInitializeMelon()
@@ -36,21 +38,108 @@ namespace TimingShow.Melon
             try
             {
                 InitializeCore(_modPath);
+                InstallCrashWatcher();
             }
             catch (TypeLoadException e)
             {
-                BeginRepair("The installed TimingShow core is incompatible with this loader; starting the repair downloader. " + e.Message, null);
+                BeginFailedRepair("The installed TimingShow core is incompatible with this loader; repair it manually from the window. " + e.Message, e.ToString(), false);
             }
             catch (BadImageFormatException e)
             {
-                BeginRepair("The installed TimingShow core is corrupted; starting the repair downloader. " + e.Message, null);
+                BeginFailedRepair("The installed TimingShow core is corrupted; repair it manually from the window. " + e.Message, e.ToString(), false);
+            }
+            catch (Exception e)
+            {
+                BeginFailedRepair("TimingShow failed to start; repair it manually from the window. " + e.Message, e.ToString(), false);
             }
         }
 
         private void BeginRepair(string message, StartupIntegrityReport integrity)
         {
             MelonLogger.Warning("[TimingShow] " + message);
-            _repair = new RepairPage(_modPath, MelonEnvironment.UserDataDirectory, MelonEnvironment.PluginsDirectory, integrity);
+            _repair = new RepairPage(_modPath, MelonEnvironment.UserDataDirectory, MelonEnvironment.PluginsDirectory, integrity, null, false);
+        }
+
+        private void BeginFailedRepair(string message, string details, bool runtimeFailure)
+        {
+            MelonLogger.Warning("[TimingShow] " + message);
+            _repair = new RepairPage(_modPath, MelonEnvironment.UserDataDirectory, MelonEnvironment.PluginsDirectory, null, details, runtimeFailure);
+        }
+
+        private void InstallCrashWatcher()
+        {
+            if (_crashWatcherInstalled) return;
+            _crashWatcherInstalled = true;
+            Application.logMessageReceived += OnGameLog;
+        }
+
+        private void ReportCoreException(Exception e)
+        {
+            if (_crashDetails != null || IsGuardDisabled()) return;
+            _crashDetails = "TimingShow reported an error at runtime:\n" + e;
+        }
+
+        private void OnGameLog(string condition, string stackTrace, LogType type)
+        {
+            if (_crashDetails != null) return;
+            if (!CoreFailureDetector.IsCoreCrash(condition, stackTrace)) return;
+            if (IsGuardDisabled()) return;
+            _crashDetails = "TimingShow reported an error at runtime:\n" + condition + "\n" + stackTrace;
+        }
+
+        private static bool IsGuardDisabled()
+        {
+            Settings settings = ModContext.Settings;
+            if (settings != null) return !settings.Startup_RuntimeGuard;
+            string settingsPath = Path.Combine(MelonEnvironment.UserDataDirectory, "TimingShow", "Settings.json");
+            return !StartupIntegrity.IsRuntimeGuardEnabled(settingsPath);
+        }
+
+        private void EnterRuntimeFailurePage()
+        {
+            string details = _crashDetails;
+            _crashDetails = null;
+            if (_crashWatcherInstalled)
+            {
+                Application.logMessageReceived -= OnGameLog;
+                _crashWatcherInstalled = false;
+            }
+
+            _coreReady = false;
+            _coreLoadAttempted = false;
+            StopCrashedCore();
+            BeginFailedRepair("TimingShow stopped after a runtime error; repair it manually from the window.", details, true);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void ResumeCore()
+        {
+            _repair.Dispose();
+            _repair = null;
+            _coreReady = true;
+            _coreLoadAttempted = false;
+            InstallCrashWatcher();
+            try
+            {
+                ModEntry.Enable();
+            }
+            catch (Exception e)
+            {
+                MelonLogger.Error("[TimingShow] Failed to resume after a runtime error: " + e.Message);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void StopCrashedCore()
+        {
+            try
+            {
+                ModEntry.Disable();
+            }
+            catch (Exception e)
+            {
+                MelonLogger.Error("[TimingShow] Failed to stop the core after a runtime error: " + e.Message);
+            }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -84,8 +173,20 @@ namespace TimingShow.Melon
 
         public override void OnUpdate()
         {
+            if (_crashDetails != null)
+            {
+                EnterRuntimeFailurePage();
+                return;
+            }
+
             if (_repair != null)
             {
+                if (_repair.ContinueRequested)
+                {
+                    ResumeCore();
+                    return;
+                }
+
                 _repair.Tick();
                 if (_repair.ShouldLoadCore && !_coreLoadAttempted)
                 {
@@ -125,6 +226,7 @@ namespace TimingShow.Melon
                 AppDomain.CurrentDomain.AssemblyResolve += resolve;
 
                 InitializeCore(_modPath);
+                InstallCrashWatcher();
                 _repair.Dispose();
                 _repair = null;
                 MelonLogger.Msg("[TimingShow] Loaded after the core download.");
@@ -158,7 +260,15 @@ namespace TimingShow.Melon
             }
 
             if (!_coreReady) return;
-            DrawCoreSettings();
+            try
+            {
+                DrawCoreSettings();
+            }
+            catch (Exception e)
+            {
+                ReportCoreException(e);
+                throw;
+            }
         }
 
         public override void OnApplicationQuit()
