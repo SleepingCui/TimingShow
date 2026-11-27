@@ -37,6 +37,7 @@ namespace TimingShow.Options
         private static string _logListDrawBudgetText;
         private static string _bufferSizeText;
         private static string _graphRedrawIntervalText;
+        private static string _updateCheckDelayText;
         private static string _cacheStatus;
 
         internal static void Draw()
@@ -622,6 +623,23 @@ namespace TimingShow.Options
                     NewUIWidgets.Divider();
                     NewUIWidgets.CardTitle("Btn_StartupIntegrity");
                     s.Startup_VerifyFiles = NewUIWidgets.Toggle("Toggle_StartupVerifyFiles", s.Startup_VerifyFiles, "Desc_StartupVerifyFiles");
+
+                    if (UpdateBridge.IsAvailable)
+                    {
+                        NewUIWidgets.Divider();
+                        NewUIWidgets.CardTitle("Btn_UpdaterSettings");
+                        s.Update_CheckDelaySec = NewUIWidgets.IntField("Label_UpdateCheckDelay", ref _updateCheckDelayText, s.Update_CheckDelaySec, 0, 300);
+                        NewUIWidgets.Hint(i18n.T("Desc_UpdateCheckDelay"));
+                        s.Update_SourceUrl = NewUIWidgets.TextRow("Label_UpdateSourceUrl", s.Update_SourceUrl ?? string.Empty, 320f);
+                        NewUIWidgets.Hint(i18n.T("Desc_UpdateSourceUrl"));
+                        if (!string.IsNullOrEmpty(s.Update_SkippedVersion))
+                        {
+                            Rect skippedRow = NewUIWidgets.Row(30f);
+                            GUI.Label(new Rect(skippedRow.x + 8f, skippedRow.y, skippedRow.width - 140f, skippedRow.height), i18n.T("Label_UpdateSkippedVersion") + s.Update_SkippedVersion, NewUISkin.DimLabelStyle);
+                            Rect clearRect = new Rect(skippedRow.xMax - 120f, skippedRow.y, 120f, skippedRow.height);
+                            if (NewUIWidgets.ButtonAt(clearRect, i18n.T("Btn_ClearSkippedVersion"))) s.Update_SkippedVersion = string.Empty;
+                        }
+                    }
                 }
                 EndCard();
 
@@ -640,9 +658,6 @@ namespace TimingShow.Options
                         s.Diag_UpdateTrace = NewUIWidgets.Toggle("Toggle_DiagUpdateTrace", s.Diag_UpdateTrace, null, 0f, UpdateBridge.Supported);
                         if (!updateTrace && s.Diag_UpdateTrace) UpdateBridge.CheckNow();
 
-                        s.Debug_CustomUpdateUrl = NewUIWidgets.Toggle("Toggle_DebugCustomUrl", s.Debug_CustomUpdateUrl, "Desc_DebugCustomUrl", 0f, UpdateBridge.Supported);
-                        if (s.Debug_CustomUpdateUrl)
-                            s.Debug_UpdateUrl = NewUIWidgets.TextRow("Label_DebugUpdateUrl", s.Debug_UpdateUrl ?? string.Empty);
                         s.Debug_SkipUpdateChecksum = NewUIWidgets.Toggle("Toggle_DebugSkipChecksum", s.Debug_SkipUpdateChecksum, "Desc_DebugSkipChecksum", 0f, UpdateBridge.Supported);
                         s.Debug_SkipTlsValidation = NewUIWidgets.Toggle("Toggle_DebugSkipTls", s.Debug_SkipTlsValidation, "Desc_DebugSkipTls", 0f, UpdateBridge.Supported);
                     }

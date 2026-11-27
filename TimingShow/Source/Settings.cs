@@ -41,6 +41,9 @@ namespace TimingShow
 
         public bool UpdateCheckEnabled;
         public bool UpdateAutoUpdate;
+        public int Update_CheckDelaySec;
+        public string Update_SourceUrl = string.Empty;
+        public string Update_SkippedVersion = string.Empty;
         public bool Startup_VerifyFiles = true;
             
         public bool Coop_TimingHUD = true;
@@ -314,7 +317,7 @@ namespace TimingShow
         [JsonIgnore]
         public bool InsecureUpdateDebugEnabled
         {
-            get { return Debug_CustomUpdateUrl || Debug_SkipUpdateChecksum || Debug_SkipTlsValidation; }
+            get { return Debug_SkipUpdateChecksum || Debug_SkipTlsValidation; }
         }
 
         public static readonly Color Theme_DefaultPrimary = new Color(0.0784f, 0.3216f, 0.8f, 1f);
@@ -343,7 +346,7 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 10;
+        public const int CurrentSettingsVersion = 11;
         public int SettingsVersion;
 
         #region cfgsettings
@@ -434,6 +437,14 @@ namespace TimingShow
             if (SettingsVersion < 9 && IsLegacyLogDirectory(LogDirectory))
             {
                 LogDirectory = DefaultLogDirectory();
+                migrated = true;
+            }
+
+            if (SettingsVersion < 11)
+            {
+                if (string.IsNullOrWhiteSpace(Update_SourceUrl) && Debug_CustomUpdateUrl && !string.IsNullOrWhiteSpace(Debug_UpdateUrl))
+                    Update_SourceUrl = Debug_UpdateUrl.Trim();
+                Debug_CustomUpdateUrl = false;
                 migrated = true;
             }
 
@@ -547,6 +558,9 @@ namespace TimingShow
             PercURHUD = Mathf.Clamp(PercURHUD, 0, 5);
             PercRatioHUD = Mathf.Clamp(PercRatioHUD, 0, 5);
             PercLog = Mathf.Clamp(PercLog, 0, 5);
+            Update_CheckDelaySec = Mathf.Clamp(Update_CheckDelaySec, 0, 300);
+            Update_SourceUrl = (Update_SourceUrl ?? string.Empty).Trim();
+            Update_SkippedVersion = (Update_SkippedVersion ?? string.Empty).Trim();
         }
 
         public void Save(string modPath)

@@ -12,7 +12,6 @@ namespace TimingShow.UMM
     internal sealed class RepairPage
     {
         private const string CoreAssemblyName = "TimingShow";
-        private const string BrokenDisplayNameColor = "#FF5555";
 
         private readonly UnityModManager.ModEntry _modEntry;
         private readonly RepairInstaller _installer;
@@ -67,7 +66,7 @@ namespace TimingShow.UMM
         private void Begin()
         {
             if (_integrity != null) _modEntry.Logger.Warning("[Integrity] Repairing TimingShow: " + _integrity.Summary);
-            _modEntry.Info.DisplayName = ColoredDisplayName();
+            _modEntry.Info.DisplayName = DisplayNameFor(_installer.State);
             _modEntry.OnToggle = (entry, value) => true;
             _modEntry.OnGUI = entry => Draw();
             _modEntry.OnSaveGUI = entry => { };
@@ -108,20 +107,15 @@ namespace TimingShow.UMM
 
         private string DisplayNameFor(RepairState state)
         {
-            string name = ColoredDisplayName();
+            string name = _baseDisplayName;
             if (_installer.IsRunning) return name + " " + ProgressSuffix();
-            if (RestartPending(state)) return name + " [Restart required]";
-            return name;
-        }
-
-        private string ColoredDisplayName()
-        {
-            return "<color=" + BrokenDisplayNameColor + ">" + _baseDisplayName + "</color>";
+            if (RestartPending(state)) return name + " [Failed: restart required]";
+            return name + " [Failed]";
         }
 
         private string ProgressSuffix()
         {
-            return "[Downloading... " + FormatPercent() + "]";
+            return "[Failed: repairing " + FormatPercent() + "]";
         }
 
         private string FormatPercent()

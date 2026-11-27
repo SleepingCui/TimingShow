@@ -25,6 +25,7 @@ namespace TimingShow.Options
         private static string _scatterWarningLimitText;
         private static string _logListDrawBudgetText;
         private static string _graphRedrawIntervalText;
+        private static string _updateCheckDelayText;
         private static bool _capturingPanelKey;
         private static int _panelKeySuppressFrame = -1;
         private static GUIStyle _warningLabelStyle;
@@ -726,6 +727,28 @@ namespace TimingShow.Options
 
                 GUILayout.Space(8);
 
+                if (UpdateBridge.IsAvailable)
+                {
+                    IndentedLabel($"<color=#888888>{i18n.T("Btn_UpdaterSettings")}</color>", 0f);
+                    IntField("Label_UpdateCheckDelay", ref _updateCheckDelayText, ref ModContext.Settings.Update_CheckDelaySec, 0, 300, 0, 190, 0f);
+                    IndentedLabel($"<color=#888888>{i18n.T("Desc_UpdateCheckDelay")}</color>", 0f);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(i18n.T("Label_UpdateSourceUrl"), GUILayout.Width(190));
+                    ModContext.Settings.Update_SourceUrl = GUILayout.TextField(ModContext.Settings.Update_SourceUrl ?? string.Empty);
+                    GUILayout.EndHorizontal();
+                    IndentedLabel($"<color=#888888>{i18n.T("Desc_UpdateSourceUrl")}</color>", 0f);
+                    if (!string.IsNullOrEmpty(ModContext.Settings.Update_SkippedVersion))
+                    {
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label(i18n.T("Label_UpdateSkippedVersion") + ModContext.Settings.Update_SkippedVersion, GUILayout.Width(260));
+                        if (GUILayout.Button(i18n.T("Btn_ClearSkippedVersion"), GUILayout.Width(120)))
+                            ModContext.Settings.Update_SkippedVersion = string.Empty;
+                        GUILayout.EndHorizontal();
+                    }
+
+                    GUILayout.Space(8);
+                }
+
                 DrawDebugSettings();
             }
             GUILayout.EndVertical();
@@ -761,14 +784,6 @@ namespace TimingShow.Options
                 bool previousGuiEnabled = GUI.enabled;
                 GUI.enabled = UpdateBridge.Supported;
                 Toggle(ref ModContext.Settings.Diag_UpdateTrace, "Toggle_DiagUpdateTrace", 0f);
-                ModContext.Settings.Debug_CustomUpdateUrl = ToggleWithDescription(ModContext.Settings.Debug_CustomUpdateUrl, "Toggle_DebugCustomUrl", "Desc_DebugCustomUrl", "", 0f);
-                if (ModContext.Settings.Debug_CustomUpdateUrl)
-                {
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(i18n.T("Label_DebugUpdateUrl"), GUILayout.Width(120));
-                    ModContext.Settings.Debug_UpdateUrl = GUILayout.TextField(ModContext.Settings.Debug_UpdateUrl ?? string.Empty);
-                    GUILayout.EndHorizontal();
-                }
                 ModContext.Settings.Debug_SkipUpdateChecksum = ToggleWithDescription(ModContext.Settings.Debug_SkipUpdateChecksum, "Toggle_DebugSkipChecksum", "Desc_DebugSkipChecksum", "", 0f);
                 ModContext.Settings.Debug_SkipTlsValidation = ToggleWithDescription(ModContext.Settings.Debug_SkipTlsValidation, "Toggle_DebugSkipTls", "Desc_DebugSkipTls", "", 0f);
                 GUI.enabled = previousGuiEnabled;

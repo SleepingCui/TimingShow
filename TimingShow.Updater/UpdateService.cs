@@ -86,6 +86,11 @@ namespace TimingShow.Update
             Updater.Dismiss();
         }
 
+        public void SkipVersion()
+        {
+            Updater.SkipVersion();
+        }
+
         public void DrawBanner()
         {
             UpdateBanner.Draw();

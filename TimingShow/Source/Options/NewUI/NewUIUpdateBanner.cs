@@ -8,6 +8,7 @@ namespace TimingShow.Options
         private const float Height = 44f;
         private const float IconSize = 20f;
         private const float ButtonWidth = 76f;
+        private const float SkipButtonWidth = 120f;
         private const float ButtonHeight = 24f;
         private const float ButtonGap = 6f;
         private const float Padding = 12f;
@@ -56,6 +57,13 @@ namespace TimingShow.Options
                 Rect primaryRect = new Rect(textRight - ButtonWidth, buttonY, ButtonWidth, ButtonHeight);
                 if (NewUIWidgets.ButtonAt(primaryRect, i18n.T(error ? "Btn_Retry" : "Btn_Update"))) source.StartUpdate();
                 textRight = primaryRect.x - ButtonGap;
+            }
+
+            if (kind == UpdateBannerKind.Available)
+            {
+                Rect skipRect = new Rect(textRight - SkipButtonWidth, buttonY, SkipButtonWidth, ButtonHeight);
+                if (NewUIWidgets.ButtonAt(skipRect, i18n.T("Btn_SkipVersion"))) source.SkipVersion();
+                textRight = skipRect.x - ButtonGap;
             }
 
             float textX = iconRect.xMax + 10f;

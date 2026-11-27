@@ -32,6 +32,7 @@ namespace TimingShow.Update
             GUILayout.Label(string.Format(i18n.T("Updater_Banner"), Updater.AvailableVersion), GUILayout.ExpandWidth(true));
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(i18n.T("Btn_Update"), GUILayout.Width(120f))) Updater.StartUpdate();
+            if (GUILayout.Button(i18n.T("Btn_SkipVersion"), GUILayout.Width(140f))) Updater.SkipVersion();
             if (GUILayout.Button(i18n.T("Btn_Cancel"), GUILayout.Width(120f))) Updater.Dismiss();
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();

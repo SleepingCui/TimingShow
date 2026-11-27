@@ -53,6 +53,7 @@ namespace TimingShow.Update
         private static Thread _worker;
         private static volatile bool _cancelRequested;
         private static volatile bool _dirty;
+        private static float _checkAt = -1f;
 
         public static event Action Changed;
 
@@ -148,7 +149,18 @@ namespace TimingShow.Update
             }
 
             UpdateHost.EnsureHost();
-            if (CheckEnabled) BeginCheck(AutoUpdateEnabled);
+            if (!CheckEnabled) return;
+
+            int delaySeconds = settings != null ? settings.Update_CheckDelaySec : 0;
+            if (delaySeconds > 0)
+            {
+                lock (Sync) _checkAt = Time.realtimeSinceStartup + delaySeconds;
+                Trace("Update check scheduled in " + delaySeconds + " s.");
+            }
+            else
+            {
+                BeginCheck(AutoUpdateEnabled);
+            }
         }
 
         public static void CheckNow()
@@ -156,11 +168,14 @@ namespace TimingShow.Update
             if (!Supported) return;
             UpdateState state = State;
             if (state == UpdateState.Checking || state == UpdateState.Downloading || state == UpdateState.Verifying || state == UpdateState.Ready) return;
+            lock (Sync) _checkAt = -1f;
             BeginCheck(false);
         }
 
         public static void Tick()
         {
+            RunScheduledCheck();
+
             if (!_dirty) return;
             _dirty = false;
 
@@ -174,6 +189,20 @@ namespace TimingShow.Update
             {
                 Log("Failed to refresh update UI: " + e.Message);
             }
+        }
+
+        private static void RunScheduledCheck()
+        {
+            float checkAt;
+            lock (Sync)
+            {
+                checkAt = _checkAt;
+                if (checkAt < 0f || Time.realtimeSinceStartup < checkAt) return;
+                _checkAt = -1f;
+            }
+
+            if (!CheckEnabled) return;
+            BeginCheck(AutoUpdateEnabled);
         }
 
         public static void StartUpdate()
@@ -205,6 +234,28 @@ namespace TimingShow.Update
 
         public static void Dismiss()
         {
+            SetState(UpdateState.Idle);
+        }
+
+        public static void SkipVersion()
+        {
+            string version;
+            lock (Sync) version = _availableVersion;
+            if (string.IsNullOrEmpty(version))
+            {
+                Dismiss();
+                return;
+            }
+
+            Settings settings = ModContext.Settings;
+            if (settings != null)
+            {
+                settings.Update_SkippedVersion = version;
+                settings.Save(ModContext.DataDirectory);
+            }
+
+            Log("Skipped update " + version + ".");
+            SetCheckResult(UpdateCheckResult.UpToDate, string.Empty);
             SetState(UpdateState.Idle);
         }
 
@@ -241,18 +292,22 @@ namespace TimingShow.Update
             string releaseId = ReleaseId;
             string repositoryUrl = ResolveRepositoryUrl();
             if (!string.Equals(repositoryUrl, _repositoryUrl, StringComparison.Ordinal))
-                Log("Using custom update repository from debug settings: " + repositoryUrl);
+                Log("Using configured update repository: " + repositoryUrl);
             Trace("Checking " + repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + " for game " + _gameVersionText + ".");
             Stopwatch elapsed = Stopwatch.StartNew();
             try
             {
                 string json = UpdateClient.FetchRepository(repositoryUrl);
                 string skippedForGame;
-                UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion, _gameVersion, out skippedForGame);
+                string skippedByUser;
+                string skippedVersion = ModContext.Settings != null ? ModContext.Settings.Update_SkippedVersion : null;
+                UpdateRelease release = UpdateClient.FindRelease(json, releaseId, _currentVersion, _gameVersion, skippedVersion, out skippedForGame, out skippedByUser);
                 Trace("Check completed in " + elapsed.ElapsedMilliseconds + " ms.");
                 if (release == null)
                 {
-                    if (string.IsNullOrEmpty(skippedForGame))
+                    if (!string.IsNullOrEmpty(skippedByUser))
+                        Log("Update " + skippedByUser + " was skipped by the user.");
+                    else if (string.IsNullOrEmpty(skippedForGame))
                         Log("Mod is up to date (" + _currentVersion + ", game " + _gameVersionText + ").");
                     else
                         Log("No update for game " + _gameVersionText + ": " + skippedForGame + ".");
@@ -419,8 +474,8 @@ namespace TimingShow.Update
         private static string ResolveRepositoryUrl()
         {
             Settings settings = ModContext.Settings;
-            if (settings != null && settings.Debug_CustomUpdateUrl && !string.IsNullOrWhiteSpace(settings.Debug_UpdateUrl))
-                return settings.Debug_UpdateUrl.Trim();
+            if (settings != null && !string.IsNullOrWhiteSpace(settings.Update_SourceUrl))
+                return settings.Update_SourceUrl.Trim();
             return _repositoryUrl;
         }
 

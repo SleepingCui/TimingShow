@@ -27,6 +27,8 @@ namespace TimingShow.Update
         void CancelDownload();
 
         void Dismiss();
+
+        void SkipVersion();
     }
 
     public interface IUpdateService

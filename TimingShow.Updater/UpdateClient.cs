@@ -55,9 +55,12 @@ namespace TimingShow.Update
             }
         }
 
-        public static UpdateRelease FindRelease(string json, string id, Version currentVersion, GameVersion gameVersion, out string skippedForGame)
+        public static UpdateRelease FindRelease(string json, string id, Version currentVersion, GameVersion gameVersion, string skippedVersion, out string skippedForGame, out string skippedByUser)
         {
             skippedForGame = null;
+            skippedByUser = null;
+            Version skipped = null;
+            bool hasSkipped = !string.IsNullOrEmpty(skippedVersion) && TryParseVersion(skippedVersion, out skipped);
             UpdateManifest manifest = JsonConvert.DeserializeObject<UpdateManifest>(json);
             if (manifest == null || manifest.Releases == null)
                 throw new InvalidDataException("Repository.json does not contain a Releases list.");
@@ -81,6 +84,12 @@ namespace TimingShow.Update
                 if (candidate <= currentVersion)
                 {
                     TraceLine("Skipped " + release.Id + " " + release.Version + ": not newer than " + currentVersion + ".");
+                    continue;
+                }
+                if (hasSkipped && candidate == skipped)
+                {
+                    TraceLine("Skipped " + release.Id + " " + release.Version + ": skipped by the user.");
+                    if (skippedByUser == null) skippedByUser = release.Version;
                     continue;
                 }
 
@@ -230,7 +239,7 @@ namespace TimingShow.Update
             get
             {
                 Settings settings = ModContext.Settings;
-                return settings != null && settings.Debug_CustomUpdateUrl && !string.IsNullOrWhiteSpace(settings.Debug_UpdateUrl);
+                return settings != null && !string.IsNullOrWhiteSpace(settings.Update_SourceUrl);
             }
         }
 

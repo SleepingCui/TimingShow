@@ -75,12 +75,12 @@ namespace TimingShow.Bootstrap
             _log = log ?? delegate { };
             _error = error ?? delegate { };
             string defaultRepository = string.IsNullOrEmpty(repositoryUrl) ? DefaultRepositoryUrl : repositoryUrl.Trim();
-            UpdateDebugSettings debug = LoadUpdateDebugSettings(settingsPath);
-            bool useCustomRepository = debug.CustomRepository && !string.IsNullOrEmpty(debug.RepositoryUrl);
-            _repositoryUrl = useCustomRepository ? debug.RepositoryUrl.Trim() : defaultRepository;
+            UpdateOverrides overrides = LoadUpdateOverrides(settingsPath);
+            bool useCustomRepository = overrides.CustomRepository && !string.IsNullOrEmpty(overrides.RepositoryUrl);
+            _repositoryUrl = useCustomRepository ? overrides.RepositoryUrl.Trim() : defaultRepository;
             _customRepository = useCustomRepository;
-            _skipChecksum = debug.SkipChecksum;
-            _skipTlsValidation = debug.SkipTlsValidation;
+            _skipChecksum = overrides.SkipChecksum;
+            _skipTlsValidation = overrides.SkipTlsValidation;
             _updateRoot = PendingUpdateApplier.NormalizeDirectory(updateRoot);
             _loaderFileName = loaderFileName;
             _runningLoaderPath = ResolveRunningLoaderPath();
@@ -90,7 +90,7 @@ namespace TimingShow.Bootstrap
             if (_skipTlsValidation) _log("TLS certificate validation skipped (Debug_SkipTlsValidation).");
         }
 
-        private sealed class UpdateDebugSettings
+        private sealed class UpdateOverrides
         {
             public bool CustomRepository;
             public string RepositoryUrl = string.Empty;
@@ -98,21 +98,23 @@ namespace TimingShow.Bootstrap
             public bool SkipTlsValidation;
         }
 
-        private UpdateDebugSettings LoadUpdateDebugSettings(string settingsPath)
+        private UpdateOverrides LoadUpdateOverrides(string settingsPath)
         {
-            UpdateDebugSettings settings = new UpdateDebugSettings();
+            UpdateOverrides settings = new UpdateOverrides();
             if (string.IsNullOrEmpty(settingsPath) || !File.Exists(settingsPath)) return settings;
             try
             {
                 Dictionary<string, object> values = JsonText.ParseObject(File.ReadAllText(settingsPath));
-                settings.CustomRepository = GetBool(values, "Debug_CustomUpdateUrl");
-                settings.RepositoryUrl = GetString(values, "Debug_UpdateUrl").Trim();
+                settings.RepositoryUrl = GetString(values, "Update_SourceUrl").Trim();
+                if (string.IsNullOrEmpty(settings.RepositoryUrl) && GetBool(values, "Debug_CustomUpdateUrl"))
+                    settings.RepositoryUrl = GetString(values, "Debug_UpdateUrl").Trim();
+                settings.CustomRepository = !string.IsNullOrEmpty(settings.RepositoryUrl);
                 settings.SkipChecksum = GetBool(values, "Debug_SkipUpdateChecksum");
                 settings.SkipTlsValidation = GetBool(values, "Debug_SkipTlsValidation");
             }
             catch (Exception e)
             {
-                _log("Failed to read update debug options: " + e.Message);
+                _log("Failed to read update settings: " + e.Message);
             }
             return settings;
         }
