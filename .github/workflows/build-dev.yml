@@ -12,6 +12,14 @@ on:
 permissions:
   contents: read
 
+env:
+  PREVIEW_REPOSITORY: SleepingCui/ts_ci
+  PREVIEW_BRANCH: master
+
+concurrency:
+  group: development-build-${{ inputs.branch }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
@@ -31,16 +39,22 @@ jobs:
           token: ${{ secrets.ADOFAI_LIBS_TOKEN }}
           path: libs
 
-      - name: Prepare CI version
+      - name: Prepare preview version
         id: version
         shell: pwsh
         run: |
-          $commit = (git rev-parse HEAD).Trim()
-          $shortHash = $commit.Substring(0, 6)
-          $branch = "${{ inputs.branch }}"
-          $safeBranch = $branch -replace '[^A-Za-z0-9._-]', '-'
-          $version = "CI-$safeBranch-$shortHash"
+          $infoPath = "TimingShow.Loader.UMM/Info.json"
+          if (-not (Test-Path $infoPath)) {
+            throw "Missing file: $infoPath"
+          }
 
+          $info = Get-Content $infoPath -Raw | ConvertFrom-Json
+          $match = [regex]::Match([string]$info.Version, '^(\d+)\.(\d+)\.(\d+)')
+          if (-not $match.Success) {
+            throw "Info.json version must start with major.minor.patch: $($info.Version)"
+          }
+
+          $version = "$($match.Value).$env:GITHUB_RUN_NUMBER"
           "version=$version" >> $env:GITHUB_OUTPUT
 
           $assemblyInfo = "TimingShow.Loader.Melon/Properties/AssemblyInfo.cs"
@@ -63,12 +77,6 @@ jobs:
           }
           Set-Content -Path $assemblyInfo -Value $updated -Encoding utf8
 
-          $infoPath = "TimingShow.Loader.UMM/Info.json"
-          if (-not (Test-Path $infoPath)) {
-            throw "Missing file: $infoPath"
-          }
-
-          $info = Get-Content $infoPath -Raw | ConvertFrom-Json
           $info.Version = $version
           $info | ConvertTo-Json -Depth 100 | Set-Content -Path $infoPath -Encoding utf8
 
@@ -158,6 +166,40 @@ jobs:
           "stage=$dist" >> $env:GITHUB_OUTPUT
           Get-ChildItem $dist | Select-Object Name, Length
 
+      - name: Write preview repository manifest
+        id: repository
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $stage = "${{ steps.package.outputs.stage }}"
+
+          $entries = @(
+            [ordered]@{
+              Id = "TimingShow"
+              Version = $version
+              GameVersion = "*"
+              DownloadUrl = "https://github.com/$env:PREVIEW_REPOSITORY/releases/download/$version/TimingShow.UMM.zip"
+              Changes = ""
+              Sha256 = (Get-FileHash (Join-Path $stage "TimingShow.UMM.zip") -Algorithm SHA256).Hash
+              Size = (Get-Item (Join-Path $stage "TimingShow.UMM.zip")).Length
+            },
+            [ordered]@{
+              Id = "TimingShow.Melon"
+              Version = $version
+              GameVersion = "*"
+              DownloadUrl = "https://github.com/$env:PREVIEW_REPOSITORY/releases/download/$version/TimingShow.Melon.zip"
+              Changes = ""
+              Sha256 = (Get-FileHash (Join-Path $stage "TimingShow.Melon.zip") -Algorithm SHA256).Hash
+              Size = (Get-Item (Join-Path $stage "TimingShow.Melon.zip")).Length
+            }
+          )
+
+          $manifest = [ordered]@{ Releases = $entries }
+          $path = Join-Path $env:RUNNER_TEMP "Repository.json"
+          $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $path -Encoding utf8NoBOM
+          "path=$path" >> $env:GITHUB_OUTPUT
+          Get-Content $path
+
       - name: Upload development build
         uses: actions/upload-artifact@v4
         with:
@@ -165,3 +207,54 @@ jobs:
           path: ${{ steps.package.outputs.stage }}/*.zip
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish preview release
+        if: ${{ inputs.branch == 'master' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.TS_CI }}
+        run: |
+          if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
+            $PSNativeCommandUseErrorActionPreference = $false
+          }
+
+          $tag = "${{ steps.version.outputs.version }}"
+          $stage = "${{ steps.package.outputs.stage }}"
+          $manifestPath = "${{ steps.repository.outputs.path }}"
+          $notesPath = Join-Path $env:RUNNER_TEMP "preview-notes.md"
+
+          $body = git log -1 --pretty=%B
+          if ([string]::IsNullOrWhiteSpace($body)) {
+            $body = "Preview build $tag"
+          }
+          Set-Content -Path $notesPath -Value $body -Encoding utf8NoBOM
+
+          gh release delete $tag --repo $env:PREVIEW_REPOSITORY --cleanup-tag --yes 2>$null
+          $LASTEXITCODE = 0
+
+          gh release create $tag (Join-Path $stage "TimingShow.UMM.zip") (Join-Path $stage "TimingShow.Melon.zip") --repo $env:PREVIEW_REPOSITORY --title "Preview $tag" --prerelease --notes-file $notesPath
+          if ($LASTEXITCODE -ne 0) {
+            gh release delete $tag --repo $env:PREVIEW_REPOSITORY --cleanup-tag --yes 2>$null
+            throw "Failed to publish the preview release $tag."
+          }
+
+          $uri = "repos/$env:PREVIEW_REPOSITORY/contents/Repository.json"
+          $sha = gh api $uri --jq .sha 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            $sha = $null
+          }
+
+          $content = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((Get-Content $manifestPath -Raw)))
+          $apiArgs = @("--method", "PUT", $uri, "-f", "message=Update preview Repository.json to $tag", "-f", "content=$content", "-f", "branch=$env:PREVIEW_BRANCH")
+          if (-not [string]::IsNullOrWhiteSpace($sha)) {
+            $apiArgs += @("-f", "sha=$sha")
+          }
+
+          gh api @apiArgs
+          if ($LASTEXITCODE -ne 0) {
+            gh release delete $tag --repo $env:PREVIEW_REPOSITORY --cleanup-tag --yes 2>$null
+            throw "Failed to update Repository.json in $env:PREVIEW_REPOSITORY."
+          }
+
+          "### Preview $tag published" >> $env:GITHUB_STEP_SUMMARY
+          "Repository: https://raw.githubusercontent.com/$env:PREVIEW_REPOSITORY/$env:PREVIEW_BRANCH/Repository.json" >> $env:GITHUB_STEP_SUMMARY

@@ -42,6 +42,7 @@ namespace TimingShow
         public bool UpdateCheckEnabled;
         public bool UpdateAutoUpdate;
         public int Update_CheckDelaySec;
+        public string Update_Channel = UpdateChannelStable;
         public string Update_SourceUrl = string.Empty;
         public string Update_SkippedVersion = string.Empty;
         public bool Startup_VerifyFiles = true;
@@ -345,7 +346,10 @@ namespace TimingShow
         
         
         
-        public const int CurrentSettingsVersion = 11;
+        public const int CurrentSettingsVersion = 12;
+        public const string UpdateChannelStable = "stable";
+        public const string UpdateChannelPreview = "preview";
+        public const string UpdateChannelCustom = "custom";
         public int SettingsVersion;
 
         #region cfgsettings
@@ -444,6 +448,12 @@ namespace TimingShow
                 if (string.IsNullOrWhiteSpace(Update_SourceUrl) && Debug_CustomUpdateUrl && !string.IsNullOrWhiteSpace(Debug_UpdateUrl))
                     Update_SourceUrl = Debug_UpdateUrl.Trim();
                 Debug_CustomUpdateUrl = false;
+                migrated = true;
+            }
+
+            if (SettingsVersion < 12 && Update_Channel != UpdateChannelCustom && !string.IsNullOrWhiteSpace(Update_SourceUrl))
+            {
+                Update_Channel = UpdateChannelCustom;
                 migrated = true;
             }
 
@@ -558,8 +568,23 @@ namespace TimingShow
             PercRatioHUD = Mathf.Clamp(PercRatioHUD, 0, 5);
             PercLog = Mathf.Clamp(PercLog, 0, 5);
             Update_CheckDelaySec = Mathf.Clamp(Update_CheckDelaySec, 0, 300);
+            Update_Channel = ChannelName(ChannelIndex(Update_Channel));
             Update_SourceUrl = (Update_SourceUrl ?? string.Empty).Trim();
             Update_SkippedVersion = (Update_SkippedVersion ?? string.Empty).Trim();
+        }
+
+        public static int ChannelIndex(string channel)
+        {
+            if (string.Equals(channel, UpdateChannelPreview, StringComparison.OrdinalIgnoreCase)) return 1;
+            if (string.Equals(channel, UpdateChannelCustom, StringComparison.OrdinalIgnoreCase)) return 2;
+            return 0;
+        }
+
+        public static string ChannelName(int index)
+        {
+            if (index == 1) return UpdateChannelPreview;
+            if (index == 2) return UpdateChannelCustom;
+            return UpdateChannelStable;
         }
 
         public void Save(string modPath)
