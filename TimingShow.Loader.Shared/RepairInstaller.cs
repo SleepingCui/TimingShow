@@ -32,6 +32,7 @@ namespace TimingShow.Bootstrap
         public const string LanguageFileName = "lang.json";
         public const string InfoFileName = "Info.json";
         public const string DefaultRepositoryUrl = "https://raw.githubusercontent.com/SleepingCui/TimingShow/refs/heads/master/Repository.json";
+        public const string PreviewRepositoryUrl = "https://raw.githubusercontent.com/SleepingCui/ts_ci/main/Repository.json";
 
         private const string UserAgent = "TimingShow-Loader";
         private const int RequestTimeoutMs = 20000;
@@ -49,6 +50,7 @@ namespace TimingShow.Bootstrap
         private readonly string _releaseId;
         private readonly string _repositoryUrl;
         private readonly bool _customRepository;
+        private readonly bool _previewRepository;
         private readonly bool _skipChecksum;
         private readonly bool _skipTlsValidation;
         private readonly string _loaderFileName;
@@ -76,16 +78,17 @@ namespace TimingShow.Bootstrap
             _error = error ?? delegate { };
             string defaultRepository = string.IsNullOrEmpty(repositoryUrl) ? DefaultRepositoryUrl : repositoryUrl.Trim();
             UpdateOverrides overrides = LoadUpdateOverrides(settingsPath);
-            bool useCustomRepository = overrides.CustomRepository && !string.IsNullOrEmpty(overrides.RepositoryUrl);
-            _repositoryUrl = useCustomRepository ? overrides.RepositoryUrl.Trim() : defaultRepository;
-            _customRepository = useCustomRepository;
+            _repositoryUrl = string.IsNullOrEmpty(overrides.RepositoryUrl) ? defaultRepository : overrides.RepositoryUrl.Trim();
+            _customRepository = overrides.CustomRepository && !string.IsNullOrEmpty(overrides.RepositoryUrl);
+            _previewRepository = overrides.PreviewRepository;
             _skipChecksum = overrides.SkipChecksum;
             _skipTlsValidation = overrides.SkipTlsValidation;
             _updateRoot = PendingUpdateApplier.NormalizeDirectory(updateRoot);
             _loaderFileName = loaderFileName;
             _runningLoaderPath = ResolveRunningLoaderPath();
             _runningLoaderHash = TryComputeHash(_runningLoaderPath);
-            if (_customRepository) _log("Using the custom update source from Settings.json: " + _repositoryUrl);
+            if (_previewRepository) _log("Using the preview update source: " + _repositoryUrl);
+            else if (_customRepository) _log("Using the custom update source from Settings.json: " + _repositoryUrl);
             if (_skipChecksum) _log("Checksum verification skipped (Debug_SkipUpdateChecksum).");
             if (_skipTlsValidation) _log("TLS certificate validation skipped (Debug_SkipTlsValidation).");
         }
@@ -93,6 +96,7 @@ namespace TimingShow.Bootstrap
         private sealed class UpdateOverrides
         {
             public bool CustomRepository;
+            public bool PreviewRepository;
             public string RepositoryUrl = string.Empty;
             public bool SkipChecksum;
             public bool SkipTlsValidation;
@@ -105,10 +109,25 @@ namespace TimingShow.Bootstrap
             try
             {
                 Dictionary<string, object> values = JsonText.ParseObject(File.ReadAllText(settingsPath));
-                settings.RepositoryUrl = GetString(values, "Update_SourceUrl").Trim();
-                if (string.IsNullOrEmpty(settings.RepositoryUrl) && GetBool(values, "Debug_CustomUpdateUrl"))
-                    settings.RepositoryUrl = GetString(values, "Debug_UpdateUrl").Trim();
-                settings.CustomRepository = !string.IsNullOrEmpty(settings.RepositoryUrl);
+                string channel = GetString(values, "Update_Channel").Trim();
+                string source = GetString(values, "Update_SourceUrl").Trim();
+                if (string.IsNullOrEmpty(channel))
+                {
+                    if (string.IsNullOrEmpty(source) && GetBool(values, "Debug_CustomUpdateUrl"))
+                        source = GetString(values, "Debug_UpdateUrl").Trim();
+                    settings.CustomRepository = !string.IsNullOrEmpty(source);
+                    settings.RepositoryUrl = source;
+                }
+                else if (string.Equals(channel, "preview", StringComparison.OrdinalIgnoreCase))
+                {
+                    settings.PreviewRepository = true;
+                    settings.RepositoryUrl = PreviewRepositoryUrl;
+                }
+                else if (string.Equals(channel, "custom", StringComparison.OrdinalIgnoreCase))
+                {
+                    settings.CustomRepository = !string.IsNullOrEmpty(source);
+                    settings.RepositoryUrl = source;
+                }
                 settings.SkipChecksum = GetBool(values, "Debug_SkipUpdateChecksum");
                 settings.SkipTlsValidation = GetBool(values, "Debug_SkipTlsValidation");
             }

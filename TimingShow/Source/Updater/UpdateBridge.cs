@@ -8,6 +8,7 @@ namespace TimingShow.Update
     {
         public const string ServiceAssemblyFileName = "TimingShow.Updater.dll";
         public const string DefaultRepositoryUrl = "https://raw.githubusercontent.com/SleepingCui/TimingShow/refs/heads/master/Repository.json";
+        public const string PreviewRepositoryUrl = "https://raw.githubusercontent.com/SleepingCui/ts_ci/main/Repository.json";
 
         private const string ServiceTypeName = "TimingShow.Update.UpdateService";
 

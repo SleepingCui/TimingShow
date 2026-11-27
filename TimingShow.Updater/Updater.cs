@@ -57,9 +57,23 @@ namespace TimingShow.Update
 
         public static event Action Changed;
 
-        public static bool CheckEnabled { get; private set; }
+        public static bool CheckEnabled
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.UpdateCheckEnabled;
+            }
+        }
 
-        public static bool AutoUpdateEnabled { get; private set; }
+        public static bool AutoUpdateEnabled
+        {
+            get
+            {
+                Settings settings = ModContext.Settings;
+                return settings != null && settings.UpdateAutoUpdate;
+            }
+        }
 
         public static bool Supported { get; private set; }
 
@@ -134,8 +148,6 @@ namespace TimingShow.Update
             }
 
             Settings settings = ModContext.Settings;
-            CheckEnabled = settings != null && settings.UpdateCheckEnabled;
-            AutoUpdateEnabled = settings != null && settings.UpdateAutoUpdate;
 
             if (_gameVersion.IsEmpty) Log("Game version is unavailable; game version constraints in the repository are ignored.");
 
@@ -292,7 +304,11 @@ namespace TimingShow.Update
             string releaseId = ReleaseId;
             string repositoryUrl = ResolveRepositoryUrl();
             if (!string.Equals(repositoryUrl, _repositoryUrl, StringComparison.Ordinal))
-                Log("Using configured update repository: " + repositoryUrl);
+            {
+                Settings settings = ModContext.Settings;
+                bool preview = settings != null && settings.Update_Channel == Settings.UpdateChannelPreview;
+                Log((preview ? "Using the preview update repository: " : "Using configured update repository: ") + repositoryUrl);
+            }
             Trace("Checking " + repositoryUrl + " for " + releaseId + " releases newer than " + _currentVersion + " for game " + _gameVersionText + ".");
             Stopwatch elapsed = Stopwatch.StartNew();
             try
@@ -474,7 +490,9 @@ namespace TimingShow.Update
         private static string ResolveRepositoryUrl()
         {
             Settings settings = ModContext.Settings;
-            if (settings != null && !string.IsNullOrWhiteSpace(settings.Update_SourceUrl))
+            if (settings == null) return _repositoryUrl;
+            if (settings.Update_Channel == Settings.UpdateChannelPreview) return UpdateBridge.PreviewRepositoryUrl;
+            if (settings.Update_Channel == Settings.UpdateChannelCustom && !string.IsNullOrWhiteSpace(settings.Update_SourceUrl))
                 return settings.Update_SourceUrl.Trim();
             return _repositoryUrl;
         }

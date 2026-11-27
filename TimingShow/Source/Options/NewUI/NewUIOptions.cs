@@ -201,7 +201,7 @@ namespace TimingShow.Options
 
             Rect row = NewUIWidgets.Row(30f);
             Rect checkButton = new Rect(row.x, row.y, 200f, row.height);
-            if (NewUIWidgets.ButtonAt(checkButton, i18n.T("Btn_CheckUpdateNow"), false, supported)) UpdateBridge.CheckNow();
+            if (NewUIWidgets.ButtonAt(checkButton, i18n.T("Btn_CheckUpdateNow"), false, supported && s.UpdateCheckEnabled)) UpdateBridge.CheckNow();
 
             string status = UpdateBridge.StatusText;
             if (!string.IsNullOrEmpty(status))
@@ -629,8 +629,15 @@ namespace TimingShow.Options
                         NewUIWidgets.CardTitle("Btn_UpdaterSettings");
                         s.Update_CheckDelaySec = NewUIWidgets.IntField("Label_UpdateCheckDelay", ref _updateCheckDelayText, s.Update_CheckDelaySec, 0, 300);
                         NewUIWidgets.Hint(i18n.T("Desc_UpdateCheckDelay"));
-                        s.Update_SourceUrl = NewUIWidgets.TextRow("Label_UpdateSourceUrl", s.Update_SourceUrl ?? string.Empty, 320f);
-                        NewUIWidgets.Hint(i18n.T("Desc_UpdateSourceUrl"));
+                        string previousChannel = s.Update_Channel;
+                        int channel = NewUIWidgets.Choice("Label_UpdateChannel", Settings.ChannelIndex(s.Update_Channel), new[] { i18n.T("Channel_Master"), i18n.T("Channel_Ci"), i18n.T("Channel_Custom") });
+                        s.Update_Channel = Settings.ChannelName(channel);
+                        if (s.Update_Channel == Settings.UpdateChannelCustom)
+                        {
+                            s.Update_SourceUrl = NewUIWidgets.TextRow("Label_UpdateSourceUrl", s.Update_SourceUrl ?? string.Empty, 320f);
+                            NewUIWidgets.Hint(i18n.T("Desc_UpdateSourceUrl"));
+                        }
+                        if (previousChannel != s.Update_Channel && s.UpdateCheckEnabled) UpdateBridge.CheckNow();
                         if (!string.IsNullOrEmpty(s.Update_SkippedVersion))
                         {
                             Rect skippedRow = NewUIWidgets.Row(30f);

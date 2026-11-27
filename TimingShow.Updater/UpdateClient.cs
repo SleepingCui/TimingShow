@@ -239,7 +239,7 @@ namespace TimingShow.Update
             get
             {
                 Settings settings = ModContext.Settings;
-                return settings != null && !string.IsNullOrWhiteSpace(settings.Update_SourceUrl);
+                return settings != null && settings.Update_Channel == Settings.UpdateChannelCustom && !string.IsNullOrWhiteSpace(settings.Update_SourceUrl);
             }
         }
 

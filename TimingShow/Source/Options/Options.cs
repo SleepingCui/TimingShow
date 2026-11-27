@@ -730,11 +730,19 @@ namespace TimingShow.Options
                     IndentedLabel($"<color=#888888>{i18n.T("Btn_UpdaterSettings")}</color>", 0f);
                     IntField("Label_UpdateCheckDelay", ref _updateCheckDelayText, ref ModContext.Settings.Update_CheckDelaySec, 0, 300, 0, 190, 0f);
                     IndentedLabel($"<color=#888888>{i18n.T("Desc_UpdateCheckDelay")}</color>", 0f);
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(i18n.T("Label_UpdateSourceUrl"), GUILayout.Width(190));
-                    ModContext.Settings.Update_SourceUrl = GUILayout.TextField(ModContext.Settings.Update_SourceUrl ?? string.Empty);
-                    GUILayout.EndHorizontal();
-                    IndentedLabel($"<color=#888888>{i18n.T("Desc_UpdateSourceUrl")}</color>", 0f);
+                    string previousChannel = ModContext.Settings.Update_Channel;
+                    int channel = Settings.ChannelIndex(previousChannel);
+                    ChoiceRow("Label_UpdateChannel", ref channel, new[] { "Channel_Master", "Channel_Ci", "Channel_Custom" }, 190f);
+                    ModContext.Settings.Update_Channel = Settings.ChannelName(channel);
+                    if (ModContext.Settings.Update_Channel == Settings.UpdateChannelCustom)
+                    {
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label(i18n.T("Label_UpdateSourceUrl"), GUILayout.Width(190));
+                        ModContext.Settings.Update_SourceUrl = GUILayout.TextField(ModContext.Settings.Update_SourceUrl ?? string.Empty);
+                        GUILayout.EndHorizontal();
+                        IndentedLabel($"<color=#888888>{i18n.T("Desc_UpdateSourceUrl")}</color>", 0f);
+                    }
+                    if (previousChannel != ModContext.Settings.Update_Channel && ModContext.Settings.UpdateCheckEnabled) UpdateBridge.CheckNow();
                     if (!string.IsNullOrEmpty(ModContext.Settings.Update_SkippedVersion))
                     {
                         GUILayout.BeginHorizontal();
