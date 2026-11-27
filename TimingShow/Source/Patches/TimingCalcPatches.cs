@@ -232,17 +232,27 @@ namespace TimingShow.Patches
         }
 
         // r150
+        internal static bool HasMiscMethod(string name, int parameterCount)
+        {
+            System.Reflection.MethodInfo[] methods = typeof(scrMisc).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance);
+            for (int i = 0; i < methods.Length; i++)
+            {
+                if (methods[i].Name == name && methods[i].GetParameters().Length == parameterCount) return true;
+            }
+            return false;
+        }
+
         [HarmonyPatch(typeof(scrMisc), "GetHitMarginInDeg")]
         public static class ScrMiscGetHitMarginInDegPatch
         {
             public static bool Prepare()
             {
-                return AccessTools.Method(typeof(scrMisc), "GetHitMarginInDeg", new[] { typeof(float), typeof(float), typeof(bool), typeof(float), typeof(float) }) != null;
+                return HasMiscMethod("GetHitMarginInDeg", 7);
             }
 
             public static void Postfix(float hitAngle, float refAngle, bool clockwise, float floorBpm, float conductorPitch)
             {
-                if (!ModContext.IsEnabled || !HitMarginCompat.IsR150) return;
+                if (!ModContext.IsEnabled || !ModContext.IsPlaying || !HitMarginCompat.IsR150) return;
                 if (floorBpm == 0f || conductorPitch == 0f) return;
 
                 double deg = (hitAngle - refAngle) * (clockwise ? 1.0 : -1.0) * 57.29578;
@@ -250,18 +260,18 @@ namespace TimingShow.Patches
                 OnR150Timing(timing, deg);
             }
         }
-        
+
         [HarmonyPatch(typeof(scrMisc), "GetHitMarginInSec")]
         public static class ScrMiscGetHitMarginInSecPatch
         {
             public static bool Prepare()
             {
-                return AccessTools.Method(typeof(scrMisc), "GetHitMarginInSec", new[] { typeof(double), typeof(float), typeof(float) }) != null;
+                return HasMiscMethod("GetHitMarginInSec", 5);
             }
 
             public static void Postfix(double timeDiff, float floorBpm, float conductorPitch)
             {
-                if (!ModContext.IsEnabled || !HitMarginCompat.IsR150) return;
+                if (!ModContext.IsEnabled || !ModContext.IsPlaying || !HitMarginCompat.IsR150) return;
                 if (floorBpm == 0f || conductorPitch == 0f) return;
 
                 double timing = timeDiff * 1000.0;
@@ -311,10 +321,9 @@ namespace TimingShow.Patches
             // Editor hit markers need every sample, independent of the HUD options.
             AppendTimingScatterSample(timing, angle, player.PlayerId);
 
-            int xaccPlayerId = player.PlayerId;
-            if (TryGetPercentXAcc(xaccPlayerId, out float curXAcc))
+            if (TryGetPercentXAcc(player.PlayerId, out float curXAcc))
             {
-                ModContext.FullXAccHistory[xaccPlayerId].Add(curXAcc);
+                ModContext.FullXAccHistory[player.PlayerId].Add(curXAcc);
                 ModContext.XAccVersion++;
             }
 

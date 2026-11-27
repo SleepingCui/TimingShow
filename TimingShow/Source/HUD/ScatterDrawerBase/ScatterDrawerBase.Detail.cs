@@ -171,12 +171,13 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
         private void ClearDetailInteraction()
         {
+            bool hadDetail = _detailVisible || _detailAlpha > 0.001f;
             _hoverSourceIndex = -1;
             _detailShownIndex = -1;
             _detailVisible = false;
             _detailAlpha = 0f;
             if (_detailText != null && _detailText.gameObject.activeSelf) _detailText.gameObject.SetActive(false);
-            SetVerticesDirty();
+            if (hadDetail) SetVerticesDirty();
         }
 
         private bool IsRenderableSourceIndex(int index)
