@@ -45,5 +45,11 @@ namespace TimingShow.UMM
         {
             return ModBootstrap.Load(modEntry);
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static void EnableCore()
+        {
+            TimingShow.ModEntry.Enable();
+        }
     }
 }

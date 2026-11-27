@@ -34,6 +34,8 @@ namespace TimingShow.Melon
         private bool _readyToLoad;
         private bool _repairAbandoned;
         private bool _loadFailed;
+        private bool _runtimeFailure;
+        private string _failureDetails = string.Empty;
         private string _loadFailureMessage;
         private GameObject _hintObject;
         private TextMeshProUGUI _hint;
@@ -46,10 +48,12 @@ namespace TimingShow.Melon
         private Vector2 _detailsScroll;
         private GUIStyle _detailStyle;
 
-        public RepairPage(string modPath, string userDataDirectory, string pluginsDirectory, StartupIntegrityReport integrity)
+        public RepairPage(string modPath, string userDataDirectory, string pluginsDirectory, StartupIntegrityReport integrity, string failureDetails, bool runtimeFailure)
         {
             _integrity = integrity;
             _configKey = ReadConfigKey(modPath, userDataDirectory);
+            _runtimeFailure = runtimeFailure;
+            _failureDetails = failureDetails ?? string.Empty;
             string updateRoot = Path.Combine(userDataDirectory, "TimingShow", "Update");
             _installer = new RepairInstaller(
                 modPath,
@@ -62,13 +66,15 @@ namespace TimingShow.Melon
                 LoaderFileName,
                 message => MelonLogger.Msg("[TimingShow] " + message),
                 message => MelonLogger.Error("[TimingShow] " + message));
-            _installer.Start();
+            if (failureDetails == null) _installer.Start();
         }
 
         public bool IsReadyToLoad
         {
             get { return _readyToLoad && !_loadFailed; }
         }
+
+        public bool ContinueRequested { get; private set; }
 
         public bool ShouldLoadCore
         {
@@ -116,7 +122,7 @@ namespace TimingShow.Melon
 
         private void DrawWindow(int id)
         {
-            GUILayout.Label("TimingShow is not running.", DetailStyle);
+            GUILayout.Label(HeaderText(), DetailStyle);
             GUILayout.Label(StatusText(), DetailStyle);
             DrawButtons();
 
@@ -150,8 +156,30 @@ namespace TimingShow.Melon
                 Repair();
             }
 
+            if (_runtimeFailure && !_installer.IsRunning && GUILayout.Button("Continue anyway", GUILayout.Width(150f))) Continue();
+            GUILayout.FlexibleSpace();
+            if (HasDiagnosticError() && GUILayout.Button("Copy error", GUILayout.Width(120f))) CopyError();
             if (GUILayout.Button("Close", GUILayout.Width(120f))) _detailsVisible = false;
             GUILayout.EndHorizontal();
+        }
+
+        private void Continue()
+        {
+            ContinueRequested = true;
+            _detailsVisible = false;
+        }
+
+        private bool HasDiagnosticError()
+        {
+            if (_failureDetails.Length > 0) return true;
+            if (!string.IsNullOrEmpty(_installer.ErrorMessage)) return true;
+            return _integrity != null && _integrity.Problems.Count > 0;
+        }
+
+        private void CopyError()
+        {
+            GUIUtility.systemCopyBuffer = BuildDetails();
+            MelonLogger.Msg("[TimingShow] Error details copied to the clipboard.");
         }
 
         private bool RestartPending(RepairState state)
@@ -164,14 +192,23 @@ namespace TimingShow.Melon
             _readyToLoad = false;
             _repairAbandoned = false;
             _loadFailed = false;
+            _runtimeFailure = false;
+            _failureDetails = string.Empty;
             _loadFailureMessage = null;
             _installer.Start();
+        }
+
+        private string HeaderText()
+        {
+            return _runtimeFailure ? "TimingShow was stopped after a runtime error." : "TimingShow is not running.";
         }
 
         private string StatusText()
         {
             RepairState state = _installer.State;
             if (_loadFailed) return "TimingShow was updated, but it could not start. Restart the game to load it.";
+            if (_runtimeFailure) return "Repair it, continue anyway, or restart the game.";
+            if (_failureDetails.Length > 0) return "TimingShow could not start. Click Repair to download a fresh copy.";
             if (state == RepairState.RestartRequired) return "Restart the game to finish repairing.";
 
             switch (state)
@@ -206,6 +243,7 @@ namespace TimingShow.Melon
                 foreach (string problem in _integrity.Problems) builder.AppendLine("  " + problem);
             }
             if (!string.IsNullOrEmpty(_installer.ErrorMessage)) builder.AppendLine("Download error: " + _installer.ErrorMessage);
+            if (_failureDetails.Length > 0) builder.AppendLine(_failureDetails);
             if (!string.IsNullOrEmpty(_loadFailureMessage)) builder.AppendLine(_loadFailureMessage);
             return builder.ToString().Trim();
         }
@@ -240,7 +278,10 @@ namespace TimingShow.Melon
 
         private string HintText()
         {
-            string text = _loadFailed ? "TimingShow core failed to load." : "TimingShow is not running.";
+            string text = "TimingShow is not running.";
+            if (_runtimeFailure) text = "TimingShow core crashed.";
+            else if (_failureDetails.Length > 0) text = "TimingShow core failed to start.";
+            else if (_loadFailed) text = "TimingShow core failed to load.";
             if (_installer.IsRunning) text += " Downloading... " + FormatPercent();
             return text + " Press " + _configKey + " for details.";
         }

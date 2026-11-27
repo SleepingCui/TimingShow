@@ -103,6 +103,9 @@
     <Compile Include="..\TimingShow.Loader.Shared\StartupIntegrity.cs">
       <Link>StartupIntegrity.cs</Link>
     </Compile>
+    <Compile Include="..\TimingShow.Loader.Shared\CoreFailureDetector.cs">
+      <Link>CoreFailureDetector.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />

@@ -28,6 +28,12 @@ namespace TimingShow.UMM
             UpdateBridge.Changed += () => ApplyDisplayName(modEntry);
             UpdateBridge.Initialize(modEntry.Path, Path.Combine(modEntry.Path, PendingUpdateApplier.UpdateDirectoryName), modEntry.Info.Repository, modEntry.Info.Version, UpdateTarget.Umm, true, ModContext.Logger);
 
+            Attach(modEntry);
+            return true;
+        }
+
+        internal static void Attach(UnityModManager.ModEntry modEntry)
+        {
             modEntry.OnToggle = (entry, value) =>
             {
                 if (value) ModEntry.Enable();
@@ -37,11 +43,18 @@ namespace TimingShow.UMM
             modEntry.OnGUI = (entry) =>
             {
                 ApplyDisplayName(entry);
-                ModEntry.OnGUI();
+                try
+                {
+                    ModEntry.OnGUI();
+                }
+                catch (Exception e)
+                {
+                    CoreCrashWatcher.ReportException(e);
+                    throw;
+                }
             };
             modEntry.OnSaveGUI = (entry) => ModEntry.SaveSettings();
-
-            return true;
+            CoreCrashWatcher.Install(modEntry);
         }
 
         private static void ApplyDisplayName(UnityModManager.ModEntry modEntry)
