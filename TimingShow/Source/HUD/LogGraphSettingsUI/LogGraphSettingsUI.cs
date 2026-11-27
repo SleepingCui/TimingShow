@@ -8,16 +8,16 @@ namespace TimingShow.HUD.LogGraphSettingsUI
 {
     public sealed partial class LogGraphSettingsUI : MonoBehaviour
     {
-        private const float BasePadding = 10f;
-        private const float BaseContentMaxWidth = 420f;
-        private const float BaseTitleHeight = 20f;
-        private const float BaseTabHeight = 22f;
-        private const float BaseRowHeight = 22f;
-        private const float BaseRowGap = 4f;
+        private const float BasePadding = 8f;
+        private const float BaseContentMaxWidth = 396f;
+        private const float BaseTitleHeight = 18f;
+        private const float BaseTabHeight = 20f;
+        private const float BaseRowHeight = 20f;
+        private const float BaseRowGap = 3f;
         private const float BaseFontSize = 12f;
-        private const float BaseTrackHeight = 8f;
-        private const float BaseToggleHeight = 16f;
-        private const float BaseToggleWidth = 32f;
+        private const float BaseTrackHeight = 7f;
+        private const float BaseToggleHeight = 15f;
+        private const float BaseToggleWidth = 30f;
         private const float BaseLabelRatio = 0.42f;
         private const float LineHeightRatio = 1.4f;
         private const float SheetShadowSpread = 16f;

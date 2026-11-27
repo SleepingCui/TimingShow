@@ -6,16 +6,16 @@ namespace TimingShow.HUD.LogGraphWindow
 {
     public partial class LogGraphWindow
     {
-        private const float RangeBarHeightBase = 34f;
-        private const float RangeBarPaddingBase = 6f;
-        private const float RangeLabelWidthBase = 48f;
-        private const float RangeFieldWidthBase = 62f;
-        private const float RangeSeparatorWidthBase = 11f;
-        private const float RangeUnitWidthBase = 24f;
-        private const float RangeResetWidthBase = 52f;
-        private const float RangeGapBase = 6f;
-        private const float RangeFontSizeBase = 12f;
-        private const float RangeStatusMinWidthBase = 64f;
+        private const float RangeBarHeightBase = 28f;
+        private const float RangeBarPaddingBase = 4f;
+        private const float RangeLabelWidthBase = 44f;
+        private const float RangeFieldWidthBase = 56f;
+        private const float RangeSeparatorWidthBase = 10f;
+        private const float RangeUnitWidthBase = 22f;
+        private const float RangeResetWidthBase = 48f;
+        private const float RangeGapBase = 5f;
+        private const float RangeFontSizeBase = 11f;
+        private const float RangeStatusMinWidthBase = 60f;
 
         private RectTransform _rangeBar;
         private TMP_Text _rangeLabel;

@@ -5,9 +5,9 @@ namespace TimingShow.HUD.LogGraphWindow
 {
     public partial class LogGraphWindow
     {
-        private const float JudgeLegendHeightBase = 26f;
-        private const float JudgeLegendPaddingBase = 6f;
-        private const float JudgeLegendGapBase = 4f;
+        private const float JudgeLegendHeightBase = 22f;
+        private const float JudgeLegendPaddingBase = 4f;
+        private const float JudgeLegendGapBase = 3f;
 
         private RectTransform _judgeLegendBar;
         private readonly LogJudgeLegendChip[] _judgeLegendChips = new LogJudgeLegendChip[LogScatterJudgeLegend.Count];

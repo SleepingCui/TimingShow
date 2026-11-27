@@ -174,13 +174,14 @@ namespace TimingShow.HUD.LogGraphWindow
                 Rect windowRect = new Rect(x0, y0, w, h);
                 LogRoundedRect.DrawShadow(vh, windowRect, corner, ShadowSpread * UiScale,
                     new Vector2(0f, -ShadowOffset * UiScale), ShadowColor, 8);
-                LogRoundedRect.DrawFilled(vh, windowRect, corner, PanelTopColor, PanelBottomColor, 10, 1f);
+                LogRoundedRect.DrawFilled(vh, windowRect, corner, PanelTopColor, PanelBottomColor,
+                    LogRoundedRect.SegmentsFor(corner), 1f);
 
                 if (y1 > titleBottom && w > 1f)
                 {
                     Rect titleRect = new Rect(x0, titleBottom, w, y1 - titleBottom);
                     LogRoundedRect.DrawFilled(vh, titleRect, corner, corner, 0f, 0f,
-                        TitleBarTopColor, TitleBarBottomColor, 8, 1f);
+                        TitleBarTopColor, TitleBarBottomColor, LogRoundedRect.SegmentsFor(corner), 1f);
 
                     float edge = Mathf.Max(1f, UiScale);
                     DrawQuad(vh, new Vector2(x0, titleBottom - edge), new Vector2(x1, titleBottom), HeaderEdgeColor);
@@ -194,12 +195,10 @@ namespace TimingShow.HUD.LogGraphWindow
                 if (highlightRect.width > 0f && highlightRect.height > 0f)
                 {
                     LogRoundedRect.DrawBorder(vh, highlightRect, Mathf.Max(0f, corner - 0.5f), 1f,
-                        WindowHighlightColor, WindowHighlightColor, 10, 0f);
+                        WindowHighlightColor, WindowHighlightColor,
+                        LogRoundedRect.SegmentsFor(Mathf.Max(0f, corner - 0.5f)), 0f);
                 }
 
-                DrawAppMark(vh, x0, y1);
-                
-                
                 float closeMaxX = x1 - CloseButtonInset;
                 float closeMaxY = y1 - ButtonInsetY;
                 float closeMinX = closeMaxX - CloseButtonSize;
@@ -207,9 +206,10 @@ namespace TimingShow.HUD.LogGraphWindow
                 if (closeMinX > x0 && closeMinY > y0)
                 {
                     Color closeColor = _hovered ? CloseHoverColor : CloseNormalColor;
+                    float closeCorner = ButtonCorner(CloseButtonSize);
                     LogRoundedRect.DrawFilled(vh,
                         new Rect(closeMinX, closeMinY, CloseButtonSize, CloseButtonSize),
-                        ButtonCorner(CloseButtonSize), closeColor, closeColor, 8, 1f);
+                        closeCorner, closeColor, closeColor, LogRoundedRect.SegmentsFor(closeCorner), 1f);
 
                     float iconSize = Mathf.Max(4f, CloseButtonSize - CloseGlyphInset * 2f);
                     Vector2 iconCenter = new Vector2((closeMinX + closeMaxX) * 0.5f, (closeMinY + closeMaxY) * 0.5f);
@@ -224,9 +224,10 @@ namespace TimingShow.HUD.LogGraphWindow
                 if (setMinX > x0 && setMinY > y0)
                 {
                     Color setColor = _settingsActive ? SettingsButtonActiveColor : (_settingsHovered ? SettingsButtonHoverColor : CloseNormalColor);
+                    float setCorner = ButtonCorner(SettingsButtonSize);
                     LogRoundedRect.DrawFilled(vh,
                         new Rect(setMinX, setMinY, SettingsButtonSize, SettingsButtonSize),
-                        ButtonCorner(SettingsButtonSize), setColor, setColor, 8, 1f);
+                        setCorner, setColor, setColor, LogRoundedRect.SegmentsFor(setCorner), 1f);
 
                     float iconWidth = Mathf.Max(4f, SettingsButtonSize - CloseGlyphInset * 2f);
                     Vector2 iconCenter = new Vector2((setMinX + setMaxX) * 0.5f, (setMinY + setMaxY) * 0.5f);
@@ -240,10 +241,11 @@ namespace TimingShow.HUD.LogGraphWindow
                 {
                     float sidebarCorner = Mathf.Min(LogRoundedRect.InnerPanelRadius * UiScale,
                         Mathf.Min(sidebar.width, sidebar.height) * 0.5f);
+                    int sidebarSegments = LogRoundedRect.SegmentsFor(sidebarCorner);
                     LogRoundedRect.DrawFilled(vh, sidebar, sidebarCorner,
-                        StatsPanelTopColor, StatsPanelBottomColor, 8, 1f);
+                        StatsPanelTopColor, StatsPanelBottomColor, sidebarSegments, 1f);
                     LogRoundedRect.DrawBorder(vh, sidebar, sidebarCorner, 1f,
-                        StatsPanelBorderColor, StatsPanelBorderColor, 8, 0f);
+                        StatsPanelBorderColor, StatsPanelBorderColor, sidebarSegments, 0f);
 
                     float dividerThickness = Mathf.Max(1f, UiScale);
                     float dividerX = sidebar.xMin - StatsPanelGap * 0.5f;
@@ -282,19 +284,6 @@ namespace TimingShow.HUD.LogGraphWindow
             private static float ButtonCorner(float size)
             {
                 return Mathf.Min(12f * UiScale, size * 0.40f);
-            }
-
-            private static void DrawAppMark(VertexHelper vh, float x0, float y1)
-            {
-                float size = AppMarkSize;
-                float left = x0 + HeaderInset;
-                float bottom = y1 - (HeaderHeight - size) * 0.5f - size;
-                Rect mark = new Rect(left, bottom, size, size);
-                LogRoundedRect.DrawFilled(vh, mark, Mathf.Min(13f * UiScale, size * 0.5f), LogGraphTheme.AccentSoft,
-                    LogGraphTheme.AccentSoft, 8, 1f);
-
-                Rect glyph = new Rect(mark.x + size * 0.24f, mark.y + size * 0.28f, size * 0.52f, size * 0.44f);
-                LogGraphTheme.DrawPulse(vh, glyph, Mathf.Max(1.4f, 2f * UiScale), LogGraphTheme.Accent);
             }
 
             private static void DrawQuad(VertexHelper vh, Vector2 min, Vector2 max, Color color)

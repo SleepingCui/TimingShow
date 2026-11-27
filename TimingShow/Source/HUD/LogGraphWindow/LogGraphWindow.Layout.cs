@@ -266,7 +266,7 @@ namespace TimingShow.HUD.LogGraphWindow
 
         private static float SelectorHeight
         {
-            get { return Mathf.Clamp(32f * UiScale, 12f, Mathf.Max(12f, HeaderHeight - HeaderPadding * 2f)); }
+            get { return Mathf.Clamp(30f * UiScale, 12f, Mathf.Max(12f, HeaderHeight - HeaderPadding * 2f)); }
         }
 
         private static void SelectorRects(Vector2 size, bool hasPlayer, out Rect chart, out Rect player)

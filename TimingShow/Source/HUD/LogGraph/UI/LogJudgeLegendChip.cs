@@ -7,14 +7,14 @@ namespace TimingShow.HUD
 {
     public class LogJudgeLegendChip : MaskableGraphic, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
-        internal const float HeightBase = 26f;
-        internal const float PaddingBase = 12f;
-        internal const float GapBase = 4f;
+        internal const float HeightBase = 22f;
+        internal const float PaddingBase = 10f;
+        internal const float GapBase = 3f;
 
-        private const float DotSizeBase = 7f;
-        private const float TextGapBase = 8f;
-        private const float FontSizeBase = 12f;
-        private const float RadiusBase = 9f;
+        private const float DotSizeBase = 6.5f;
+        private const float TextGapBase = 6f;
+        private const float FontSizeBase = 11f;
+        private const float RadiusBase = 8f;
 
         private static readonly Color LabelOnColor = LogGraphTheme.TextMain;
         private static readonly Color LabelOffColor = LogGraphTheme.TextFaint;

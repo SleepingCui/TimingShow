@@ -171,29 +171,6 @@ namespace TimingShow.HUD
             }
         }
 
-        internal static void DrawPulse(VertexHelper vh, Rect rect, float thickness, Color color)
-        {
-            Vector2[] points =
-            {
-                new Vector2(0f, 0.50f),
-                new Vector2(0.24f, 0.50f),
-                new Vector2(0.40f, 0.94f),
-                new Vector2(0.60f, 0.06f),
-                new Vector2(0.76f, 0.50f),
-                new Vector2(1f, 0.50f)
-            };
-
-            for (int i = 0; i < points.Length - 1; i++)
-            {
-                DrawLine(vh, MapPoint(rect, points[i]), MapPoint(rect, points[i + 1]), thickness, color);
-            }
-        }
-
-        internal static Vector2 MapPoint(Rect rect, Vector2 normalized)
-        {
-            return new Vector2(rect.x + rect.width * normalized.x, rect.y + rect.height * normalized.y);
-        }
-
         internal static void AddQuad(VertexHelper vh, Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color color)
         {
             int start = vh.currentVertCount;
