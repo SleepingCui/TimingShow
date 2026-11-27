@@ -37,7 +37,7 @@ namespace TimingShow.Bootstrap
             report.Enabled = IsEnabled(settingsPath);
             if (report.Enabled)
             {
-                string coreProblem = CheckAssembly(Path.Combine(modPath, MissingCoreInstaller.CoreFileName), CoreAssemblyName);
+                string coreProblem = CheckAssembly(Path.Combine(modPath, RepairInstaller.CoreFileName), CoreAssemblyName);
                 report.CoreUsable = coreProblem == null;
                 Add(report, coreProblem);
                 Add(report, CheckAssembly(Path.Combine(modPath, UpdaterFileName), UpdaterAssemblyName));
@@ -141,22 +141,22 @@ namespace TimingShow.Bootstrap
 
         private static string CheckLanguage(string modPath)
         {
-            string path = Path.Combine(modPath, MissingCoreInstaller.LanguageFileName);
-            if (!File.Exists(path)) return MissingCoreInstaller.LanguageFileName + " is missing";
-            if (SafeLength(path) == 0) return MissingCoreInstaller.LanguageFileName + " is empty";
+            string path = Path.Combine(modPath, RepairInstaller.LanguageFileName);
+            if (!File.Exists(path)) return RepairInstaller.LanguageFileName + " is missing";
+            if (SafeLength(path) == 0) return RepairInstaller.LanguageFileName + " is empty";
 
             try
             {
                 Dictionary<string, object> languages = JsonText.ParseObject(File.ReadAllText(path));
-                if (languages.Count == 0) return MissingCoreInstaller.LanguageFileName + " lists no languages";
+                if (languages.Count == 0) return RepairInstaller.LanguageFileName + " lists no languages";
             }
             catch (FormatException)
             {
-                return MissingCoreInstaller.LanguageFileName + " is not valid JSON";
+                return RepairInstaller.LanguageFileName + " is not valid JSON";
             }
             catch (Exception)
             {
-                return MissingCoreInstaller.LanguageFileName + " could not be read";
+                return RepairInstaller.LanguageFileName + " could not be read";
             }
 
             return null;
@@ -164,22 +164,22 @@ namespace TimingShow.Bootstrap
 
         private static string CheckInfo(string modPath)
         {
-            string path = Path.Combine(modPath, MissingCoreInstaller.InfoFileName);
-            if (!File.Exists(path)) return MissingCoreInstaller.InfoFileName + " is missing";
+            string path = Path.Combine(modPath, RepairInstaller.InfoFileName);
+            if (!File.Exists(path)) return RepairInstaller.InfoFileName + " is missing";
 
             try
             {
                 Dictionary<string, object> info = JsonText.ParseObject(File.ReadAllText(path));
-                if (!HasText(info, "Id")) return MissingCoreInstaller.InfoFileName + " has no Id";
-                if (!HasText(info, "EntryMethod")) return MissingCoreInstaller.InfoFileName + " has no EntryMethod";
+                if (!HasText(info, "Id")) return RepairInstaller.InfoFileName + " has no Id";
+                if (!HasText(info, "EntryMethod")) return RepairInstaller.InfoFileName + " has no EntryMethod";
             }
             catch (FormatException)
             {
-                return MissingCoreInstaller.InfoFileName + " is not valid JSON";
+                return RepairInstaller.InfoFileName + " is not valid JSON";
             }
             catch (Exception)
             {
-                return MissingCoreInstaller.InfoFileName + " could not be read";
+                return RepairInstaller.InfoFileName + " could not be read";
             }
 
             return null;

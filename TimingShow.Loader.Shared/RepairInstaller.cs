@@ -12,7 +12,7 @@ using TimingShow.Update;
 
 namespace TimingShow.Bootstrap
 {
-    internal enum MissingCoreState
+    internal enum RepairState
     {
         Idle,
         Checking,
@@ -26,7 +26,7 @@ namespace TimingShow.Bootstrap
         Cancelled
     }
 
-    internal sealed class MissingCoreInstaller
+    internal sealed class RepairInstaller
     {
         public const string CoreFileName = "TimingShow.dll";
         public const string LanguageFileName = "lang.json";
@@ -60,13 +60,13 @@ namespace TimingShow.Bootstrap
 
         private Thread _worker;
         private volatile bool _cancelRequested;
-        private MissingCoreState _state;
+        private RepairState _state;
         private float _progress;
         private string _errorMessage = string.Empty;
         private string _version = string.Empty;
         private bool _loaderChanged;
 
-        public MissingCoreInstaller(string modPath, string pluginsPath, bool melonLayout, string releaseId, string repositoryUrl, string settingsPath, string updateRoot, string loaderFileName, Action<string> log, Action<string> error)
+        public RepairInstaller(string modPath, string pluginsPath, bool melonLayout, string releaseId, string repositoryUrl, string settingsPath, string updateRoot, string loaderFileName, Action<string> log, Action<string> error)
         {
             _modPath = PendingUpdateApplier.NormalizeDirectory(modPath);
             _pluginsPath = string.IsNullOrEmpty(pluginsPath) ? null : PendingUpdateApplier.NormalizeDirectory(pluginsPath);
@@ -117,7 +117,7 @@ namespace TimingShow.Bootstrap
             return settings;
         }
 
-        public MissingCoreState State
+        public RepairState State
         {
             get
             {
@@ -163,8 +163,8 @@ namespace TimingShow.Bootstrap
             {
                 lock (_sync)
                 {
-                    return _state == MissingCoreState.Checking || _state == MissingCoreState.Downloading
-                        || _state == MissingCoreState.Verifying || _state == MissingCoreState.Installing;
+                    return _state == RepairState.Checking || _state == RepairState.Downloading
+                        || _state == RepairState.Verifying || _state == RepairState.Installing;
                 }
             }
         }
@@ -175,12 +175,12 @@ namespace TimingShow.Bootstrap
             {
                 if (_worker != null && _worker.IsAlive) return;
                 _cancelRequested = false;
-                _state = MissingCoreState.Checking;
+                _state = RepairState.Checking;
                 _progress = 0f;
                 _errorMessage = string.Empty;
                 _version = string.Empty;
                 _loaderChanged = false;
-                _worker = new Thread(DownloadWorker) { IsBackground = true, Name = "TimingShow.MissingCore" };
+                _worker = new Thread(DownloadWorker) { IsBackground = true, Name = "TimingShow.Repair" };
                 _worker.Start();
             }
         }
@@ -211,11 +211,11 @@ namespace TimingShow.Bootstrap
 
                 Directory.CreateDirectory(downloadDirectory);
                 zipPath = Path.Combine(downloadDirectory, "TimingShow-" + Sanitize(release.Version) + ".zip");
-                SetState(MissingCoreState.Downloading);
+                SetState(RepairState.Downloading);
                 DownloadPackage(release, zipPath);
                 ThrowIfCancelled();
 
-                SetState(MissingCoreState.Verifying);
+                SetState(RepairState.Verifying);
                 VerifyDownload(release, zipPath);
                 ThrowIfCancelled();
 
@@ -224,23 +224,23 @@ namespace TimingShow.Bootstrap
                 VerifyStaging(staging);
                 ThrowIfCancelled();
 
-                SetState(MissingCoreState.Installing);
+                SetState(RepairState.Installing);
                 InstallStaging(staging, pluginStaging);
 
-                SetState(_loaderChanged ? MissingCoreState.RestartRequired : MissingCoreState.ReadyToLoad);
+                SetState(_loaderChanged ? RepairState.RestartRequired : RepairState.ReadyToLoad);
                 if (_loaderChanged) _log("TimingShow " + release.Version + " installed. Restart required.");
                 else _log("TimingShow " + release.Version + " installed. Ready to load.");
             }
             catch (OperationCanceledException)
             {
                 _log("The core download was cancelled.");
-                SetState(MissingCoreState.Cancelled);
+                SetState(RepairState.Cancelled);
             }
             catch (Exception e)
             {
                 lock (_sync) _errorMessage = e.Message;
                 _error("The core download failed: " + e.Message);
-                SetState(MissingCoreState.Failed);
+                SetState(RepairState.Failed);
             }
             finally
             {
@@ -609,7 +609,7 @@ namespace TimingShow.Bootstrap
             return full;
         }
 
-        private void SetState(MissingCoreState state)
+        private void SetState(RepairState state)
         {
             lock (_sync) _state = state;
         }

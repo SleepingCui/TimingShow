@@ -68,11 +68,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ModBootstrap.cs" />
-    <Compile Include="MissingCoreFallback.cs" />
+    <Compile Include="RepairPage.cs" />
     <Compile Include="PendingUpdate.cs" />
     <Compile Include="UMMEntry.cs" />
-    <Compile Include="..\TimingShow.Loader.Shared\MissingCoreInstaller.cs">
-      <Link>MissingCoreInstaller.cs</Link>
+    <Compile Include="..\TimingShow.Loader.Shared\RepairInstaller.cs">
+      <Link>RepairInstaller.cs</Link>
     </Compile>
     <Compile Include="..\TimingShow.Loader.Shared\PendingUpdateApplier.cs">
       <Link>PendingUpdateApplier.cs</Link>

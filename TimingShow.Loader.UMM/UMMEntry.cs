@@ -15,23 +15,28 @@ namespace TimingShow.UMM
             if (integrity.NeedsRepair)
             {
                 modEntry.Logger.Warning("[Integrity] TimingShow needs a repair: " + integrity.Summary);
-                return MissingCoreFallback.Start(modEntry, integrity);
+                return RepairPage.Start(modEntry, integrity);
             }
 
-            if (!File.Exists(Path.Combine(modEntry.Path, MissingCoreInstaller.CoreFileName))) return MissingCoreFallback.Start(modEntry, null);
+            if (!File.Exists(Path.Combine(modEntry.Path, RepairInstaller.CoreFileName))) return RepairPage.Start(modEntry, null);
             try
             {
                 return StartCore(modEntry);
             }
             catch (TypeLoadException e)
             {
-                modEntry.Logger.Error("[MissingCore] The installed TimingShow core is incompatible with this loader: " + e.Message);
-                return MissingCoreFallback.Start(modEntry, null);
+                modEntry.Logger.Error("[Repair] The installed TimingShow core is incompatible with this loader: " + e.Message);
+                return RepairPage.StartAfterLoadFailure(modEntry, null, e);
             }
             catch (BadImageFormatException e)
             {
-                modEntry.Logger.Error("[MissingCore] The installed TimingShow core is corrupted: " + e.Message);
-                return MissingCoreFallback.Start(modEntry, null);
+                modEntry.Logger.Error("[Repair] The installed TimingShow core is corrupted: " + e.Message);
+                return RepairPage.StartAfterLoadFailure(modEntry, null, e);
+            }
+            catch (Exception e)
+            {
+                modEntry.Logger.Error("[Repair] TimingShow failed to start: " + e);
+                return RepairPage.StartAfterLoadFailure(modEntry, null, e);
             }
         }
 

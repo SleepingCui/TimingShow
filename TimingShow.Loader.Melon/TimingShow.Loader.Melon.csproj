@@ -87,9 +87,9 @@
     <Compile Include="MelonEntry.SettingsWindow.cs" />
     <Compile Include="MelonCoreSetup.cs" />
     <Compile Include="MelonHotkeys.cs" />
-    <Compile Include="MissingCoreFallback.cs" />
-    <Compile Include="..\TimingShow.Loader.Shared\MissingCoreInstaller.cs">
-      <Link>MissingCoreInstaller.cs</Link>
+    <Compile Include="RepairPage.cs" />
+    <Compile Include="..\TimingShow.Loader.Shared\RepairInstaller.cs">
+      <Link>RepairInstaller.cs</Link>
     </Compile>
     <Compile Include="..\TimingShow.Loader.Shared\PendingUpdateApplier.cs">
       <Link>PendingUpdateApplier.cs</Link>
