@@ -76,11 +76,13 @@ namespace TimingShow.HUD.ScatterDrawerBase
             bool showTicks = active && UsesDynamicAxisTicks;
             if (_xTickTexts != null) for (int i = 0; i < _xTickTexts.Length; i++)
             {
-                if (_xTickTexts[i] != null && _xTickTexts[i].gameObject.activeSelf != showTicks) _xTickTexts[i].gameObject.SetActive(showTicks);
+                bool show = showTicks && i < _xTickVisibleCount;
+                if (_xTickTexts[i] != null && _xTickTexts[i].gameObject.activeSelf != show) _xTickTexts[i].gameObject.SetActive(show);
             }
             if (_yTickTexts != null) for (int i = 0; i < _yTickTexts.Length; i++)
             {
-                if (_yTickTexts[i] != null && _yTickTexts[i].gameObject.activeSelf != showTicks) _yTickTexts[i].gameObject.SetActive(showTicks);
+                bool show = showTicks && i < _yTickVisibleCount;
+                if (_yTickTexts[i] != null && _yTickTexts[i].gameObject.activeSelf != show) _yTickTexts[i].gameObject.SetActive(show);
             }
 
             if (_avgValueText != null)
@@ -209,6 +211,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             Color tickColor = color;
             tickColor.a *= 0.85f;
 
+            _xTickVisibleCount = 0;
             for (int i = 0; i < _xTickTexts.Length; i++)
             {
                 TMP_Text text = _xTickTexts[i];
@@ -251,9 +254,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 rt.pivot = pivot;
                 rt.anchoredPosition = new Vector2(x, labelY);
                 rt.sizeDelta = new Vector2(measured, xLabelHeight);
+                _xTickVisibleCount = i + 1;
             }
 
             float maxYWidth = 0f;
+            _yTickVisibleCount = 0;
             for (int i = 0; i < _yTickTexts.Length; i++)
             {
                 TMP_Text text = _yTickTexts[i];
@@ -280,6 +285,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                 float width = MeasureTextWidth(text, label, yFontSize);
                 rt.sizeDelta = new Vector2(width, yBoxHeight);
                 if (width > maxYWidth) maxYWidth = width;
+                _yTickVisibleCount = i + 1;
             }
 
             if (maxYWidth > 0f) ReportAxisLabelWidth(maxYWidth);

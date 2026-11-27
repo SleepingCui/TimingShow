@@ -23,6 +23,11 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private const int MaxMeshVertexCount = 65535;
         private const int MinCircleSegments = 6;
         private const int MaxCircleSegments = 16;
+        private const int MaxAntiAliasPointCount = 1200;
+        private const int MaxAvgLineAntialiasPoints = 2400;
+        private const int MaxAvgLineJoints = 512;
+        private const int JointSegments = 12;
+        private const float CircleFeatherPx = 0.6f;
         protected static readonly int MaxSafePointCount = (MaxMeshVertexCount - FixedVertexBudget) / (MinCircleSegments + 4);
 
         private static readonly Color DefaultPointColor = new Color(0.30f, 0.76f, 1f, 1f);
@@ -56,6 +61,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
         private readonly List<float> _yTickFractions = new List<float>(MaxYAxisTicks);
         private readonly List<string> _xTickLabels = new List<string>(MaxXAxisTicks);
         private readonly List<string> _yTickLabels = new List<string>(MaxYAxisTicks);
+        private int _xTickVisibleCount;
+        private int _yTickVisibleCount;
 
         protected override void DrawReferenceLines(VertexHelper vh, float w, float h)
         {
@@ -98,7 +105,8 @@ namespace TimingShow.HUD.ScatterDrawerBase
             PerfPhases.Record(PerfPhase.DrawAverageLine, PerfPhases.Since(mark));
 
             bool colorByPlayer = ColorPointsByPlayer;
-            int circleSegments = CircleSegmentsFor(count, radius);
+            bool antiAliasPoints = count <= MaxAntiAliasPointCount;
+            int circleSegments = CircleSegmentsFor(count, radius, antiAliasPoints);
 
             if (PerfStatsRecorder.IsRecording)
             {
@@ -142,7 +150,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
                     color = runColor;
                 }
 
-                DrawCircle(vh, center, radius, circleSegments, color);
+                DrawCircle(vh, center, radius, circleSegments, color, antiAliasPoints);
             }
             PerfPhases.Record(PerfPhase.DrawPoints, PerfPhases.Since(mark));
 
@@ -435,12 +443,12 @@ namespace TimingShow.HUD.ScatterDrawerBase
             vh.AddTriangle(baseIndex, baseIndex + 1, baseIndex + 2);
         }
 
-        private const float MaxCircleSagittaPx = 0.35f;
+        private const float MaxCircleSagittaPx = 0.14f;
 
-        private static int CircleSegmentsFor(int pointCount, float radius)
+        private static int CircleSegmentsFor(int pointCount, float radius, bool antiAlias)
         {
             int budgetPerPoint = (MaxMeshVertexCount - FixedVertexBudget) / Mathf.Max(1, pointCount);
-            int byBudget = budgetPerPoint - 4;
+            int byBudget = budgetPerPoint / (antiAlias ? 2 : 1) - 3;
 
             int byRoundness = MaxCircleSegments;
             if (radius > MaxCircleSagittaPx)
@@ -469,10 +477,22 @@ namespace TimingShow.HUD.ScatterDrawerBase
             return unit;
         }
 
-        private void DrawCircle(VertexHelper vh, Vector2 center, float radius, int segments, Color color)
+        private void DrawCircle(VertexHelper vh, Vector2 center, float radius, int segments, Color color, bool antiAlias)
         {
+            if (radius <= 0f) return;
             if (segments < 3) segments = 3;
 
+            if (antiAlias) AddCirclePolygon(vh, center, radius + CircleFeatherPx, segments, FadeAlpha(color, 0.3f));
+            AddCirclePolygon(vh, center, radius, segments, color);
+        }
+
+        private void DrawCircle(VertexHelper vh, Vector2 center, float radius, int segments, Color color)
+        {
+            DrawCircle(vh, center, radius, segments, color, true);
+        }
+
+        private void AddCirclePolygon(VertexHelper vh, Vector2 center, float radius, int segments, Color color)
+        {
             Vector2[] unit = GetUnitCircle(segments);
             int baseIndex = vh.currentVertCount;
             for (int i = 0; i < segments; i++)
@@ -496,11 +516,14 @@ namespace TimingShow.HUD.ScatterDrawerBase
             float halfWidth = Mathf.Max(0.5f, 1.6f * scale * 0.5f);
             Color color = ScatterAvgLineColor;
 
+            bool antiAlias = count <= MaxAvgLineAntialiasPoints;
             int cursor = 0;
             bool hasPrev = false;
             bool hasFirst = false;
+            int joints = 0;
             Vector2 prev = Vector2.zero;
             Vector2 first = Vector2.zero;
+            Vector2 lastDir = Vector2.zero;
 
             for (int i = 0; i < count; i++)
             {
@@ -517,24 +540,38 @@ namespace TimingShow.HUD.ScatterDrawerBase
                     hasFirst = true;
                 }
 
-                if (hasPrev) DrawClippedSegment(vh, prev, cur, w, halfWidth, color);
+                if (hasPrev)
+                {
+                    Vector2 dir = cur - prev;
+                    if (dir.sqrMagnitude > 0.000001f)
+                    {
+                        dir = dir.normalized;
+                        if (antiAlias && joints < MaxAvgLineJoints && lastDir != Vector2.zero && Vector2.Dot(lastDir, dir) < 0.985f)
+                        {
+                            DrawCircle(vh, prev, halfWidth, JointSegments, color, true);
+                            joints++;
+                        }
+                        lastDir = dir;
+                    }
+                    DrawClippedSegment(vh, prev, cur, w, halfWidth, color, antiAlias);
+                }
                 prev = cur;
                 hasPrev = true;
             }
             
             if (hasFirst && first.x > 0.01f)
-                DrawClippedSegment(vh, new Vector2(0f, first.y), first, w, halfWidth, color);
+                DrawClippedSegment(vh, new Vector2(0f, first.y), first, w, halfWidth, color, antiAlias);
 
             float currentAvg = _avgSmoothValid ? _avgSmoothValue : _avgCurrent;
             float tailNy = Mathf.Clamp01((currentAvg - _minY) / rangeY);
             if (hasPrev)
             {
                 Vector2 tail = new Vector2(w, tailNy * h);
-                DrawClippedSegment(vh, prev, tail, w, halfWidth, color);
+                DrawClippedSegment(vh, prev, tail, w, halfWidth, color, antiAlias);
             }
             else
             {
-                DrawSegment(vh, new Vector2(0f, tailNy * h), new Vector2(w, tailNy * h), halfWidth, color);
+                DrawClippedSegment(vh, new Vector2(0f, tailNy * h), new Vector2(w, tailNy * h), w, halfWidth, color, antiAlias);
             }
 
             if (AvgLabelStub)
@@ -546,7 +583,7 @@ namespace TimingShow.HUD.ScatterDrawerBase
             }
         }
 
-        private void DrawClippedSegment(VertexHelper vh, Vector2 a, Vector2 b, float w, float halfWidth, Color color)
+        private void DrawClippedSegment(VertexHelper vh, Vector2 a, Vector2 b, float w, float halfWidth, Color color, bool antiAlias)
         {
             if (a.x > b.x) (a, b) = (b, a);
             if (b.x <= 0f || a.x >= w) return;
@@ -557,7 +594,22 @@ namespace TimingShow.HUD.ScatterDrawerBase
 
             if (b.x - a.x < 0.01f) return;
 
+            if (!antiAlias)
+            {
+                DrawSegment(vh, a, b, halfWidth, color);
+                return;
+            }
+
+            float feather = Mathf.Max(0.45f, halfWidth * 0.45f);
+            DrawSegment(vh, a, b, halfWidth + feather, FadeAlpha(color, 0.18f));
+            DrawSegment(vh, a, b, halfWidth + feather * 0.45f, FadeAlpha(color, 0.32f));
             DrawSegment(vh, a, b, halfWidth, color);
+        }
+
+        private static Color FadeAlpha(Color color, float factor)
+        {
+            color.a *= factor;
+            return color;
         }
 
         private bool TryGetPointLocalPosition(RenderPoint point, float w, float h, out Vector2 local)
