@@ -18,6 +18,12 @@ namespace TimingShow.HUD
         internal static float MenuItemRadius { get { return 9f * GlobalScale; } }
         internal static float CapsuleRatio { get { return Mathf.Clamp01(0.35f + 0.5f * GlobalScale); } }
 
+        // Chord length stays near one pixel, so the polygon edge reads as a curve once feathered.
+        internal static int SegmentsFor(float radius)
+        {
+            return Mathf.Clamp(Mathf.CeilToInt(radius * 1.15f), 4, 32);
+        }
+
         internal static void SyncFromSettings()
         {
             Settings settings = ModContext.Settings;
@@ -147,26 +153,18 @@ namespace TimingShow.HUD
             if (steps < 2) steps = 2;
 
             Rect baseRect = new Rect(rect.x + offset.x, rect.y + offset.y, rect.width, rect.height);
-            Rect previous = baseRect;
-            for (int i = 1; i <= steps; i++)
-            {
-                float t = i / (float)steps;
-                float distance = spread * t;
-                Rect band = Expand(baseRect, distance);
-                AddBand(vh,
-                    BuildPerimeter(band, radius + distance, radius + distance, radius + distance, radius + distance, 8),
-                    BuildPerimeter(previous, radius + spread * (i - 1) / steps, radius + spread * (i - 1) / steps,
-                        radius + spread * (i - 1) / steps, radius + spread * (i - 1) / steps, 8),
-                    color, color, baseRect, Falloff(t), Falloff((i - 1) / (float)steps));
-                previous = band;
-            }
-        }
 
-        // Quadratic falloff reads as a blurred edge: darkest at the panel, transparent at the spread limit.
-        private static float Falloff(float t)
-        {
-            float remaining = 1f - Mathf.Clamp01(t);
-            return remaining * remaining;
+            // Nested fills accumulate alpha, which reads as a smooth falloff instead of visible bands.
+            Color layer = color;
+            layer.a = 1f - Mathf.Pow(1f - Mathf.Clamp01(color.a), 1f / steps);
+
+            for (int i = steps; i >= 1; i--)
+            {
+                float distance = spread * i / steps;
+                Rect band = Expand(baseRect, distance);
+                float corner = Mathf.Min(radius + distance, Mathf.Min(band.width, band.height) * 0.5f);
+                DrawFilled(vh, band, corner, layer, layer, SegmentsFor(corner), 0f);
+            }
         }
 
         // Vertical gradient is affine in y, so per-vertex colours interpolate it exactly.

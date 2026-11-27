@@ -61,14 +61,20 @@ namespace TimingShow.HUD
             DrawCircle(vh, to, half, color, 10);
         }
 
-        internal static void DrawCircle(VertexHelper vh, Vector2 center, float radius, Color color, int segments = 16)
+        internal static void DrawCircle(VertexHelper vh, Vector2 center, float radius, Color color, int segments = 16,
+            float feather = 0f)
         {
             if (radius <= 0f) return;
+
+            int count = Mathf.Max(6, segments);
+            if (feather > 0f)
+            {
+                count = Mathf.Max(count, Mathf.Clamp(Mathf.CeilToInt(radius * 7f), 8, 64));
+            }
 
             int start = vh.currentVertCount;
             vh.AddVert(new Vector3(center.x, center.y, 0f), color, Vector2.zero);
 
-            int count = Mathf.Max(6, segments);
             for (int i = 0; i <= count; i++)
             {
                 float angle = Mathf.PI * 2f * i / count;
@@ -79,6 +85,30 @@ namespace TimingShow.HUD
             for (int i = 0; i < count; i++)
             {
                 vh.AddTriangle(start, start + 1 + i, start + 2 + i);
+            }
+
+            if (feather <= 0f) return;
+
+            // Outer rim fades to transparent so the polygon edge reads as a curve instead of a staircase.
+            Color fade = color;
+            fade.a = 0f;
+
+            int rim = vh.currentVertCount;
+            for (int i = 0; i <= count; i++)
+            {
+                float angle = Mathf.PI * 2f * i / count;
+                Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                Vector2 inner = center + direction * radius;
+                Vector2 outer = center + direction * (radius + feather);
+                vh.AddVert(new Vector3(inner.x, inner.y, 0f), color, Vector2.zero);
+                vh.AddVert(new Vector3(outer.x, outer.y, 0f), fade, Vector2.zero);
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int index = rim + i * 2;
+                vh.AddTriangle(index, index + 2, index + 3);
+                vh.AddTriangle(index, index + 3, index + 1);
             }
         }
 
