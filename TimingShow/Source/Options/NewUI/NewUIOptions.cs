@@ -39,6 +39,8 @@ namespace TimingShow.Options
         private static string _graphRedrawIntervalText;
         private static string _updateCheckDelayText;
         private static string _cacheStatus;
+        private static bool _ciBannerDismissed;
+        private static bool _insecureWarningDismissed;
 
         internal static void Draw()
         {
@@ -47,10 +49,41 @@ namespace TimingShow.Options
             NewUISkin.Ensure();
             NewUIWidgets.BeginFrame();
             NewUIUpdateBanner.Draw();
+            DrawCiVersionBanner();
+            DrawInsecureUpdateWarning();
             DrawTabs();
-            if (ModContext.Settings.InsecureUpdateDebugEnabled) NewUIWidgets.Warning(i18n.T("Warning_InsecureUpdateDebug"));
             GUILayout.Space(6f);
             DrawPage();
+        }
+
+        private static void DrawCiVersionBanner()
+        {
+            if (_ciBannerDismissed) return;
+
+            string text = CiVersionBanner.Text();
+            if (text != null) NewUIWidgets.Warning(text, DismissCiVersionBanner);
+        }
+
+        private static void DismissCiVersionBanner()
+        {
+            _ciBannerDismissed = true;
+        }
+
+        private static void DrawInsecureUpdateWarning()
+        {
+            if (!ModContext.Settings.InsecureUpdateDebugEnabled)
+            {
+                _insecureWarningDismissed = false;
+                return;
+            }
+
+            if (_insecureWarningDismissed) return;
+            NewUIWidgets.Warning(i18n.T("Warning_InsecureUpdateDebug"), DismissInsecureUpdateWarning);
+        }
+
+        private static void DismissInsecureUpdateWarning()
+        {
+            _insecureWarningDismissed = true;
         }
 
         private static void DrawTabs()

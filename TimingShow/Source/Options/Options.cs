@@ -82,6 +82,8 @@ namespace TimingShow.Options
             }
 
             UpdateBridge.DrawBanner();
+            string ciVersion = CiVersionBanner.Text();
+            if (ciVersion != null) DrawCiVersionWarning(ciVersion);
             if (ModContext.Settings.InsecureUpdateDebugEnabled) DrawInsecureUpdateWarning();
             DrawLanguageSettings();
             DrawTitleSettings();
@@ -759,6 +761,13 @@ namespace TimingShow.Options
                 DrawDebugSettings();
             }
             GUILayout.EndVertical();
+        }
+
+        private static void DrawCiVersionWarning(string text)
+        {
+            if (_warningLabelStyle == null)
+                _warningLabelStyle = new GUIStyle(GUI.skin.label) { wordWrap = true, richText = true };
+            GUILayout.Label($"<color=#F79009>{text}</color>", _warningLabelStyle);
         }
 
         private static void DrawInsecureUpdateWarning()

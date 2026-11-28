@@ -30,6 +30,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(isCiVersion)' == 'true' ">
+    <DefineConstants>$(DefineConstants);CI_VERSION</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>..\libs\0Harmony.dll</HintPath>
@@ -194,6 +197,7 @@
     <Compile Include="Source\Logging\CountingStream.cs" />
     <Compile Include="Source\Logging\LogWriteStats.cs" />
     <Compile Include="Source\Options\CacheCleaner.cs" />
+    <Compile Include="Source\Options\CiVersionBanner.cs" />
     <Compile Include="Source\Options\OptionLogList.cs" />
     <Compile Include="Source\Options\Options.cs" />
     <Compile Include="Source\Options\OptionsWidgets.cs" />

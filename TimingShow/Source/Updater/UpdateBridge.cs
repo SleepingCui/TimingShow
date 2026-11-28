@@ -13,8 +13,14 @@ namespace TimingShow.Update
         private const string ServiceTypeName = "TimingShow.Update.UpdateService";
 
         private static IUpdateService _service;
+        private static string _modVersion;
 
         public static event Action Changed;
+
+        public static string ModVersion
+        {
+            get { return _modVersion; }
+        }
 
         public static bool IsAvailable
         {
@@ -48,6 +54,7 @@ namespace TimingShow.Update
 
         public static void Initialize(string modPath, string updateRoot, string repositoryUrl, string version, UpdateTarget target, bool autoApplyAvailable, IModLogger logger)
         {
+            _modVersion = version;
             _service = LoadService(modPath, logger);
             if (_service == null) return;
 

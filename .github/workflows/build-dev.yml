@@ -89,7 +89,7 @@ jobs:
 
       - name: Build solution
         shell: pwsh
-        run: msbuild TimingShow.slnx /m /p:Configuration=Release /p:Platform="Any CPU"
+        run: msbuild TimingShow.slnx /m /p:Configuration=Release /p:Platform="Any CPU" /p:isCiVersion=true
 
       - name: Prepare artifact packages
         id: package

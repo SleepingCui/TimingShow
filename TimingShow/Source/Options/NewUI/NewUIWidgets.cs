@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
@@ -447,18 +448,36 @@ namespace TimingShow.Options
             GUI.Label(new Rect(row.x + 8f, row.y, row.width - 16f, row.height), text, NewUISkin.MutedLabelStyle);
         }
 
-        internal static void Warning(string text)
+        internal static void Warning(string text, Action onDismiss = null)
         {
             const float IconSize = 20f;
             const float IconInset = 12f;
+            const float CloseSize = 20f;
+            const float CloseInset = 8f;
 
-            GUILayout.BeginVertical(NewUISkin.WarningBoxStyle);
+            GUIStyle boxStyle = onDismiss != null ? NewUISkin.WarningDismissibleBoxStyle : NewUISkin.WarningBoxStyle;
+            GUILayout.BeginVertical(boxStyle);
             GUILayout.Label(text, NewUISkin.WarningStyle);
             Rect textRect = GUILayoutUtility.GetLastRect();
             GUILayout.EndVertical();
 
             Rect icon = new Rect(textRect.x - 40f + IconInset, textRect.y + (textRect.height - IconSize) * 0.5f, IconSize, IconSize);
             GUI.DrawTexture(icon, NewUISkin.WarningIcon, ScaleMode.ScaleToFit, true);
+
+            if (onDismiss == null) return;
+
+            Rect box = new Rect(textRect.x - boxStyle.padding.left, textRect.y - boxStyle.padding.top,
+                textRect.width + boxStyle.padding.horizontal, textRect.height + boxStyle.padding.vertical);
+            Rect close = new Rect(box.xMax - CloseInset - CloseSize, box.center.y - CloseSize * 0.5f, CloseSize, CloseSize);
+            bool hover = close.Contains(Event.current.mousePosition);
+            if (hover) NewUISkin.DrawRounded(close, 5f, NewUISkin.ElementHover);
+
+            Color previous = GUI.contentColor;
+            GUI.contentColor = hover ? Color.white : NewUISkin.TextDim;
+            GUI.Label(close, "\u00D7", NewUISkin.CloseGlyphStyle);
+            GUI.contentColor = previous;
+
+            if (GUI.Button(close, GUIContent.none, GUIStyle.none)) onDismiss();
         }
 
         internal static void Divider()

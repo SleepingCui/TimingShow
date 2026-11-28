@@ -55,6 +55,8 @@ namespace TimingShow.Options
         internal static GUIStyle FieldStyle;
         internal static GUIStyle WarningStyle;
         internal static GUIStyle WarningBoxStyle;
+        internal static GUIStyle WarningDismissibleBoxStyle;
+        internal static GUIStyle CloseGlyphStyle;
         internal static Texture2D WarningIcon;
         internal static Texture2D StatusInfoIcon;
         internal static Texture2D StatusErrorIcon;
@@ -199,6 +201,11 @@ namespace TimingShow.Options
                 padding = new RectOffset(40, 12, 9, 9),
                 margin = new RectOffset(0, 0, 0, 4)
             };
+            WarningDismissibleBoxStyle = new GUIStyle(WarningBoxStyle)
+            {
+                padding = new RectOffset(40, 40, 9, 9)
+            };
+            CloseGlyphStyle = TextStyle(_fontSize + 4, Color.white, TextAnchor.MiddleCenter);
 
             FieldStyle = new GUIStyle
             {
