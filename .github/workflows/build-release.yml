@@ -61,10 +61,10 @@ jobs:
         id: notes
         shell: pwsh
         run: |
-          $changelog = "CHANGELOG.md"
+          $changelog = "docs/CHANGELOG.md"
 
           if (-not (Test-Path $changelog)) {
-            Write-Error "CHANGELOG.md was not found."
+            Write-Error "docs/CHANGELOG.md was not found."
             exit 1
           }
 
@@ -74,7 +74,7 @@ jobs:
           $body >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
 
-          Write-Host "CHANGELOG.md found."
+          Write-Host "docs/CHANGELOG.md found."
 
       - name: Create tag
         env:

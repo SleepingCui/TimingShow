@@ -1,80 +1,84 @@
 # TimingShow
 
-面向冰与火之舞的击打分析模组，支持 MelonLoader 和 UnityModManager
+[简体中文](docs/README.zh-CN.md)
 
-A hit-timing analysis mod for A Dance of Fire and Ice, supporting MelonLoader and UnityModManager.
+A hit-timing analysis mod for *A Dance of Fire and Ice*. Supports MelonLoader and UnityModManager (UMM).
 
-## 功能 / Features
+## Features
 
-- 显示 Timing、UR、Perfect(XPerfect) Ratio 和 XACC曲线图
+### In-game display
 
-  Displays Timing, UR, Perfect (XPerfect) Ratio, and XACC curve graphs
+- Show Timing, UR, Perfect (XPerfect) Ratio, and XACC graphs.
+- Display results on song titles, planet judgement text, the HUD, death screens, and level-complete screens.
+- Customize displayed values, colors, position, scale, format, and precision.
+- Track XPerfect, average offset (Avg), and local co-op statistics by player.
+- Add a hit bump animation to the HUD.
 
-- 支持在歌曲标题、星球判定文字、HUD、死亡页和通关页显示
+### Logs and analysis
 
-  Supports display on song titles, planet judgement text, HUD, death screen, and level complete screen
-- 可自定义显示内容、颜色、位置、缩放、格式和精度
+- Record Timing logs and view detailed reports with offset scatter plots, distributions, XACC, and other metrics in [Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer).
+- View a live Timing scatter plot during a run, or open a log's scatter plot from the log list. Both support pan, zoom, per-hit details, and judgement bands.
+- Explore nine log-analysis views: overview, scatter plot, offset distribution, delta, rolling average, return map, combo heatmap, autocorrelation, and XACC. Filter by player and inspect statistics and individual hits.
+- Review the previous run's hit markers in the level editor, inspect them on hover, or import markers from a log.
+- Use the floating editor-hit panel (F6 by default) to search and filter by floor, time, player, offset, and judgement.
+- Open the last-session report with F10 by default, even when log recording is disabled.
+- Search the log list, automatically clean up old logs.
 
-  Customizable display content, colors, position, scale, format, and precision
-- 支持 XPerfect 判定
+### Configuration
 
-  Supports XPerfect
-- 支持 Timing 日志，可在[Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer)获取详细的分析报告 (包括偏移散点图，正态分布图，XACC曲线等指标)
+- Configure the mod in game. When loaded through MelonLoader, press F9 by default to open the settings.
 
-  Supports Timing logs; detailed analysis reports (including offset scatter plots, normal distribution graphs, XACC curves, and other metrics) are available at [Offset Analyzer](https://sleepingcui.github.io/adofai_offset_analyzer).
-- 提供游戏内实时 Timing 散点图与日志散点图窗口，支持平移缩放、单次击打详情与判定/XPerfect 色带
+## Updates
 
-  Provides an in-game real-time Timing scatter graph and a log scatter window (log list → View Graph), with pan/zoom, per-hit details, and judge/XPerfect bands
-- 日志分析窗口新增概览，提供九种图表视图，包括散点、偏移分布、Delta、滑动均值、Return Map、连击热力图、自相关和 XACC；支持玩家筛选、统计信息与逐击详情
+TimingShow supports in-game update checks for stable releases and CI development builds. Update checks and automatic updates are disabled by default; downloaded updates take effect after restarting the game.
 
-  The log analysis window provides nine views, including an overview, scatter plot, offset distribution, delta, rolling average, return map, combo heatmap, autocorrelation, and XACC, with player filters, statistics, and per-hit details
-- 返回关卡编辑器后可显示上一局的击打点，并支持悬停查看详情或从日志导入击打点
+### CI builds
 
-  View the previous run's hit markers in the level editor, inspect them on hover, or import hit markers from a log
-- 开启编辑器击打点后，可用悬浮面板按地板、时间、玩家、偏差和判定筛选或搜索，默认按 F6 显示
+> [!WARNING]
+> CI builds provide early access to development versions before they are included in a stable release. They may contain bugs, unfinished features, or compatibility issues, so they are not recommended if you prioritize stability.
 
-  When editor hit markers are enabled, a floating panel (F6 by default) filters and searches hits by floor, time, player, offset, and judgement
-- 可通过 F10（默认快捷键）打开上次击打报告；即使未启用日志记录，也能查看本局图表
+On versions with an update-channel selector, choose **CI** in the updater settings, enable update checks, and select **Check for updates now**.
 
-  Press F10 (the default hotkey) to view the last-session report and its charts, even when logging is disabled
-- 日志列表支持搜索和自动清理；界面支持韩语
+#### Using CI builds on v1.9.4
 
-  Search the log list, automatically clean up old logs, and use the Korean interface
-- 新增平均偏移 (Avg) HUD 与命中跳动效果
+> [!NOTE]
+> Version 1.9.4 does not include an update-channel selector. To use the CI repository, configure a custom update URL as described below.
 
-  Adds an Avg offset HUD and a hit bump animation
-- 支持本地多人 (co-op)
+1. Open the TimingShow settings and expand **Debug**.
+2. Enable **Custom Update URL**.
+3. Enter this URL in the field that appears:
 
-  Supports local co-op: per-player statistics
-- 支持游戏内检查与自动更新，默认关闭；更新在下次启动时生效
+   ```text
+   https://raw.githubusercontent.com/SleepingCui/ts_ci/main/Repository.json
+   ```
 
-  Supports in-game update checks and automatic updates, disabled by default; updates take effect on the next launch
-- 同时支持UMM和MelonLoader,以MelonLoader加载时使用`F9`呼出配置界面
+4. Make sure update checking is enabled, then select **Check for updates now**.
 
-  Supports both UMM and MelonLoader; when loaded via MelonLoader, press `F9` to open the configuration interface.
+TimingShow will check for CI updates through that repository.
 
 ## Screenshots
+
 <details>
-<summary>（点击展开 / Click to expand）</summary>
-<img width="682" height="645" alt="屏幕截图 2026-09-06 000354" src="https://github.com/user-attachments/assets/6abc512e-3f7d-446d-ba2f-d314ffed2934" />
+<summary>Click to expand</summary>
 
-<img width="1721" height="1021" alt="屏幕截图 2026-09-06 000500" src="https://github.com/user-attachments/assets/62a7a0f1-ba1a-4445-b63a-ccd89d74e90a" />
+<img width="682" height="645" alt="TimingShow screenshot showing the in-game interface" src="https://github.com/user-attachments/assets/6abc512e-3f7d-446d-ba2f-d314ffed2934" />
 
-<img width="1432" height="767" alt="屏幕截图 2026-09-06 000609" src="https://github.com/user-attachments/assets/56699d0d-fade-4f03-b5f8-37853f5d38d7" />
+<img width="1721" height="1021" alt="TimingShow screenshot showing analysis graphs" src="https://github.com/user-attachments/assets/62a7a0f1-ba1a-4445-b63a-ccd89d74e90a" />
 
-<img width="593" height="302" alt="屏幕截图 2026-09-06 000804" src="https://github.com/user-attachments/assets/11a60e56-e268-4049-863e-e0226a894758" />
+<img width="1432" height="767" alt="TimingShow screenshot showing a graph window" src="https://github.com/user-attachments/assets/56699d0d-fade-4f03-b5f8-37853f5d38d7" />
 
-<img width="1152" height="2583" alt="屏幕截图_6-9-2026_0851_sleepingcui github io" src="https://github.com/user-attachments/assets/cb8203a3-380a-4b8e-a23b-041c0eb10f7d" />
+<img width="593" height="302" alt="TimingShow screenshot showing a compact panel" src="https://github.com/user-attachments/assets/11a60e56-e268-4049-863e-e0226a894758" />
+
+<img width="1152" height="2583" alt="Offset Analyzer report for TimingShow logs" src="https://github.com/user-attachments/assets/cb8203a3-380a-4b8e-a23b-041c0eb10f7d" />
 
 </details>
 
-## 引用 & 代码参考 / References & Code Credits
+## References and code credits
 
-- [Oerlayer](https://github.com/c3nb/Overlayer)
-- [ProgressDisplayer](https://github.com/FLOWERs-Modding/ADOFAI_ProgressDisplayer2)
+- [Overlayer](https://github.com/c3nb/Overlayer)
 - [XPerfect](https://github.com/8100print/XPerfect)
 - [YCH](https://github.com/adofaiex/YqlossClientHarmony)
 
-## LICENSE
+## License
 
 [MIT](LICENSE.txt)
