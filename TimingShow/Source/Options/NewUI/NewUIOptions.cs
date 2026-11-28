@@ -47,6 +47,8 @@ namespace TimingShow.Options
             NewUISkin.Ensure();
             NewUIWidgets.BeginFrame();
             NewUIUpdateBanner.Draw();
+            string ciVersion = CiVersionBanner.Text();
+            if (ciVersion != null) NewUIWidgets.Warning(ciVersion);
             DrawTabs();
             if (ModContext.Settings.InsecureUpdateDebugEnabled) NewUIWidgets.Warning(i18n.T("Warning_InsecureUpdateDebug"));
             GUILayout.Space(6f);
